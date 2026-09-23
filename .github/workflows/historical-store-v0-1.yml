@@ -8,6 +8,7 @@ on:
     paths:
       - historical_store.py
       - historical_store_bundle.py
+      - historical_artifacts.py
       - galia_history_bridge.py
       - pilots/**
       - tests/**
