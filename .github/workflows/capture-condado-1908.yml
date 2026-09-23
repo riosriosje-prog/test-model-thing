@@ -1,0 +1,122 @@
+name: capture-condado-1908-primary-source
+
+on:
+  push:
+    branches:
+      - galia-historical-store-v0-1
+    paths:
+      - .github/workflows/capture-condado-1908.yml
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SOURCE_ID: loc-sn91099747-1908-09-04-ed1-seq1
+      SOURCE_URL_PRIMARY: https://tile.loc.gov/storage-services/service/ndnp/prru/batch_prru_foca_ver01/data/sn91099747/0027176568A/1908090401/0252.pdf
+      SOURCE_URL_FALLBACK: https://chroniclingamerica.loc.gov/lccn/sn91099747/1908-09-04/ed-1/seq-1.pdf
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Capture custodial PDF bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture
+          out="capture/condado_1908_09_04_seq1.pdf"
+          effective=""
+          used=""
+
+          try_url() {
+            local url="$1"
+            local label="$2"
+            local headers="capture/$label.headers.txt"
+            local tmp="capture/$label.tmp"
+            rm -f "$tmp" "$headers"
+            if curl               --fail --location --silent --show-error               --retry 3 --retry-delay 2               --connect-timeout 20 --max-time 120               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.1"               --dump-header "$headers"               --output "$tmp"               --write-out '%{url_effective}'               "$url" > "capture/$label.effective.txt"; then
+                if python - "$tmp" <<'PY'
+          import pathlib, sys
+          p = pathlib.Path(sys.argv[1])
+          data = p.read_bytes()
+          if len(data) < 5 or not data.startswith(b"%PDF-"):
+              raise SystemExit(1)
+          PY
+                then
+                  mv "$tmp" "$out"
+                  effective="$(cat "capture/$label.effective.txt")"
+                  used="$label"
+                  return 0
+                fi
+            fi
+            rm -f "$tmp"
+            return 1
+          }
+
+          if try_url "$SOURCE_URL_PRIMARY" primary; then
+            :
+          elif try_url "$SOURCE_URL_FALLBACK" fallback; then
+            :
+          else
+            echo "Unable to capture verified PDF bytes from either custodial route" >&2
+            exit 41
+          fi
+
+          sha="$(sha256sum "$out" | awk '{print $1}')"
+          size="$(stat -c '%s' "$out")"
+
+          SOURCE_ID="$SOURCE_ID"           SOURCE_URL_PRIMARY="$SOURCE_URL_PRIMARY"           SOURCE_URL_FALLBACK="$SOURCE_URL_FALLBACK"           USED_ROUTE="$used"           EFFECTIVE_URL="$effective"           SHA256="$sha"           SIZE_BYTES="$size"           python - <<'PY'
+          import json, os, pathlib
+          receipt = {
+              "schema_version": 1,
+              "receipt_type": "GALIA_PRIMARY_SOURCE_CAPTURE",
+              "source_id": os.environ["SOURCE_ID"],
+              "custodian": "Library of Congress / Chronicling America",
+              "title": "La Correspondencia de Puerto Rico — 4 Sep 1908 — image 1",
+              "requested_primary_url": os.environ["SOURCE_URL_PRIMARY"],
+              "requested_fallback_url": os.environ["SOURCE_URL_FALLBACK"],
+              "used_route": os.environ["USED_ROUTE"],
+              "effective_url": os.environ["EFFECTIVE_URL"],
+              "representation_type": "application/pdf",
+              "sha256": os.environ["SHA256"],
+              "size_bytes": int(os.environ["SIZE_BYTES"]),
+              "raw_artifact": True,
+              "acquisition_state": "RAW_CAPTURED",
+              "claim_promotion_authorized": False,
+          }
+          pathlib.Path("capture/CAPTURE_RECEIPT.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - name: Reverify captured bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, pathlib
+          receipt = json.loads(pathlib.Path("capture/CAPTURE_RECEIPT.json").read_text())
+          data = pathlib.Path("capture/condado_1908_09_04_seq1.pdf").read_bytes()
+          assert data.startswith(b"%PDF-")
+          assert len(data) == receipt["size_bytes"]
+          assert hashlib.sha256(data).hexdigest() == receipt["sha256"]
+          assert receipt["raw_artifact"] is True
+          assert receipt["acquisition_state"] == "RAW_CAPTURED"
+          print("RAW_PRIMARY_SOURCE_REVERIFY=PASS")
+          PY
+
+      - name: Upload captured primary source
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_CONDADO_1908_PRIMARY_SOURCE
+          path: |
+            capture/condado_1908_09_04_seq1.pdf
+            capture/CAPTURE_RECEIPT.json
+            capture/*.headers.txt
+            capture/*.effective.txt
+          if-no-files-found: error
+          retention-days: 90
