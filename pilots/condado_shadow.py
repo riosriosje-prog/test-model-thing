@@ -33,16 +33,19 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "pilot": "finca-condado-v0.1",
             "canonical_identity_status": "UNRESOLVED",
         },
+        entity_id="ent_condado_finca_el_condado",
     )
     hernand = store.create_entity(
         entity_type="person",
         canonical_name="Hernand Behn",
         authority_status="PROVISIONAL",
+        entity_id="ent_person_hernand_behn",
     )
     sosthenes = store.create_entity(
         entity_type="person",
         canonical_name="Sosthenes Behn",
         authority_status="PROVISIONAL",
+        entity_id="ent_person_sosthenes_behn",
     )
 
     behn_source = store.register_source(
@@ -56,6 +59,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "source_rank": "primary_judicial",
             "raw_artifact_state": "LOCATOR_ONLY_PENDING_CAPTURE",
         },
+        source_id="src_behn_registrador_1918",
     )
     behn_doc = store.register_document(
         source_id=behn_source,
@@ -68,6 +72,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "document_date_precision": "year",
             "event_date_precision": "day",
         },
+        document_id="doc_behn_registrador_1918",
     )
 
     transfer_claim = store.propose_claim(
@@ -85,6 +90,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "estate_entity_id": estate,
             "verification_state": "PROPOSED_FROM_CITATION_PENDING_RAW_ARTIFACT",
         },
+        claim_id="clm_behn_transfer_1917_08_24",
     )
     store.add_evidence(
         claim_id=transfer_claim,
@@ -95,6 +101,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "evidence_state": "CITATION_ANCHOR_ONLY",
             "excerpt_capture_required": True,
         },
+        evidence_id="evd_behn_transfer_dpr26",
     )
 
     location_claim = store.propose_claim(
@@ -110,6 +117,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
         metadata={
             "verification_state": "PROPOSED_FROM_CITATION_PENDING_RAW_ARTIFACT",
         },
+        claim_id="clm_behn_location_condado_bayola",
     )
     store.add_evidence(
         claim_id=location_claim,
@@ -117,6 +125,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
         role="supports",
         locator="26 D.P.R. 166 (1918)",
         metadata={"evidence_state": "CITATION_ANCHOR_ONLY"},
+        evidence_id="evd_behn_location_dpr26",
     )
 
     # First institutional primary-source acquisition target. Library of
@@ -135,6 +144,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "source_rank": "primary_newspaper",
             "institutional_custodian": True,
         },
+        source_id="src_correspondencia_1908_09_04",
     )
     newspaper_doc = store.register_document(
         source_id=newspaper_source,
@@ -150,6 +160,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "event_date_precision": "day",
             "representation_expected": "scanned_newspaper_page_pdf",
         },
+        document_id="doc_correspondencia_1908_09_04",
     )
     newspaper_pdf_representation = record_acquisition_state(
         store,
@@ -165,6 +176,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
                 "environment. Do not substitute derived text as raw scan."
             ),
         ),
+        representation_id="repr_correspondencia_1908_09_04_pdf_locator",
     )
     indexed_heading = (
         "EL CONDADO — PARQUE RESIDENCIAL\nBEHN BROTHERS"
@@ -186,6 +198,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "not_a_scan": True,
             "not_sufficient_for_claim_promotion": True,
         },
+        representation_id="repr_correspondencia_1908_09_04_search_surrogate",
     )
 
     newspaper_claim = store.propose_claim(
@@ -206,6 +219,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
                 "scanned_newspaper_page_image",
             ],
         },
+        claim_id="clm_correspondencia_marketed_as_1908_09_04",
     )
     store.add_evidence(
         claim_id=newspaper_claim,
@@ -219,6 +233,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "raw_capture_required": True,
             "representation_does_not_unlock_promotion": True,
         },
+        evidence_id="evd_correspondencia_marketed_as_search_surrogate",
     )
 
     # Alternate primary-source route independent of the blocked LoC PDF.
@@ -237,6 +252,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "institutional_custodian": True,
             "independent_custodial_route": "UPR microfilm",
         },
+        source_id="src_pica_pica_1908_05_09",
     )
     pica_doc = store.register_document(
         source_id=pica_source,
@@ -249,6 +265,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "event_date_precision": "day",
             "representation_expected": "scanned_newspaper_page_pdf",
         },
+        document_id="doc_pica_pica_1908_05_09",
     )
     pica_pdf_locator = record_acquisition_state(
         store,
@@ -263,6 +280,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
                 "by the dedicated GitHub Actions capture pilot."
             ),
         ),
+        representation_id="repr_pica_pica_1908_05_09_pdf_locator",
     )
     pica_indexed_text = (
         "EL CONDADO\n"
@@ -285,6 +303,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "not_a_scan": True,
             "not_sufficient_for_claim_promotion": True,
         },
+        representation_id="repr_pica_pica_1908_05_09_search_surrogate",
     )
     pica_claim = store.propose_claim(
         document_id=pica_doc,
@@ -304,6 +323,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
                 "scanned_newspaper_page_image",
             ],
         },
+        claim_id="clm_pica_pica_condado_sale_1908_05_09",
     )
     store.add_evidence(
         claim_id=pica_claim,
@@ -317,6 +337,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "raw_capture_required": True,
             "representation_does_not_unlock_promotion": True,
         },
+        evidence_id="evd_pica_pica_condado_sale_search_surrogate",
     )
 
     notes_source = store.register_source(
@@ -328,6 +349,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "source_rank": "working_note",
             "authority": "NON_CANONICAL",
         },
+        source_id="src_condado_area_working_note",
     )
     notes_doc = store.register_document(
         source_id=notes_source,
@@ -337,11 +359,16 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "artifact_state": "WORKING_ASSERTION_CONTAINER",
             "not_a_primary_source": True,
         },
+        document_id="doc_condado_area_working_note",
     )
 
-    area_values = ("148 cuerdas", "150 cuerdas", "148.5 acres")
+    area_values = (
+        ("148 cuerdas", "clm_condado_area_148_cuerdas"),
+        ("150 cuerdas", "clm_condado_area_150_cuerdas"),
+        ("148.5 acres", "clm_condado_area_148_5_acres"),
+    )
     area_claims: list[str] = []
-    for value in area_values:
+    for value, stable_claim_id in area_values:
         area_claims.append(
             store.propose_claim(
                 document_id=notes_doc,
@@ -357,6 +384,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
                     "verification_state": "UNVERIFIED_WORKING_ASSERTION",
                     "normalization_forbidden": True,
                 },
+                claim_id=stable_claim_id,
             )
         )
 
@@ -372,6 +400,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "pilot": "finca-condado-v0.1",
             "resolution_gate": "PRIMARY_REGISTRAL_OR_EQUIVALENT_EVIDENCE",
         },
+        discrepancy_id="disc_condado_area_variants",
     )
     for index, claim_id in enumerate(area_claims, start=1):
         store.attach_discrepancy_claim(
