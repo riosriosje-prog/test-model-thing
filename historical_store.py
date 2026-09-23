@@ -725,6 +725,7 @@ class HistoricalStore:
         excerpt: bytes | None = None,
         excerpt_sha256: str | None = None,
         metadata: dict[str, Any] | None = None,
+        evidence_id: str | None = None,
     ) -> str:
         if role not in EVIDENCE_ROLES:
             raise ValueError(f"Unsupported evidence role: {role!r}")
@@ -749,7 +750,7 @@ class HistoricalStore:
             if excerpt_sha256 is not None and excerpt_sha256 != derived_hash:
                 raise ValueError("excerpt_sha256 does not match supplied excerpt")
             excerpt_sha256 = derived_hash
-        evidence_id = _new_id("evd")
+        evidence_id = evidence_id or _new_id("evd")
         with self.transaction():
             self.conn.execute(
                 """
