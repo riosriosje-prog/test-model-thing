@@ -144,7 +144,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             "representation_expected": "scanned_newspaper_page_pdf",
         },
     )
-    record_acquisition_state(
+    newspaper_pdf_representation = record_acquisition_state(
         store,
         document_id=newspaper_doc,
         receipt=AcquisitionReceipt(
@@ -254,6 +254,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
         "transfer_claim_id": transfer_claim,
         "location_claim_id": location_claim,
         "newspaper_document_id": newspaper_doc,
+        "newspaper_pdf_representation_id": newspaper_pdf_representation,
         "newspaper_claim_id": newspaper_claim,
         "area_claim_ids": area_claims,
         "area_discrepancy_id": discrepancy,
