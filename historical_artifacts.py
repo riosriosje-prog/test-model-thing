@@ -132,6 +132,7 @@ class HistoricalArtifactStore:
         source_url: str | None = None,
         preferred_for_review: bool = True,
         metadata: dict | None = None,
+        representation_id: str | None = None,
     ) -> str:
         """Bind verified raw bytes as a RAW_CAPTURED representation."""
         if not self.verify(receipt.sha256, expected_size=receipt.size_bytes):
@@ -149,4 +150,5 @@ class HistoricalArtifactStore:
             raw_artifact=True,
             preferred_for_review=preferred_for_review,
             metadata=metadata,
+            representation_id=representation_id,
         )
