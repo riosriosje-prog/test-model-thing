@@ -16,107 +16,145 @@ jobs:
     timeout-minutes: 10
     env:
       SOURCE_ID: loc-sn91099747-1908-09-04-ed1-seq1
-      SOURCE_URL_PRIMARY: https://tile.loc.gov/storage-services/service/ndnp/prru/batch_prru_foca_ver01/data/sn91099747/0027176568A/1908090401/0252.pdf
-      SOURCE_URL_FALLBACK: https://chroniclingamerica.loc.gov/lccn/sn91099747/1908-09-04/ed-1/seq-1.pdf
+      SOURCE_URL_PDF_PRIMARY: https://tile.loc.gov/storage-services/service/ndnp/prru/batch_prru_foca_ver01/data/sn91099747/0027176568A/1908090401/0252.pdf
+      SOURCE_URL_PDF_FALLBACK: https://chroniclingamerica.loc.gov/lccn/sn91099747/1908-09-04/ed-1/seq-1.pdf
+      SOURCE_URL_OCR: https://chroniclingamerica.loc.gov/lccn/sn91099747/1908-09-04/ed-1/seq-1/ocr/
     steps:
       - uses: actions/checkout@v4
 
-      - name: Capture custodial PDF bytes
+      - name: Capture custodial representations
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p capture
-          out="capture/condado_1908_09_04_seq1.pdf"
-          effective=""
-          used=""
+          pdf_state="REMOTE_BLOCKED"
+          pdf_sha=""
+          pdf_size=""
+          pdf_effective=""
+          pdf_route=""
+          ocr_state="REMOTE_BLOCKED"
+          ocr_sha=""
+          ocr_size=""
+          ocr_effective=""
 
-          try_url() {
+          try_pdf() {
             local url="$1"
             local label="$2"
-            local headers="capture/$label.headers.txt"
             local tmp="capture/$label.tmp"
+            local headers="capture/$label.headers.txt"
             rm -f "$tmp" "$headers"
-            if curl               --fail --location --silent --show-error               --retry 3 --retry-delay 2               --connect-timeout 20 --max-time 120               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.1"               --dump-header "$headers"               --output "$tmp"               --write-out '%{url_effective}'               "$url" > "capture/$label.effective.txt"; then
-                if python - "$tmp" <<'PY'
+            if curl               --fail --location --silent --show-error               --retry 2 --retry-delay 1               --connect-timeout 20 --max-time 90               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.1"               --dump-header "$headers"               --output "$tmp"               --write-out '%{url_effective}'               "$url" > "capture/$label.effective.txt"; then
+              if python - "$tmp" <<'PY'
           import pathlib, sys
-          p = pathlib.Path(sys.argv[1])
-          data = p.read_bytes()
+          data = pathlib.Path(sys.argv[1]).read_bytes()
           if len(data) < 5 or not data.startswith(b"%PDF-"):
               raise SystemExit(1)
           PY
-                then
-                  mv "$tmp" "$out"
-                  effective="$(cat "capture/$label.effective.txt")"
-                  used="$label"
-                  return 0
-                fi
+              then
+                mv "$tmp" capture/condado_1908_09_04_seq1.pdf
+                pdf_state="RAW_CAPTURED"
+                pdf_effective="$(cat "capture/$label.effective.txt")"
+                pdf_route="$label"
+                pdf_sha="$(sha256sum capture/condado_1908_09_04_seq1.pdf | awk '{print $1}')"
+                pdf_size="$(stat -c '%s' capture/condado_1908_09_04_seq1.pdf)"
+                return 0
+              fi
             fi
             rm -f "$tmp"
             return 1
           }
 
-          if try_url "$SOURCE_URL_PRIMARY" primary; then
-            :
-          elif try_url "$SOURCE_URL_FALLBACK" fallback; then
-            :
-          else
-            echo "Unable to capture verified PDF bytes from either custodial route" >&2
-            exit 41
+          try_pdf "$SOURCE_URL_PDF_PRIMARY" pdf_primary ||           try_pdf "$SOURCE_URL_PDF_FALLBACK" pdf_fallback || true
+
+          ocr_tmp="capture/ocr.tmp"
+          if curl             --fail --location --silent --show-error             --retry 2 --retry-delay 1             --connect-timeout 20 --max-time 90             --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.1"             --dump-header capture/ocr.headers.txt             --output "$ocr_tmp"             --write-out '%{url_effective}'             "$SOURCE_URL_OCR" > capture/ocr.effective.txt; then
+            if python - "$ocr_tmp" <<'PY'
+          import pathlib, sys
+          data = pathlib.Path(sys.argv[1]).read_bytes()
+          text = data.decode("utf-8", errors="ignore")
+          if len(data) < 1000:
+              raise SystemExit(1)
+          if "OCR Interpretation" not in text and "La correspondencia de Puerto Rico" not in text:
+              raise SystemExit(1)
+          PY
+            then
+              mv "$ocr_tmp" capture/condado_1908_09_04_seq1_ocr.html
+              ocr_state="TEXT_SURROGATE"
+              ocr_effective="$(cat capture/ocr.effective.txt)"
+              ocr_sha="$(sha256sum capture/condado_1908_09_04_seq1_ocr.html | awk '{print $1}')"
+              ocr_size="$(stat -c '%s' capture/condado_1908_09_04_seq1_ocr.html)"
+            fi
           fi
+          rm -f "$ocr_tmp"
 
-          sha="$(sha256sum "$out" | awk '{print $1}')"
-          size="$(stat -c '%s' "$out")"
-
-          SOURCE_ID="$SOURCE_ID"           SOURCE_URL_PRIMARY="$SOURCE_URL_PRIMARY"           SOURCE_URL_FALLBACK="$SOURCE_URL_FALLBACK"           USED_ROUTE="$used"           EFFECTIVE_URL="$effective"           SHA256="$sha"           SIZE_BYTES="$size"           python - <<'PY'
+          PDF_STATE="$pdf_state"           PDF_SHA="$pdf_sha"           PDF_SIZE="$pdf_size"           PDF_EFFECTIVE="$pdf_effective"           PDF_ROUTE="$pdf_route"           OCR_STATE="$ocr_state"           OCR_SHA="$ocr_sha"           OCR_SIZE="$ocr_size"           OCR_EFFECTIVE="$ocr_effective"           python - <<'PY'
           import json, os, pathlib
+          def maybe_int(value):
+              return int(value) if value else None
           receipt = {
               "schema_version": 1,
-              "receipt_type": "GALIA_PRIMARY_SOURCE_CAPTURE",
+              "receipt_type": "GALIA_PRIMARY_SOURCE_CAPTURE_MATRIX",
               "source_id": os.environ["SOURCE_ID"],
               "custodian": "Library of Congress / Chronicling America",
               "title": "La Correspondencia de Puerto Rico — 4 Sep 1908 — image 1",
-              "requested_primary_url": os.environ["SOURCE_URL_PRIMARY"],
-              "requested_fallback_url": os.environ["SOURCE_URL_FALLBACK"],
-              "used_route": os.environ["USED_ROUTE"],
-              "effective_url": os.environ["EFFECTIVE_URL"],
-              "representation_type": "application/pdf",
-              "sha256": os.environ["SHA256"],
-              "size_bytes": int(os.environ["SIZE_BYTES"]),
-              "raw_artifact": True,
-              "acquisition_state": "RAW_CAPTURED",
+              "representations": {
+                  "scanned_newspaper_page_pdf": {
+                      "acquisition_state": os.environ["PDF_STATE"],
+                      "raw_artifact": os.environ["PDF_STATE"] == "RAW_CAPTURED",
+                      "sha256": os.environ["PDF_SHA"] or None,
+                      "size_bytes": maybe_int(os.environ["PDF_SIZE"]),
+                      "effective_url": os.environ["PDF_EFFECTIVE"] or None,
+                      "used_route": os.environ["PDF_ROUTE"] or None,
+                  },
+                  "institutional_ocr_html": {
+                      "acquisition_state": os.environ["OCR_STATE"],
+                      "raw_artifact": False,
+                      "sha256": os.environ["OCR_SHA"] or None,
+                      "size_bytes": maybe_int(os.environ["OCR_SIZE"]),
+                      "effective_url": os.environ["OCR_EFFECTIVE"] or None,
+                  },
+              },
               "claim_promotion_authorized": False,
           }
-          pathlib.Path("capture/CAPTURE_RECEIPT.json").write_text(
+          pathlib.Path("capture/CAPTURE_MATRIX_RECEIPT.json").write_text(
               json.dumps(receipt, indent=2, sort_keys=True) + "\n",
               encoding="utf-8",
           )
           print(json.dumps(receipt, sort_keys=True))
+          if (
+              receipt["representations"]["scanned_newspaper_page_pdf"]["acquisition_state"]
+              != "RAW_CAPTURED"
+              and receipt["representations"]["institutional_ocr_html"]["acquisition_state"]
+              != "TEXT_SURROGATE"
+          ):
+              raise SystemExit("No custodial representation could be captured")
           PY
 
-      - name: Reverify captured bytes
+      - name: Reverify captured representation hashes
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           import hashlib, json, pathlib
-          receipt = json.loads(pathlib.Path("capture/CAPTURE_RECEIPT.json").read_text())
-          data = pathlib.Path("capture/condado_1908_09_04_seq1.pdf").read_bytes()
-          assert data.startswith(b"%PDF-")
-          assert len(data) == receipt["size_bytes"]
-          assert hashlib.sha256(data).hexdigest() == receipt["sha256"]
-          assert receipt["raw_artifact"] is True
-          assert receipt["acquisition_state"] == "RAW_CAPTURED"
-          print("RAW_PRIMARY_SOURCE_REVERIFY=PASS")
+          r = json.loads(pathlib.Path("capture/CAPTURE_MATRIX_RECEIPT.json").read_text())
+          pdf = r["representations"]["scanned_newspaper_page_pdf"]
+          ocr = r["representations"]["institutional_ocr_html"]
+          if pdf["acquisition_state"] == "RAW_CAPTURED":
+              data = pathlib.Path("capture/condado_1908_09_04_seq1.pdf").read_bytes()
+              assert data.startswith(b"%PDF-")
+              assert hashlib.sha256(data).hexdigest() == pdf["sha256"]
+              assert len(data) == pdf["size_bytes"]
+          if ocr["acquisition_state"] == "TEXT_SURROGATE":
+              data = pathlib.Path("capture/condado_1908_09_04_seq1_ocr.html").read_bytes()
+              assert hashlib.sha256(data).hexdigest() == ocr["sha256"]
+              assert len(data) == ocr["size_bytes"]
+          print("CUSTODIAL_REPRESENTATION_REVERIFY=PASS")
           PY
 
-      - name: Upload captured primary source
+      - name: Upload captured source representations
         uses: actions/upload-artifact@v4
         with:
-          name: GALIA_CONDADO_1908_PRIMARY_SOURCE
-          path: |
-            capture/condado_1908_09_04_seq1.pdf
-            capture/CAPTURE_RECEIPT.json
-            capture/*.headers.txt
-            capture/*.effective.txt
+          name: GALIA_CONDADO_1908_SOURCE_REPRESENTATIONS
+          path: capture/
           if-no-files-found: error
           retention-days: 90
