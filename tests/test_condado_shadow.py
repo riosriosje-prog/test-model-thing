@@ -138,8 +138,34 @@ class CondadoShadowPilotTests(unittest.TestCase):
         artifact_store = HistoricalArtifactStore(
             os.path.join(self.tmp.name, "artifacts")
         )
+
+        manifest_receipt = artifact_store.put_bytes(
+            b'{"test":"custodial manifest stand-in"}'
+        )
+        artifact_store.bind_document(
+            self.store,
+            self.ids["newspaper_document_id"],
+            manifest_receipt,
+            representation_type="iiif_manifest_json",
+            mime_type="application/json",
+            source_url=(
+                "https://www.loc.gov/item/sn91099747/"
+                "1908-09-04/ed-1/manifest.json"
+            ),
+            preferred_for_review=False,
+            metadata={
+                "test_fixture": True,
+                "not_a_real_historical_capture": True,
+            },
+        )
+        manifest_only_blockers = self.store.claim_promotion_blockers(claim_id)
+        self.assertEqual(
+            [blocker["code"] for blocker in manifest_only_blockers],
+            ["RAW_CAPTURE_REQUIRED"],
+        )
+
         receipt = artifact_store.put_bytes(
-            b"test-only stand-in for verified raw custodial bytes"
+            b"test-only stand-in for verified raw custodial page bytes"
         )
         artifact_store.bind_document(
             self.store,
