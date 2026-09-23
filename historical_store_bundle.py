@@ -67,6 +67,54 @@ def bundle_sha256(bundle: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical_bytes(bundle)).hexdigest()
 
 
+def semantic_snapshot(store: HistoricalStore) -> dict[str, Any]:
+    """Return a stable logical snapshot distinct from execution provenance.
+
+    The semantic snapshot preserves stable research identifiers, source/document
+    bindings, claims, evidence, relations, discrepancies, reviews, hashes, and
+    acquisition state. It excludes the append-only audit stream and volatile
+    wall-clock columns so independently executed but logically identical pilots
+    can be compared without pretending their provenance bundles are identical.
+    """
+    volatile_columns = {
+        "created_at_utc",
+        "opened_at_utc",
+        "resolved_at_utc",
+        "promoted_at_utc",
+    }
+    excluded_tables = {"audit_log"}
+    tables: dict[str, list[dict[str, Any]]] = {}
+
+    for table, order_columns in EXPORT_TABLES:
+        if table in excluded_tables:
+            continue
+        order_by = ", ".join(order_columns)
+        rows = store.conn.execute(
+            f"SELECT * FROM {table} ORDER BY {order_by}"
+        ).fetchall()
+        normalized_rows: list[dict[str, Any]] = []
+        for row in rows:
+            normalized_rows.append(
+                {
+                    key: value
+                    for key, value in dict(row).items()
+                    if key not in volatile_columns
+                }
+            )
+        tables[table] = normalized_rows
+
+    return {
+        "format": "galia-historical-store-semantic-snapshot",
+        "snapshot_version": 1,
+        "schema_version": SCHEMA_VERSION,
+        "tables": tables,
+    }
+
+
+def semantic_fingerprint(store: HistoricalStore) -> str:
+    return hashlib.sha256(_canonical_bytes(semantic_snapshot(store))).hexdigest()
+
+
 def write_bundle_atomic(store: HistoricalStore, path: str) -> str:
     """Write a deterministic bundle atomically and return its SHA-256."""
     bundle = export_bundle(store)
