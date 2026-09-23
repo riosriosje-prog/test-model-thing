@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/run_condado_pica_pica_capture_pilot.py             --source-file capture/pica_pica_1908_05_09.pdf             --output-dir capture/pilot
+          PYTHONPATH=. python tools/run_condado_pica_pica_capture_pilot.py             --source-file capture/pica_pica_1908_05_09.pdf             --output-dir capture/pilot
 
           python - <<'PY'
           import json, pathlib
