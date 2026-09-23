@@ -44,7 +44,7 @@ class HistoricalArtifactStoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.artifacts.read_bytes(receipt.sha256)
 
-    def test_document_binding_records_hash_size_locator_and_audit(self):
+    def test_document_binding_creates_raw_captured_representation(self):
         source_id = self.store.register_source(
             source_type="court_opinion",
             title="Primary source",
@@ -54,51 +54,73 @@ class HistoricalArtifactStoreTests(unittest.TestCase):
             title="Source document",
         )
         receipt = self.artifacts.put_bytes(b"raw-source-document")
-        self.artifacts.bind_document(
+        representation_id = self.artifacts.bind_document(
             self.store,
             document_id,
             receipt,
+            representation_type="scanned_source_pdf",
+            mime_type="application/pdf",
+            source_url="https://example.invalid/source.pdf",
         )
 
         row = self.store.conn.execute(
             """
-            SELECT content_sha256, byte_length, content_locator
-            FROM documents WHERE document_id = ?
+            SELECT acquisition_state, content_sha256, byte_length, locator,
+                   raw_artifact, mime_type
+            FROM document_representations
+            WHERE representation_id = ?
             """,
-            (document_id,),
+            (representation_id,),
         ).fetchone()
+        self.assertEqual(row["acquisition_state"], "RAW_CAPTURED")
         self.assertEqual(row["content_sha256"], receipt.sha256)
         self.assertEqual(row["byte_length"], receipt.size_bytes)
-        self.assertEqual(row["content_locator"], receipt.locator)
+        self.assertEqual(row["locator"], receipt.locator)
+        self.assertEqual(row["raw_artifact"], 1)
+        self.assertEqual(row["mime_type"], "application/pdf")
 
         audit = self.store.conn.execute(
             """
-            SELECT event_type, payload_json
+            SELECT event_type
             FROM audit_log
-            WHERE object_type = 'document' AND object_id = ?
+            WHERE object_type = 'document_representation'
+              AND object_id = ?
             ORDER BY audit_id DESC LIMIT 1
             """,
-            (document_id,),
+            (representation_id,),
         ).fetchone()
-        self.assertEqual(audit["event_type"], "document_artifact_bound")
+        self.assertEqual(
+            audit["event_type"],
+            "document_representation_registered",
+        )
 
-    def test_rebinding_to_different_artifact_fails_closed(self):
+    def test_distinct_raw_representations_can_coexist(self):
         document_id = self.store.register_document(
             title="Source document",
         )
         first = self.artifacts.put_bytes(b"first")
         second = self.artifacts.put_bytes(b"second")
-        self.artifacts.bind_document(
+        first_id = self.artifacts.bind_document(
             self.store,
             document_id,
             first,
+            representation_type="scan_pdf",
         )
-        with self.assertRaises(ValueError):
-            self.artifacts.bind_document(
-                self.store,
-                document_id,
-                second,
-            )
+        second_id = self.artifacts.bind_document(
+            self.store,
+            document_id,
+            second,
+            representation_type="scan_jp2",
+        )
+        self.assertNotEqual(first_id, second_id)
+        count = self.store.conn.execute(
+            """
+            SELECT COUNT(*) FROM document_representations
+            WHERE document_id = ? AND acquisition_state = 'RAW_CAPTURED'
+            """,
+            (document_id,),
+        ).fetchone()[0]
+        self.assertEqual(count, 2)
 
 
 if __name__ == "__main__":
