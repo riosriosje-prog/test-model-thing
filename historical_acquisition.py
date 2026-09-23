@@ -21,6 +21,11 @@ class AcquisitionReceipt:
     representation_type: str
     raw_artifact: bool
     note: str | None = None
+    locator: str | None = None
+    mime_type: str | None = None
+    content_sha256: str | None = None
+    byte_length: int | None = None
+    preferred_for_review: bool = False
 
 
 def record_acquisition_state(
@@ -28,57 +33,25 @@ def record_acquisition_state(
     *,
     document_id: str,
     receipt: AcquisitionReceipt,
-) -> None:
-    """Record acquisition state without overstating evidentiary custody.
+) -> str:
+    """Register one independently auditable representation of a document.
 
-    A document may be known and locatable before its raw bytes are captured.
-    Only RAW_CAPTURED may assert raw_artifact=True.
+    Document identity is distinct from representation identity. A scan, OCR,
+    IIIF image, transcription, or blocked remote locator may coexist without
+    overwriting each other. Only RAW_CAPTURED may assert possession of raw
+    source bytes.
     """
-    if receipt.raw_artifact and receipt.state != "RAW_CAPTURED":
-        raise ValueError(
-            "Only RAW_CAPTURED may assert possession of raw source bytes"
-        )
-    if receipt.state == "RAW_CAPTURED" and not receipt.raw_artifact:
-        raise ValueError(
-            "RAW_CAPTURED requires raw_artifact=True"
-        )
-
-    with store.transaction():
-        row = store.conn.execute(
-            "SELECT document_id FROM documents WHERE document_id = ?",
-            (document_id,),
-        ).fetchone()
-        if row is None:
-            raise KeyError(f"Unknown document_id: {document_id}")
-
-        metadata_row = store.conn.execute(
-            "SELECT metadata_json FROM documents WHERE document_id = ?",
-            (document_id,),
-        ).fetchone()
-        import json
-        metadata = json.loads(metadata_row["metadata_json"] or "{}")
-        metadata["acquisition"] = {
-            "state": receipt.state,
-            "source_url": receipt.source_url,
-            "representation_type": receipt.representation_type,
-            "raw_artifact": receipt.raw_artifact,
-            "note": receipt.note,
-        }
-        store.conn.execute(
-            "UPDATE documents SET metadata_json = ? WHERE document_id = ?",
-            (
-                json.dumps(
-                    metadata,
-                    sort_keys=True,
-                    separators=(",", ":"),
-                    ensure_ascii=False,
-                ),
-                document_id,
-            ),
-        )
-        store._audit(
-            "document_acquisition_state_recorded",
-            object_type="document",
-            object_id=document_id,
-            payload=metadata["acquisition"],
-        )
+    locator = receipt.locator or receipt.source_url
+    return store.register_document_representation(
+        document_id=document_id,
+        representation_type=receipt.representation_type,
+        acquisition_state=receipt.state,
+        locator=locator,
+        mime_type=receipt.mime_type,
+        content_sha256=receipt.content_sha256,
+        byte_length=receipt.byte_length,
+        source_url=receipt.source_url,
+        raw_artifact=receipt.raw_artifact,
+        preferred_for_review=receipt.preferred_for_review,
+        metadata={"note": receipt.note} if receipt.note is not None else None,
+    )
