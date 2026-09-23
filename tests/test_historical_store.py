@@ -78,6 +78,73 @@ class HistoricalStoreTests(unittest.TestCase):
             {"REMOTE_BLOCKED", "TEXT_SURROGATE"},
         )
 
+    def test_evidence_can_bind_to_specific_document_representation(self):
+        document_id = self.store.register_document(title="Newspaper page")
+        representation_id = self.store.register_document_representation(
+            document_id=document_id,
+            representation_type="institutional_ocr",
+            acquisition_state="TEXT_SURROGATE",
+            locator="https://example.invalid/page/ocr/",
+            source_url="https://example.invalid/page/ocr/",
+            raw_artifact=False,
+        )
+        claim_id = self.store.propose_claim(
+            document_id=document_id,
+            predicate="mentions",
+            claim_text="The page mentions El Condado.",
+            created_by="test",
+        )
+        evidence_id = self.store.add_evidence(
+            claim_id=claim_id,
+            document_id=document_id,
+            representation_id=representation_id,
+            role="supports",
+            excerpt=b"EL CONDADO",
+        )
+        row = self.store.conn.execute(
+            """
+            SELECT representation_id, excerpt_sha256
+            FROM claim_evidence WHERE evidence_id = ?
+            """,
+            (evidence_id,),
+        ).fetchone()
+        self.assertEqual(row["representation_id"], representation_id)
+        self.assertEqual(len(row["excerpt_sha256"]), 64)
+
+        bundle = self.store.claim_bundle(claim_id)
+        self.assertEqual(
+            bundle["evidence"][0]["representation_type"],
+            "institutional_ocr",
+        )
+        self.assertEqual(
+            bundle["evidence"][0]["representation_acquisition_state"],
+            "TEXT_SURROGATE",
+        )
+
+    def test_evidence_representation_must_belong_to_same_document(self):
+        first_document = self.store.register_document(title="First")
+        second_document = self.store.register_document(title="Second")
+        representation_id = self.store.register_document_representation(
+            document_id=first_document,
+            representation_type="scan",
+            acquisition_state="LOCATOR_ONLY",
+            locator="archive:first",
+            raw_artifact=False,
+        )
+        claim_id = self.store.propose_claim(
+            document_id=second_document,
+            predicate="mentions",
+            claim_text="Mismatch fixture.",
+            created_by="test",
+        )
+        with self.assertRaises(ValueError):
+            self.store.add_evidence(
+                claim_id=claim_id,
+                document_id=second_document,
+                representation_id=representation_id,
+                role="supports",
+            )
+
     def test_engine_claim_cannot_be_canonical_without_human_review(self):
         bridge = GaliaResearchBridge(
             self.store,
@@ -171,7 +238,7 @@ class HistoricalStoreTests(unittest.TestCase):
 
     def test_health(self):
         health = self.store.health()
-        self.assertEqual(health["schema_version"], 2)
+        self.assertEqual(health["schema_version"], 3)
         self.assertEqual(health["integrity_check"], "ok")
         self.assertIn("document_representations", health["counts"])
 
