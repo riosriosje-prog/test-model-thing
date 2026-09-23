@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 
+from historical_artifacts import HistoricalArtifactStore
 from historical_store import HistoricalStore
 from historical_store_bundle import (
     bundle_sha256,
@@ -111,6 +112,67 @@ class CondadoShadowPilotTests(unittest.TestCase):
         self.assertTrue(
             claim_metadata["promotion_blocked_until_raw_capture"]
         )
+
+    def test_raw_capture_gate_blocks_then_allows_human_promotion(self):
+        claim_id = self.ids["newspaper_claim_id"]
+
+        blockers = self.store.claim_promotion_blockers(claim_id)
+        self.assertEqual(
+            [blocker["code"] for blocker in blockers],
+            ["RAW_CAPTURE_REQUIRED"],
+        )
+        with self.assertRaises(ValueError):
+            self.store.review_claim(
+                claim_id,
+                decision="PROMOTE_CANONICAL",
+                reviewer="human-reviewer",
+                rationale="Attempt before custodial bytes are captured",
+            )
+
+        status = self.store.conn.execute(
+            "SELECT status FROM claims WHERE claim_id = ?",
+            (claim_id,),
+        ).fetchone()["status"]
+        self.assertEqual(status, "PROPOSED")
+
+        artifact_store = HistoricalArtifactStore(
+            os.path.join(self.tmp.name, "artifacts")
+        )
+        receipt = artifact_store.put_bytes(
+            b"test-only stand-in for verified raw custodial bytes"
+        )
+        artifact_store.bind_document(
+            self.store,
+            self.ids["newspaper_document_id"],
+            receipt,
+            representation_type="scanned_newspaper_page_pdf",
+            mime_type="application/pdf",
+            source_url=LOC_CONDADO_1908_URL,
+            preferred_for_review=True,
+            metadata={
+                "test_fixture": True,
+                "not_a_real_historical_capture": True,
+            },
+        )
+
+        self.assertEqual(
+            self.store.claim_promotion_blockers(claim_id),
+            [],
+        )
+        self.store.review_claim(
+            claim_id,
+            decision="PROMOTE_CANONICAL",
+            reviewer="human-reviewer",
+            rationale=(
+                "Test-only promotion after an objectively valid "
+                "RAW_CAPTURED representation exists"
+            ),
+        )
+        status = self.store.conn.execute(
+            "SELECT status FROM claims WHERE claim_id = ?",
+            (claim_id,),
+        ).fetchone()["status"]
+        self.assertEqual(status, "CANONICAL")
 
     def test_bundle_export_is_deterministic(self):
         first = export_bundle(self.store)
