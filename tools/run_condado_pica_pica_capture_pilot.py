@@ -56,6 +56,7 @@ def run_pilot(source_file: str, output_dir: str) -> dict:
                 "pilot": "condado-pica-pica-1908-raw-capture",
                 "custodian": "University of Florida Digital Collections / dLOC",
             },
+            representation_id="repr_pica_pica_1908_05_09_raw_pdf",
         )
 
         store.add_evidence(
@@ -68,6 +69,7 @@ def run_pilot(source_file: str, output_dir: str) -> dict:
                 "evidence_state": "RAW_SCAN_BOUND",
                 "raw_capture_verified": True,
             },
+            evidence_id="evd_pica_pica_condado_sale_raw_scan",
         )
 
         blockers_after = store.claim_promotion_blockers(claim_id)
