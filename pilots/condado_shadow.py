@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 from historical_acquisition import AcquisitionReceipt, record_acquisition_state
 from historical_store import HistoricalStore
 
@@ -159,6 +161,28 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
             ),
         ),
     )
+    indexed_heading = (
+        "EL CONDADO — PARQUE RESIDENCIAL\nBEHN BROTHERS"
+    ).encode("utf-8")
+    newspaper_text_representation = store.register_document_representation(
+        document_id=newspaper_doc,
+        representation_type="search_index_text_surrogate",
+        acquisition_state="TEXT_SURROGATE",
+        locator=f"surrogate:web-index:{LOC_CONDADO_1908_URL}",
+        mime_type="text/plain; charset=utf-8",
+        content_sha256=hashlib.sha256(indexed_heading).hexdigest(),
+        byte_length=len(indexed_heading),
+        source_url=LOC_CONDADO_1908_URL,
+        raw_artifact=False,
+        preferred_for_review=False,
+        metadata={
+            "derivation": "search_index_extraction",
+            "scope": "heading_and_advertiser_only",
+            "not_a_scan": True,
+            "not_sufficient_for_claim_promotion": True,
+        },
+    )
+
     newspaper_claim = store.propose_claim(
         document_id=newspaper_doc,
         subject_entity_id=estate,
@@ -181,11 +205,14 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
     store.add_evidence(
         claim_id=newspaper_claim,
         document_id=newspaper_doc,
+        representation_id=newspaper_text_representation,
         role="supports",
         locator=LOC_CONDADO_1908_URL,
+        excerpt=indexed_heading,
         metadata={
-            "evidence_state": "INSTITUTIONAL_SOURCE_LOCATED",
+            "evidence_state": "TEXT_SURROGATE_ONLY",
             "raw_capture_required": True,
+            "representation_does_not_unlock_promotion": True,
         },
     )
 
@@ -259,6 +286,7 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
         "location_claim_id": location_claim,
         "newspaper_document_id": newspaper_doc,
         "newspaper_pdf_representation_id": newspaper_pdf_representation,
+        "newspaper_text_representation_id": newspaper_text_representation,
         "newspaper_claim_id": newspaper_claim,
         "area_claim_ids": area_claims,
         "area_discrepancy_id": discrepancy,
