@@ -236,6 +236,82 @@ class HistoricalStoreTests(unittest.TestCase):
                 (audit_id,),
             )
 
+    def test_schema_v2_migrates_to_v3_without_rewriting_evidence_rows(self):
+        legacy_path = os.path.join(self.tmp.name, "legacy-v2.sqlite3")
+        conn = sqlite3.connect(legacy_path)
+        try:
+            conn.executescript(
+                """
+                PRAGMA foreign_keys = OFF;
+                CREATE TABLE schema_meta (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
+                INSERT INTO schema_meta(key, value)
+                VALUES ('schema_version', '2');
+
+                CREATE TABLE documents (
+                    document_id TEXT PRIMARY KEY
+                );
+                CREATE TABLE claims (
+                    claim_id TEXT PRIMARY KEY
+                );
+                CREATE TABLE document_representations (
+                    representation_id TEXT PRIMARY KEY,
+                    document_id TEXT
+                );
+                CREATE TABLE claim_evidence (
+                    evidence_id TEXT PRIMARY KEY,
+                    claim_id TEXT NOT NULL,
+                    document_id TEXT NOT NULL,
+                    locator TEXT,
+                    excerpt_sha256 TEXT,
+                    role TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL DEFAULT '{}',
+                    created_at_utc TEXT NOT NULL
+                );
+                INSERT INTO documents(document_id) VALUES ('doc_legacy');
+                INSERT INTO claims(claim_id) VALUES ('clm_legacy');
+                INSERT INTO claim_evidence(
+                    evidence_id, claim_id, document_id, locator,
+                    excerpt_sha256, role, metadata_json, created_at_utc
+                ) VALUES (
+                    'evd_legacy', 'clm_legacy', 'doc_legacy',
+                    'legacy:locator', NULL, 'supports', '{}',
+                    '2026-09-23T00:00:00+00:00'
+                );
+                PRAGMA user_version = 2;
+                """
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        migrated = HistoricalStore(legacy_path)
+        try:
+            version = migrated.conn.execute(
+                "PRAGMA user_version"
+            ).fetchone()[0]
+            self.assertEqual(version, 3)
+            columns = {
+                row["name"]
+                for row in migrated.conn.execute(
+                    "PRAGMA table_info(claim_evidence)"
+                ).fetchall()
+            }
+            self.assertIn("representation_id", columns)
+            row = migrated.conn.execute(
+                """
+                SELECT evidence_id, locator, representation_id
+                FROM claim_evidence
+                WHERE evidence_id = 'evd_legacy'
+                """
+            ).fetchone()
+            self.assertEqual(row["locator"], "legacy:locator")
+            self.assertIsNone(row["representation_id"])
+        finally:
+            migrated.close()
+
     def test_health(self):
         health = self.store.health()
         self.assertEqual(health["schema_version"], 3)
