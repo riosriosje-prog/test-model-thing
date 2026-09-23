@@ -1,0 +1,169 @@
+name: capture-condado-1908-primary-source
+
+on:
+  push:
+    branches:
+      - galia-historical-store-v0-1
+    paths:
+      - .github/workflows/capture-condado-1908.yml
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SOURCE_ID: loc-sn91099747-1908-09-04-ed1
+      SOURCE_URL_PRIMARY: https://tile.loc.gov/storage-services/service/ndnp/prru/batch_prru_foca_ver01/data/sn91099747/0027176568A/1908090401/0252.pdf
+      SOURCE_URL_FALLBACK: https://chroniclingamerica.loc.gov/lccn/sn91099747/1908-09-04/ed-1/seq-1.pdf
+      SOURCE_MANIFEST_URL: https://www.loc.gov/item/sn91099747/1908-09-04/ed-1/manifest.json
+      SOURCE_ITEM_URL: https://www.loc.gov/item/sn91099747/1908-09-04/ed-1/
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Capture best available custodial representation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture
+          capture_type=""
+          used_url=""
+          output=""
+          mime_type=""
+          satisfies_claim_gate="false"
+
+          fetch() {
+            local url="$1"
+            local out="$2"
+            local headers="$3"
+            curl               --fail --location --silent --show-error               --retry 2 --retry-delay 2               --connect-timeout 20 --max-time 120               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.1"               --dump-header "$headers"               --output "$out"               "$url"
+          }
+
+          validate_pdf() {
+            python - "$1" <<'PY'
+          import pathlib, sys
+          data = pathlib.Path(sys.argv[1]).read_bytes()
+          raise SystemExit(0 if len(data) >= 5 and data.startswith(b"%PDF-") else 1)
+          PY
+          }
+
+          validate_json() {
+            python - "$1" <<'PY'
+          import json, pathlib, sys
+          raw = pathlib.Path(sys.argv[1]).read_bytes()
+          if not raw.strip():
+              raise SystemExit(1)
+          value = json.loads(raw.decode("utf-8"))
+          if not isinstance(value, dict):
+              raise SystemExit(1)
+          PY
+          }
+
+          validate_html() {
+            python - "$1" <<'PY'
+          import pathlib, sys
+          raw = pathlib.Path(sys.argv[1]).read_bytes()
+          text = raw[:4096].decode("utf-8", errors="ignore").lower()
+          ok = len(raw) > 1000 and ("<html" in text or "<!doctype html" in text)
+          raise SystemExit(0 if ok else 1)
+          PY
+          }
+
+          if fetch "$SOURCE_URL_PRIMARY" capture/primary.tmp capture/primary.headers.txt               && validate_pdf capture/primary.tmp; then
+            output="capture/condado_1908_09_04_page.pdf"
+            mv capture/primary.tmp "$output"
+            capture_type="scanned_newspaper_page_pdf"
+            used_url="$SOURCE_URL_PRIMARY"
+            mime_type="application/pdf"
+            satisfies_claim_gate="true"
+          elif fetch "$SOURCE_URL_FALLBACK" capture/fallback.tmp capture/fallback.headers.txt               && validate_pdf capture/fallback.tmp; then
+            output="capture/condado_1908_09_04_page.pdf"
+            mv capture/fallback.tmp "$output"
+            capture_type="scanned_newspaper_page_pdf"
+            used_url="$SOURCE_URL_FALLBACK"
+            mime_type="application/pdf"
+            satisfies_claim_gate="true"
+          elif fetch "$SOURCE_MANIFEST_URL" capture/manifest.tmp capture/manifest.headers.txt               && validate_json capture/manifest.tmp; then
+            output="capture/condado_1908_09_04_manifest.json"
+            mv capture/manifest.tmp "$output"
+            capture_type="iiif_manifest_json"
+            used_url="$SOURCE_MANIFEST_URL"
+            mime_type="application/json"
+          elif fetch "$SOURCE_ITEM_URL" capture/item.tmp capture/item.headers.txt               && validate_html capture/item.tmp; then
+            output="capture/condado_1908_09_04_item.html"
+            mv capture/item.tmp "$output"
+            capture_type="custodial_item_html"
+            used_url="$SOURCE_ITEM_URL"
+            mime_type="text/html"
+          else
+            echo "No verified custodial representation could be captured" >&2
+            exit 41
+          fi
+
+          sha="$(sha256sum "$output" | awk '{print $1}')"
+          size="$(stat -c '%s' "$output")"
+
+          SOURCE_ID="$SOURCE_ID"           SOURCE_URL_PRIMARY="$SOURCE_URL_PRIMARY"           SOURCE_URL_FALLBACK="$SOURCE_URL_FALLBACK"           SOURCE_MANIFEST_URL="$SOURCE_MANIFEST_URL"           SOURCE_ITEM_URL="$SOURCE_ITEM_URL"           USED_URL="$used_url"           CAPTURE_TYPE="$capture_type"           MIME_TYPE="$mime_type"           SHA256="$sha"           SIZE_BYTES="$size"           OUTPUT_FILE="$output"           SATISFIES_CLAIM_GATE="$satisfies_claim_gate"           python - <<'PY'
+          import json, os, pathlib
+          receipt = {
+              "schema_version": 2,
+              "receipt_type": "GALIA_CUSTODIAL_REPRESENTATION_CAPTURE",
+              "source_id": os.environ["SOURCE_ID"],
+              "custodian": "Library of Congress / Chronicling America",
+              "title": "La Correspondencia de Puerto Rico — 4 Sep 1908",
+              "requested_primary_url": os.environ["SOURCE_URL_PRIMARY"],
+              "requested_fallback_url": os.environ["SOURCE_URL_FALLBACK"],
+              "requested_manifest_url": os.environ["SOURCE_MANIFEST_URL"],
+              "requested_item_url": os.environ["SOURCE_ITEM_URL"],
+              "used_url": os.environ["USED_URL"],
+              "representation_type": os.environ["CAPTURE_TYPE"],
+              "mime_type": os.environ["MIME_TYPE"],
+              "sha256": os.environ["SHA256"],
+              "size_bytes": int(os.environ["SIZE_BYTES"]),
+              "output_file": os.environ["OUTPUT_FILE"],
+              "raw_artifact": True,
+              "acquisition_state": "RAW_CAPTURED",
+              "satisfies_claim_promotion_gate": (
+                  os.environ["SATISFIES_CLAIM_GATE"].lower() == "true"
+              ),
+              "claim_promotion_authorized": False,
+          }
+          pathlib.Path("capture/CAPTURE_RECEIPT.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - name: Reverify captured custodial bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, pathlib
+          receipt = json.loads(
+              pathlib.Path("capture/CAPTURE_RECEIPT.json").read_text()
+          )
+          path = pathlib.Path(receipt["output_file"])
+          data = path.read_bytes()
+          assert len(data) == receipt["size_bytes"]
+          assert hashlib.sha256(data).hexdigest() == receipt["sha256"]
+          assert receipt["raw_artifact"] is True
+          assert receipt["acquisition_state"] == "RAW_CAPTURED"
+          if receipt["satisfies_claim_promotion_gate"]:
+              assert receipt["representation_type"] in {
+                  "scanned_newspaper_page_pdf",
+                  "scanned_newspaper_page_image",
+              }
+          print("CUSTODIAL_REPRESENTATION_REVERIFY=PASS")
+          PY
+
+      - name: Upload captured custodial representation
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_CONDADO_1908_CUSTODIAL_CAPTURE
+          path: capture/
+          if-no-files-found: error
+          retention-days: 90
