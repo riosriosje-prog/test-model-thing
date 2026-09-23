@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 import unittest
@@ -10,7 +11,7 @@ from historical_store_bundle import (
     reconstruct_bundle,
     write_bundle_atomic,
 )
-from pilots.condado_shadow import seed_condado_shadow
+from pilots.condado_shadow import LOC_CONDADO_1908_URL, seed_condado_shadow
 
 
 class CondadoShadowPilotTests(unittest.TestCase):
@@ -32,7 +33,7 @@ class CondadoShadowPilotTests(unittest.TestCase):
             "SELECT COUNT(*) FROM claims WHERE status = 'PROPOSED'"
         ).fetchone()[0]
         self.assertEqual(canonical, 0)
-        self.assertEqual(proposed, 5)
+        self.assertEqual(proposed, 6)
 
     def test_condado_area_discrepancy_preserves_all_variants(self):
         discrepancy_id = self.ids["area_discrepancy_id"]
@@ -70,6 +71,38 @@ class CondadoShadowPilotTests(unittest.TestCase):
         self.assertEqual(
             evidence["event_date_start"],
             "1917-08-24",
+        )
+
+    def test_loc_primary_source_is_fail_closed_when_raw_bytes_unavailable(self):
+        document_id = self.ids["newspaper_document_id"]
+        row = self.store.conn.execute(
+            """
+            SELECT content_sha256, byte_length, content_locator, metadata_json
+            FROM documents WHERE document_id = ?
+            """,
+            (document_id,),
+        ).fetchone()
+        metadata = json.loads(row["metadata_json"])
+        self.assertIsNone(row["content_sha256"])
+        self.assertIsNone(row["byte_length"])
+        self.assertEqual(row["content_locator"], LOC_CONDADO_1908_URL)
+        self.assertEqual(
+            metadata["acquisition"]["state"],
+            "REMOTE_BLOCKED",
+        )
+        self.assertFalse(metadata["acquisition"]["raw_artifact"])
+
+        claim = self.store.conn.execute(
+            """
+            SELECT status, metadata_json FROM claims
+            WHERE claim_id = ?
+            """,
+            (self.ids["newspaper_claim_id"],),
+        ).fetchone()
+        claim_metadata = json.loads(claim["metadata_json"])
+        self.assertEqual(claim["status"], "PROPOSED")
+        self.assertTrue(
+            claim_metadata["promotion_blocked_until_raw_capture"]
         )
 
     def test_bundle_export_is_deterministic(self):
