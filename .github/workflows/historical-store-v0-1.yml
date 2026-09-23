@@ -17,6 +17,8 @@ on:
       - tests/**
       - docs/HISTORICAL_STORE_V0_1.md
       - .github/workflows/historical-store-v0-1.yml
+      - pyproject.toml
+      - src/**
 
 permissions:
   contents: read
