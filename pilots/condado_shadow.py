@@ -172,6 +172,10 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
         metadata={
             "verification_state": "PRIMARY_SOURCE_LOCATED_RAW_CAPTURE_PENDING",
             "promotion_blocked_until_raw_capture": True,
+            "promotion_required_representation_types": [
+                "scanned_newspaper_page_pdf",
+                "scanned_newspaper_page_image",
+            ],
         },
     )
     store.add_evidence(
