@@ -1,6 +1,14 @@
 from __future__ import annotations
 
+from historical_acquisition import AcquisitionReceipt, record_acquisition_state
 from historical_store import HistoricalStore
+
+
+LOC_CONDADO_1908_URL = (
+    "https://tile.loc.gov/storage-services/service/ndnp/prru/"
+    "batch_prru_foca_ver01/data/sn91099747/0027176568A/"
+    "1908090401/0252.pdf"
+)
 
 
 def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
@@ -104,6 +112,79 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
         metadata={"evidence_state": "CITATION_ANCHOR_ONLY"},
     )
 
+    # First institutional primary-source acquisition target. Library of
+    # Congress exposes the 4 Sep 1908 page containing the El Condado /
+    # Parque Residencial advertisement, but the raw PDF endpoint may be
+    # unavailable to an automated acquisition environment. We preserve that
+    # distinction instead of treating a text surrogate as the raw scan.
+    newspaper_source = store.register_source(
+        source_type="newspaper",
+        title="La Correspondencia de Puerto Rico",
+        custodian="Library of Congress",
+        repository="Chronicling America",
+        locator="LCCN sn91099747; 1908-09-04; page image/PDF 0252",
+        url=LOC_CONDADO_1908_URL,
+        metadata={
+            "source_rank": "primary_newspaper",
+            "institutional_custodian": True,
+        },
+    )
+    newspaper_doc = store.register_document(
+        source_id=newspaper_source,
+        title=(
+            "La Correspondencia de Puerto Rico, "
+            "4 de septiembre de 1908 — El Condado / Parque Residencial"
+        ),
+        document_date="1908-09-04",
+        event_date_start="1908-09-04",
+        content_locator=LOC_CONDADO_1908_URL,
+        metadata={
+            "document_date_precision": "day",
+            "event_date_precision": "day",
+            "representation_expected": "scanned_newspaper_page_pdf",
+        },
+    )
+    record_acquisition_state(
+        store,
+        document_id=newspaper_doc,
+        receipt=AcquisitionReceipt(
+            state="REMOTE_BLOCKED",
+            source_url=LOC_CONDADO_1908_URL,
+            representation_type="scanned_newspaper_page_pdf",
+            raw_artifact=False,
+            note=(
+                "Institutional source located and independently discoverable; "
+                "raw PDF bytes were not capturable in the current acquisition "
+                "environment. Do not substitute derived text as raw scan."
+            ),
+        ),
+    )
+    newspaper_claim = store.propose_claim(
+        document_id=newspaper_doc,
+        subject_entity_id=estate,
+        predicate="marketed_as",
+        object_value="El Condado — Parque Residencial",
+        claim_text=(
+            "Working claim: on 4 September 1908 Behn Brothers marketed "
+            "El Condado as a residential park."
+        ),
+        created_by="source-discovery-import",
+        metadata={
+            "verification_state": "PRIMARY_SOURCE_LOCATED_RAW_CAPTURE_PENDING",
+            "promotion_blocked_until_raw_capture": True,
+        },
+    )
+    store.add_evidence(
+        claim_id=newspaper_claim,
+        document_id=newspaper_doc,
+        role="supports",
+        locator=LOC_CONDADO_1908_URL,
+        metadata={
+            "evidence_state": "INSTITUTIONAL_SOURCE_LOCATED",
+            "raw_capture_required": True,
+        },
+    )
+
     notes_source = store.register_source(
         source_type="research_working_note",
         title="GALIA working note — Finca El Condado cabida variants",
@@ -172,6 +253,8 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
         "behn_document_id": behn_doc,
         "transfer_claim_id": transfer_claim,
         "location_claim_id": location_claim,
+        "newspaper_document_id": newspaper_doc,
+        "newspaper_claim_id": newspaper_claim,
         "area_claim_ids": area_claims,
         "area_discrepancy_id": discrepancy,
     }
