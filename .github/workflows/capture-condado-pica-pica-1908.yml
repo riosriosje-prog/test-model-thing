@@ -12,6 +12,7 @@ on:
       - historical_artifacts.py
       - historical_store_bundle.py
       - tests/test_condado_shadow.py
+      - tests/test_pica_pica_capture_pilot.py
 
 permissions:
   contents: read
