@@ -7,7 +7,7 @@ from pathlib import Path
 
 from historical_artifacts import HistoricalArtifactStore
 from historical_store import HistoricalStore
-from historical_store_bundle import write_bundle_atomic
+from historical_store_bundle import semantic_fingerprint, write_bundle_atomic
 from pilots.condado_shadow import (
     PICA_PICA_CONDADO_1908_URL,
     seed_condado_shadow,
@@ -87,6 +87,7 @@ def run_pilot(source_file: str, output_dir: str) -> dict:
                 "Raw capture must not auto-promote historical claims"
             )
 
+        semantic_digest = semantic_fingerprint(store)
         bundle_digest = write_bundle_atomic(store, str(bundle_path))
         health = store.health()
 
@@ -113,6 +114,7 @@ def run_pilot(source_file: str, output_dir: str) -> dict:
             "claim_status_after_capture": claim_status,
             "claim_promotion_executed": False,
             "bundle_sha256": bundle_digest,
+            "semantic_fingerprint_sha256": semantic_digest,
         },
         "authority": {
             "raw_capture_verified": True,
