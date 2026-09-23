@@ -1,4 +1,3 @@
-import json
 import os
 import tempfile
 import unittest
@@ -33,7 +32,7 @@ class HistoricalAcquisitionTests(unittest.TestCase):
                 ),
             )
 
-    def test_raw_captured_requires_raw_artifact_true(self):
+    def test_raw_captured_requires_hash_size_and_raw_artifact(self):
         with self.assertRaises(ValueError):
             record_acquisition_state(
                 self.store,
@@ -45,9 +44,20 @@ class HistoricalAcquisitionTests(unittest.TestCase):
                     raw_artifact=False,
                 ),
             )
+        with self.assertRaises(ValueError):
+            record_acquisition_state(
+                self.store,
+                document_id=self.document_id,
+                receipt=AcquisitionReceipt(
+                    state="RAW_CAPTURED",
+                    source_url="https://example.invalid/source.pdf",
+                    representation_type="pdf",
+                    raw_artifact=True,
+                ),
+            )
 
-    def test_remote_blocked_records_metadata_and_audit(self):
-        record_acquisition_state(
+    def test_remote_blocked_creates_representation_and_audit(self):
+        representation_id = record_acquisition_state(
             self.store,
             document_id=self.document_id,
             receipt=AcquisitionReceipt(
@@ -59,25 +69,36 @@ class HistoricalAcquisitionTests(unittest.TestCase):
             ),
         )
         row = self.store.conn.execute(
-            "SELECT metadata_json FROM documents WHERE document_id = ?",
-            (self.document_id,),
+            """
+            SELECT acquisition_state, raw_artifact, source_url, locator
+            FROM document_representations
+            WHERE representation_id = ?
+            """,
+            (representation_id,),
         ).fetchone()
-        metadata = json.loads(row["metadata_json"])
-        acquisition = metadata["acquisition"]
-        self.assertEqual(acquisition["state"], "REMOTE_BLOCKED")
-        self.assertFalse(acquisition["raw_artifact"])
+        self.assertEqual(row["acquisition_state"], "REMOTE_BLOCKED")
+        self.assertEqual(row["raw_artifact"], 0)
+        self.assertEqual(
+            row["source_url"],
+            "https://example.invalid/source.pdf",
+        )
+        self.assertEqual(
+            row["locator"],
+            "https://example.invalid/source.pdf",
+        )
 
         audit = self.store.conn.execute(
             """
             SELECT event_type FROM audit_log
-            WHERE object_type = 'document' AND object_id = ?
+            WHERE object_type = 'document_representation'
+              AND object_id = ?
             ORDER BY audit_id DESC LIMIT 1
             """,
-            (self.document_id,),
+            (representation_id,),
         ).fetchone()
         self.assertEqual(
             audit["event_type"],
-            "document_acquisition_state_recorded",
+            "document_representation_registered",
         )
 
 
