@@ -1,0 +1,201 @@
+name: GALIA v1.35 Fork-Main Runtime Attestation
+
+on:
+  push:
+    branches:
+      - galia-v1-35-fork-main-attestation-v1
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  attest-fork-main:
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    env:
+      FORK_MAIN_SHA: c7b02c87e46e531a3bbdfc642ae10738c1274a10
+      FORK_MAIN_BLOB: 715b9be844284f13eb885e3301c90c5a04b3c6bc
+      CANDIDATE_SHA256: e98f2403d9173e39df3e25cfb291ed5c348f8edfbe565a08c6c02c2b7ae63c16
+      OPERATOR_SHA256: 07c7ef5d59dcafe8e9ebb32c9b0938ae063e8377b2977907895195ab2e31db46
+
+    steps:
+      - name: Checkout attestation branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify host and fork-main binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -s)" = "Darwin"
+          test "$(uname -m)" = "arm64"
+          git fetch origin main --depth=1
+          test "$(git rev-parse FETCH_HEAD)" = "$FORK_MAIN_SHA"
+          git show "$FORK_MAIN_SHA:main.py" > "$RUNNER_TEMP/fork-main.py"
+          python3 - <<'PY'
+          import hashlib, os, subprocess
+          from pathlib import Path
+
+          p=Path(os.environ["RUNNER_TEMP"])/"fork-main.py"
+          raw=p.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()==os.environ["CANDIDATE_SHA256"]
+          blob=subprocess.check_output(["git","hash-object",str(p)],text=True).strip()
+          assert blob==os.environ["FORK_MAIN_BLOB"], (blob,os.environ["FORK_MAIN_BLOB"])
+          current=Path("main.py").read_bytes()
+          assert current==raw
+          print("FORK_MAIN_COMMIT_BINDING=PASS")
+          print("FORK_MAIN_BYTE_IDENTITY=PASS")
+          PY
+          sw_vers
+          uname -a
+
+      - name: Install CPython 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: 'arm64'
+
+      - name: Verify operator and embedded execution source binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3.13 - <<'PY'
+          import hashlib, io, os, zipfile
+          from pathlib import Path
+
+          op=Path("payload/TMT_GALIA_V1_34_MAC_OPERATOR_REVN.zip")
+          assert hashlib.sha256(op.read_bytes()).hexdigest()==os.environ["OPERATOR_SHA256"]
+
+          with zipfile.ZipFile(op) as z:
+              env_bytes=z.read(
+                  "TMT_GALIA_V1_34_MAC_OPERATOR_REVN/"
+                  "TMT_GALIA_V1_34_EXECUTION_ENVELOPE_REVI.zip"
+              )
+          with zipfile.ZipFile(io.BytesIO(env_bytes)) as z:
+              qa2_bytes=z.read(
+                  "TMT_GALIA_V1_34_EXECUTION_ENVELOPE_REVI/artifacts/"
+                  "TMT_GALIA_REBASE_v1_35_QA2.zip"
+              )
+          with zipfile.ZipFile(io.BytesIO(qa2_bytes)) as z:
+              embedded=z.read(
+                  "TMT_GALIA_REBASE_v1_35_QA2/"
+                  "main_TMT_GALIA_v1_35_candidate.py"
+              )
+
+          fork_main=(Path(os.environ["RUNNER_TEMP"])/"fork-main.py").read_bytes()
+          assert embedded==fork_main
+          assert hashlib.sha256(embedded).hexdigest()==os.environ["CANDIDATE_SHA256"]
+          print("OPERATOR_HASH_GATE=PASS")
+          print("EXECUTED_SOURCE_EQUALS_FORK_MAIN=PASS")
+          PY
+
+      - name: Extract operator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3.13 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          src=Path("payload/TMT_GALIA_V1_34_MAC_OPERATOR_REVN.zip")
+          dst=Path("operator")
+          with zipfile.ZipFile(src) as z:
+              assert z.testzip() is None
+              z.extractall(dst)
+          PY
+
+      - name: Run fresh real MLX full cycle
+        shell: bash
+        env:
+          PYTHON_BIN: python3.13
+        run: |
+          set -euo pipefail
+          cd operator/TMT_GALIA_V1_34_MAC_OPERATOR_REVN
+          bash run_full_cycle_v1_34.sh "$RUNNER_TEMP/galia-attest-work" "$RUNNER_TEMP/galia-attest-results"
+          test -f "$RUNNER_TEMP/galia-attest-results/TMT_GALIA_V1_34_REAL_MLX_EVIDENCE.zip"
+          cp "$RUNNER_TEMP/galia-attest-results/TMT_GALIA_V1_34_REAL_MLX_EVIDENCE.zip" "$GITHUB_WORKSPACE/"
+
+      - name: Build fork-main-bound evidence subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3.13 - <<'PY'
+          import hashlib, json, os, platform, zipfile
+          from pathlib import Path
+
+          evidence=Path("TMT_GALIA_V1_34_REAL_MLX_EVIDENCE.zip")
+          evidence_sha=hashlib.sha256(evidence.read_bytes()).hexdigest()
+
+          binding={
+              "schema_version":1,
+              "classification":"FORK_MAIN_REAL_MLX_EVIDENCE_READY_FOR_GITHUB_ATTESTATION",
+              "repository":"riosriosje-prog/test-model-thing",
+              "fork_main_sha":os.environ["FORK_MAIN_SHA"],
+              "fork_main_py_git_blob":os.environ["FORK_MAIN_BLOB"],
+              "fork_main_py_sha256":os.environ["CANDIDATE_SHA256"],
+              "operator_sha256":os.environ["OPERATOR_SHA256"],
+              "real_mlx_evidence_sha256":evidence_sha,
+              "github_run_id":os.environ["GITHUB_RUN_ID"],
+              "github_run_attempt":os.environ["GITHUB_RUN_ATTEMPT"],
+              "workflow_ref":os.environ["GITHUB_WORKFLOW_REF"],
+              "workflow_sha":os.environ["GITHUB_SHA"],
+              "runner_os":platform.system(),
+              "runner_arch":platform.machine(),
+              "github_attested":False
+          }
+          Path("FORK_MAIN_BINDING.json").write_text(json.dumps(binding,indent=2,sort_keys=True)+"\n")
+
+          files=[evidence,Path("FORK_MAIN_BINDING.json")]
+          manifest="".join(
+              f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n"
+              for p in files
+          )
+          Path("BUNDLE_MANIFEST_SHA256.txt").write_text(manifest)
+
+          out=Path("TMT_GALIA_V1_35_FORK_MAIN_ATTESTED_EVIDENCE.zip")
+          with zipfile.ZipFile(out,"w",zipfile.ZIP_DEFLATED) as z:
+              for p in files+[Path("BUNDLE_MANIFEST_SHA256.txt")]:
+                  z.write(p,p.name)
+          with zipfile.ZipFile(out) as z:
+              assert z.testzip() is None
+          print("ATTESTATION_SUBJECT_SHA256="+hashlib.sha256(out.read_bytes()).hexdigest())
+          PY
+
+      - name: Generate GitHub artifact attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: TMT_GALIA_V1_35_FORK_MAIN_ATTESTED_EVIDENCE.zip
+
+      - name: Verify GitHub artifact attestation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            if gh attestation verify TMT_GALIA_V1_35_FORK_MAIN_ATTESTED_EVIDENCE.zip \
+              -R riosriosje-prog/test-model-thing \
+              --format json > GITHUB_ATTESTATION_VERIFICATION.json; then
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          test "$ok" -eq 1
+          test -s GITHUB_ATTESTATION_VERIFICATION.json
+          echo "GITHUB_ATTESTATION_VERIFY=PASS"
+
+      - name: Upload attested evidence and verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: TMT_GALIA_V1_35_FORK_MAIN_ATTESTED_EVIDENCE
+          path: |
+            TMT_GALIA_V1_35_FORK_MAIN_ATTESTED_EVIDENCE.zip
+            GITHUB_ATTESTATION_VERIFICATION.json
+            FORK_MAIN_BINDING.json
+          if-no-files-found: error
+          retention-days: 30
