@@ -786,6 +786,78 @@ class HistoricalStore:
                 payload={"claim_id": claim_id, "stance": stance},
             )
 
+    def claim_promotion_blockers(self, claim_id: str) -> list[dict[str, Any]]:
+        """Return objective blockers that prevent CANONICAL promotion."""
+        row = self.conn.execute(
+            """
+            SELECT document_id, metadata_json
+            FROM claims WHERE claim_id = ?
+            """,
+            (claim_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(f"Unknown claim_id: {claim_id}")
+
+        metadata = json.loads(row["metadata_json"] or "{}")
+        blockers: list[dict[str, Any]] = []
+
+        if metadata.get("promotion_blocked_until_raw_capture"):
+            document_id = row["document_id"]
+            if not document_id:
+                blockers.append(
+                    {
+                        "code": "RAW_CAPTURE_REQUIRED_NO_DOCUMENT",
+                        "message": (
+                            "Claim requires raw capture before promotion but "
+                            "has no primary document binding."
+                        ),
+                    }
+                )
+            else:
+                raw = self.conn.execute(
+                    """
+                    SELECT representation_id, content_sha256, byte_length, locator
+                    FROM document_representations
+                    WHERE document_id = ?
+                      AND acquisition_state = 'RAW_CAPTURED'
+                      AND raw_artifact = 1
+                      AND content_sha256 IS NOT NULL
+                      AND byte_length IS NOT NULL
+                    ORDER BY preferred_for_review DESC, created_at_utc, representation_id
+                    LIMIT 1
+                    """,
+                    (document_id,),
+                ).fetchone()
+                if raw is None:
+                    states = [
+                        dict(r)
+                        for r in self.conn.execute(
+                            """
+                            SELECT representation_type, acquisition_state,
+                                   raw_artifact, content_sha256, byte_length,
+                                   locator
+                            FROM document_representations
+                            WHERE document_id = ?
+                            ORDER BY created_at_utc, representation_id
+                            """,
+                            (document_id,),
+                        ).fetchall()
+                    ]
+                    blockers.append(
+                        {
+                            "code": "RAW_CAPTURE_REQUIRED",
+                            "message": (
+                                "Claim is explicitly blocked from canonical "
+                                "promotion until a verified RAW_CAPTURED "
+                                "representation exists."
+                            ),
+                            "document_id": document_id,
+                            "representations": states,
+                        }
+                    )
+
+        return blockers
+
     def review_claim(
         self,
         claim_id: str,
@@ -801,6 +873,24 @@ class HistoricalStore:
             raise ValueError("Human reviewer identity is required")
         if not rationale.strip():
             raise ValueError("Review rationale is required")
+
+        if decision == "PROMOTE_CANONICAL":
+            blockers = self.claim_promotion_blockers(claim_id)
+            if blockers:
+                with self.transaction():
+                    self._audit(
+                        "claim_promotion_blocked",
+                        object_type="claim",
+                        object_id=claim_id,
+                        payload={
+                            "reviewer": reviewer,
+                            "blockers": blockers,
+                        },
+                    )
+                raise ValueError(
+                    "Claim cannot be promoted to CANONICAL: "
+                    + "; ".join(blocker["code"] for blocker in blockers)
+                )
 
         status_for_decision = {
             "VALIDATE": "VALIDATED",
