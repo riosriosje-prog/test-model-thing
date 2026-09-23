@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Iterator
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 EVIDENCE_ROLES = {"supports", "contradicts", "mentions"}
 
 
@@ -87,6 +87,9 @@ class HistoricalStore:
         if current == 1:
             self._migrate_v1_to_v2()
             current = 2
+        if current == 2:
+            self._migrate_v2_to_v3()
+            current = 3
         if current != SCHEMA_VERSION:
             raise RuntimeError(
                 f"No migration path from schema {current} to {SCHEMA_VERSION}"
@@ -361,6 +364,27 @@ class HistoricalStore:
                 """
             )
             self.conn.execute("PRAGMA user_version = 2")
+
+    def _migrate_v2_to_v3(self) -> None:
+        with self.transaction():
+            self.conn.executescript(
+                """
+                ALTER TABLE claim_evidence
+                    ADD COLUMN representation_id TEXT
+                    REFERENCES document_representations(representation_id);
+
+                CREATE INDEX idx_evidence_representation
+                    ON claim_evidence(representation_id);
+                """
+            )
+            self.conn.execute(
+                """
+                UPDATE schema_meta
+                SET value = '3'
+                WHERE key = 'schema_version'
+                """
+            )
+            self.conn.execute("PRAGMA user_version = 3")
 
     def _audit(
         self,
@@ -696,6 +720,7 @@ class HistoricalStore:
         claim_id: str,
         document_id: str,
         role: str,
+        representation_id: str | None = None,
         locator: str | None = None,
         excerpt: bytes | None = None,
         excerpt_sha256: str | None = None,
@@ -703,6 +728,22 @@ class HistoricalStore:
     ) -> str:
         if role not in EVIDENCE_ROLES:
             raise ValueError(f"Unsupported evidence role: {role!r}")
+        if representation_id is not None:
+            representation = self.conn.execute(
+                """
+                SELECT document_id FROM document_representations
+                WHERE representation_id = ?
+                """,
+                (representation_id,),
+            ).fetchone()
+            if representation is None:
+                raise KeyError(
+                    f"Unknown representation_id: {representation_id}"
+                )
+            if representation["document_id"] != document_id:
+                raise ValueError(
+                    "Evidence representation does not belong to document_id"
+                )
         if excerpt is not None:
             derived_hash = _sha256_bytes(excerpt)
             if excerpt_sha256 is not None and excerpt_sha256 != derived_hash:
@@ -713,13 +754,14 @@ class HistoricalStore:
             self.conn.execute(
                 """
                 INSERT INTO claim_evidence(
-                    evidence_id, claim_id, document_id, locator,
-                    excerpt_sha256, role, metadata_json, created_at_utc
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    evidence_id, claim_id, document_id, representation_id,
+                    locator, excerpt_sha256, role, metadata_json, created_at_utc
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    evidence_id, claim_id, document_id, locator,
-                    excerpt_sha256, role, _canonical_json(metadata), _utc_now(),
+                    evidence_id, claim_id, document_id, representation_id,
+                    locator, excerpt_sha256, role, _canonical_json(metadata),
+                    _utc_now(),
                 ),
             )
             self._audit(
@@ -729,6 +771,7 @@ class HistoricalStore:
                 payload={
                     "evidence_id": evidence_id,
                     "document_id": document_id,
+                    "representation_id": representation_id,
                     "role": role,
                 },
             )
@@ -1043,12 +1086,20 @@ class HistoricalStore:
                 d.event_date_start,
                 d.event_date_end,
                 d.content_sha256,
+                r.representation_type,
+                r.acquisition_state AS representation_acquisition_state,
+                r.content_sha256 AS representation_content_sha256,
+                r.byte_length AS representation_byte_length,
+                r.locator AS representation_locator,
+                r.raw_artifact AS representation_raw_artifact,
                 s.title AS source_title,
                 s.custodian,
                 s.repository,
                 s.locator AS source_locator
             FROM claim_evidence e
             JOIN documents d ON d.document_id = e.document_id
+            LEFT JOIN document_representations r
+                ON r.representation_id = e.representation_id
             LEFT JOIN sources s ON s.source_id = d.source_id
             WHERE e.claim_id = ?
             ORDER BY e.created_at_utc, e.evidence_id
