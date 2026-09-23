@@ -3,6 +3,7 @@ name: historical-store-v0-1
 on:
   push:
     branches:
+      - main
       - galia-historical-store-v0-1
   pull_request:
     paths:
