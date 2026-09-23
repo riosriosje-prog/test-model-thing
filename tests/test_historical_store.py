@@ -41,6 +41,43 @@ class HistoricalStoreTests(unittest.TestCase):
         self.assertEqual(row["event_date_start"], "1917-08-24")
         self.assertEqual(len(row["content_sha256"]), 64)
 
+    def test_multiple_representations_can_coexist_for_one_document(self):
+        document_id = self.store.register_document(title="Newspaper page")
+        pdf_rep = self.store.register_document_representation(
+            document_id=document_id,
+            representation_type="scanned_page_pdf",
+            acquisition_state="REMOTE_BLOCKED",
+            locator="https://example.invalid/page.pdf",
+            source_url="https://example.invalid/page.pdf",
+            raw_artifact=False,
+        )
+        ocr_rep = self.store.register_document_representation(
+            document_id=document_id,
+            representation_type="institutional_ocr",
+            acquisition_state="TEXT_SURROGATE",
+            locator="https://example.invalid/page/ocr/",
+            source_url="https://example.invalid/page/ocr/",
+            raw_artifact=False,
+        )
+        rows = self.store.conn.execute(
+            """
+            SELECT representation_id, representation_type, acquisition_state
+            FROM document_representations
+            WHERE document_id = ?
+            ORDER BY representation_type
+            """,
+            (document_id,),
+        ).fetchall()
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(
+            {row["representation_id"] for row in rows},
+            {pdf_rep, ocr_rep},
+        )
+        self.assertEqual(
+            {row["acquisition_state"] for row in rows},
+            {"REMOTE_BLOCKED", "TEXT_SURROGATE"},
+        )
+
     def test_engine_claim_cannot_be_canonical_without_human_review(self):
         bridge = GaliaResearchBridge(
             self.store,
@@ -134,8 +171,9 @@ class HistoricalStoreTests(unittest.TestCase):
 
     def test_health(self):
         health = self.store.health()
-        self.assertEqual(health["schema_version"], 1)
+        self.assertEqual(health["schema_version"], 2)
         self.assertEqual(health["integrity_check"], "ok")
+        self.assertIn("document_representations", health["counts"])
 
 
 if __name__ == "__main__":
