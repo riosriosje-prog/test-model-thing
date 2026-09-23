@@ -26,6 +26,7 @@ class AcquisitionReceipt:
     content_sha256: str | None = None
     byte_length: int | None = None
     preferred_for_review: bool = False
+    representation_id: str | None = None
 
 
 def record_acquisition_state(
@@ -54,4 +55,5 @@ def record_acquisition_state(
         raw_artifact=receipt.raw_artifact,
         preferred_for_review=receipt.preferred_for_review,
         metadata={"note": receipt.note} if receipt.note is not None else None,
+        representation_id=receipt.representation_id,
     )
