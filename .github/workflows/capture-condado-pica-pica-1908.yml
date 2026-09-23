@@ -1,0 +1,84 @@
+name: capture-condado-pica-pica-1908
+
+on:
+  push:
+    branches:
+      - galia-historical-store-v0-1
+    paths:
+      - .github/workflows/capture-condado-pica-pica-1908.yml
+      - pilots/condado_shadow.py
+      - tools/run_condado_pica_pica_capture_pilot.py
+      - historical_store.py
+      - historical_artifacts.py
+      - historical_store_bundle.py
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_URL: https://ufdcimages.uflib.ufl.edu/AA/00/09/81/80/00265/1908050901.pdf
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Capture UFDC Pica-Pica PDF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture
+          curl             --fail --location --silent --show-error             --retry 3 --retry-delay 2             --connect-timeout 20 --max-time 180             --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.1"             --output capture/pica_pica_1908_05_09.pdf             "$SOURCE_URL"
+
+          python - <<'PY'
+          import hashlib, pathlib
+          p = pathlib.Path("capture/pica_pica_1908_05_09.pdf")
+          data = p.read_bytes()
+          assert data.startswith(b"%PDF-"), "Downloaded bytes are not a PDF"
+          assert len(data) > 1000, "Downloaded PDF is unexpectedly small"
+          print("PICA_PICA_RAW_SHA256=" + hashlib.sha256(data).hexdigest())
+          print("PICA_PICA_RAW_SIZE=" + str(len(data)))
+          PY
+
+      - name: Run end-to-end Historical Store raw capture pilot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/run_condado_pica_pica_capture_pilot.py             --source-file capture/pica_pica_1908_05_09.pdf             --output-dir capture/pilot
+
+          python - <<'PY'
+          import json, pathlib
+          receipt = json.loads(
+              pathlib.Path("capture/pilot/CAPTURE_PILOT_RECEIPT.json").read_text()
+          )
+          assert receipt["status"] == "RAW_PRIMARY_SOURCE_CAPTURE_PASS"
+          assert receipt["authority"]["raw_capture_verified"] is True
+          assert receipt["authority"]["objective_promotion_gate_satisfied"] is True
+          assert receipt["authority"]["human_canonical_review_executed"] is False
+          assert receipt["authority"]["canonical_promotion_executed"] is False
+          assert (
+              receipt["historical_store"]["claim_status_after_capture"]
+              == "PROPOSED"
+          )
+          assert receipt["historical_store"]["promotion_blockers_after_capture"] == []
+          print("CONDADO_PICA_PICA_RAW_CAPTURE_PILOT=PASS")
+          PY
+
+      - name: Upload raw source and provenance bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_CONDADO_PICA_PICA_1908_RAW_CAPTURE
+          path: |
+            capture/pica_pica_1908_05_09.pdf
+            capture/pilot/CAPTURE_PILOT_RECEIPT.json
+            capture/pilot/condado_pica_pica_shadow.bundle.json
+            capture/pilot/condado_pica_pica_shadow.sqlite3
+            capture/pilot/artifact_store/
+          if-no-files-found: error
+          retention-days: 90
