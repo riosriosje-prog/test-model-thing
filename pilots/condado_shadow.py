@@ -12,6 +12,11 @@ LOC_CONDADO_1908_URL = (
     "1908090401/0252.pdf"
 )
 
+PICA_PICA_CONDADO_1908_URL = (
+    "https://ufdcimages.uflib.ufl.edu/AA/00/09/81/80/00265/"
+    "1908050901.pdf"
+)
+
 
 def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
     """Seed a deliberately non-canonical Finca El Condado pilot.
@@ -216,6 +221,104 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
         },
     )
 
+    # Alternate primary-source route independent of the blocked LoC PDF.
+    # Pica-Pica (San Juan), 9 May 1908, contains an El Condado sales
+    # advertisement by Behn Brothers. The UFDC/dLOC PDF is the preferred raw
+    # capture target; UPR also preserves the serial on microfilm.
+    pica_source = store.register_source(
+        source_type="newspaper",
+        title="Pica-Pica",
+        custodian="University of Florida Digital Collections / dLOC",
+        repository="Digital Library of the Caribbean",
+        locator="Pica-Pica; San Juan; 1908-05-09; issue PDF",
+        url=PICA_PICA_CONDADO_1908_URL,
+        metadata={
+            "source_rank": "primary_newspaper",
+            "institutional_custodian": True,
+            "independent_custodial_route": "UPR microfilm",
+        },
+    )
+    pica_doc = store.register_document(
+        source_id=pica_source,
+        title="Pica-Pica, 9 de mayo de 1908 — anuncio El Condado",
+        document_date="1908-05-09",
+        event_date_start="1908-05-09",
+        content_locator=PICA_PICA_CONDADO_1908_URL,
+        metadata={
+            "document_date_precision": "day",
+            "event_date_precision": "day",
+            "representation_expected": "scanned_newspaper_page_pdf",
+        },
+    )
+    pica_pdf_locator = record_acquisition_state(
+        store,
+        document_id=pica_doc,
+        receipt=AcquisitionReceipt(
+            state="LOCATOR_ONLY",
+            source_url=PICA_PICA_CONDADO_1908_URL,
+            representation_type="scanned_newspaper_page_pdf",
+            raw_artifact=False,
+            note=(
+                "UFDC/dLOC raw PDF target located; acquisition is attempted "
+                "by the dedicated GitHub Actions capture pilot."
+            ),
+        ),
+    )
+    pica_indexed_text = (
+        "EL CONDADO\n"
+        "Se venden grandes y saludables solares á precios módicos.\n"
+        "Behn Brothers, ESQUINA TETUAN Y SAN JUSTO."
+    ).encode("utf-8")
+    pica_text_representation = store.register_document_representation(
+        document_id=pica_doc,
+        representation_type="search_index_text_surrogate",
+        acquisition_state="TEXT_SURROGATE",
+        locator=f"surrogate:web-index:{PICA_PICA_CONDADO_1908_URL}",
+        mime_type="text/plain; charset=utf-8",
+        content_sha256=hashlib.sha256(pica_indexed_text).hexdigest(),
+        byte_length=len(pica_indexed_text),
+        source_url=PICA_PICA_CONDADO_1908_URL,
+        raw_artifact=False,
+        preferred_for_review=False,
+        metadata={
+            "derivation": "search_index_extraction",
+            "not_a_scan": True,
+            "not_sufficient_for_claim_promotion": True,
+        },
+    )
+    pica_claim = store.propose_claim(
+        document_id=pica_doc,
+        subject_entity_id=estate,
+        predicate="advertised_for_sale",
+        object_value="large healthy lots at modest prices",
+        claim_text=(
+            "Working claim: on 9 May 1908 Pica-Pica advertised El Condado "
+            "lots for sale by Behn Brothers."
+        ),
+        created_by="source-discovery-import",
+        metadata={
+            "verification_state": "PRIMARY_SOURCE_LOCATED_RAW_CAPTURE_PENDING",
+            "promotion_blocked_until_raw_capture": True,
+            "promotion_required_representation_types": [
+                "scanned_newspaper_page_pdf",
+                "scanned_newspaper_page_image",
+            ],
+        },
+    )
+    store.add_evidence(
+        claim_id=pica_claim,
+        document_id=pica_doc,
+        representation_id=pica_text_representation,
+        role="supports",
+        locator=PICA_PICA_CONDADO_1908_URL,
+        excerpt=pica_indexed_text,
+        metadata={
+            "evidence_state": "TEXT_SURROGATE_ONLY",
+            "raw_capture_required": True,
+            "representation_does_not_unlock_promotion": True,
+        },
+    )
+
     notes_source = store.register_source(
         source_type="research_working_note",
         title="GALIA working note — Finca El Condado cabida variants",
@@ -288,6 +391,10 @@ def seed_condado_shadow(store: HistoricalStore) -> dict[str, object]:
         "newspaper_pdf_representation_id": newspaper_pdf_representation,
         "newspaper_text_representation_id": newspaper_text_representation,
         "newspaper_claim_id": newspaper_claim,
+        "pica_document_id": pica_doc,
+        "pica_pdf_locator_representation_id": pica_pdf_locator,
+        "pica_text_representation_id": pica_text_representation,
+        "pica_claim_id": pica_claim,
         "area_claim_ids": area_claims,
         "area_discrepancy_id": discrepancy,
     }
