@@ -10,6 +10,7 @@ from historical_store_bundle import (
     export_bundle,
     load_bundle,
     reconstruct_bundle,
+    semantic_fingerprint,
     write_bundle_atomic,
 )
 from pilots.condado_shadow import LOC_CONDADO_1908_URL, seed_condado_shadow
@@ -199,6 +200,18 @@ class CondadoShadowPilotTests(unittest.TestCase):
             (claim_id,),
         ).fetchone()["status"]
         self.assertEqual(status, "CANONICAL")
+
+    def test_independent_condado_seeds_share_semantic_fingerprint(self):
+        second_path = os.path.join(self.tmp.name, "condado-second.sqlite3")
+        second = HistoricalStore(second_path)
+        try:
+            seed_condado_shadow(second)
+            self.assertEqual(
+                semantic_fingerprint(self.store),
+                semantic_fingerprint(second),
+            )
+        finally:
+            second.close()
 
     def test_bundle_export_is_deterministic(self):
         first = export_bundle(self.store)
