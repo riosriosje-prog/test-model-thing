@@ -19,6 +19,7 @@ EXPORT_TABLES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("ingest_runs", ("run_id",)),
     ("entities", ("entity_id",)),
     ("documents", ("document_id",)),
+    ("document_representations", ("representation_id",)),
     ("entity_aliases", ("alias_id",)),
     ("claims", ("claim_id",)),
     ("claim_evidence", ("evidence_id",)),
