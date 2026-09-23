@@ -19,9 +19,9 @@ class ArtifactReceipt:
 class HistoricalArtifactStore:
     """Content-addressed raw-artifact storage for historical evidence.
 
-    Raw source bytes live outside SQLite. SQLite receives a stable logical
-    locator plus SHA-256 and byte length. The object path is derived only from
-    the digest, so duplicate captures are naturally deduplicated.
+    Raw source bytes live outside SQLite. SQLite stores a representation row
+    containing locator, SHA-256, byte length, and acquisition state. Document
+    identity remains separate from every physical/digital representation.
     """
 
     def __init__(self, root: str):
@@ -126,61 +126,27 @@ class HistoricalArtifactStore:
         store: HistoricalStore,
         document_id: str,
         receipt: ArtifactReceipt,
-    ) -> None:
+        *,
+        representation_type: str = "raw_source",
+        mime_type: str | None = None,
+        source_url: str | None = None,
+        preferred_for_review: bool = True,
+        metadata: dict | None = None,
+    ) -> str:
+        """Bind verified raw bytes as a RAW_CAPTURED representation."""
         if not self.verify(receipt.sha256, expected_size=receipt.size_bytes):
             raise ValueError("Cannot bind an unverified historical artifact")
 
-        with store.transaction():
-            row = store.conn.execute(
-                """
-                SELECT content_sha256, byte_length, content_locator
-                FROM documents WHERE document_id = ?
-                """,
-                (document_id,),
-            ).fetchone()
-            if row is None:
-                raise KeyError(f"Unknown document_id: {document_id}")
-
-            existing_hash = row["content_sha256"]
-            existing_size = row["byte_length"]
-            existing_locator = row["content_locator"]
-            if existing_hash is not None and existing_hash != receipt.sha256:
-                raise ValueError(
-                    "Document is already bound to a different content SHA-256"
-                )
-            if existing_size is not None and existing_size != receipt.size_bytes:
-                raise ValueError(
-                    "Document is already bound to a different byte length"
-                )
-            if (
-                existing_locator is not None
-                and existing_locator.startswith("artifact:sha256:")
-                and existing_locator != receipt.locator
-            ):
-                raise ValueError(
-                    "Document is already bound to a different artifact locator"
-                )
-
-            store.conn.execute(
-                """
-                UPDATE documents
-                SET content_sha256 = ?, byte_length = ?, content_locator = ?
-                WHERE document_id = ?
-                """,
-                (
-                    receipt.sha256,
-                    receipt.size_bytes,
-                    receipt.locator,
-                    document_id,
-                ),
-            )
-            store._audit(
-                "document_artifact_bound",
-                object_type="document",
-                object_id=document_id,
-                payload={
-                    "sha256": receipt.sha256,
-                    "size_bytes": receipt.size_bytes,
-                    "locator": receipt.locator,
-                },
-            )
+        return store.register_document_representation(
+            document_id=document_id,
+            representation_type=representation_type,
+            acquisition_state="RAW_CAPTURED",
+            locator=receipt.locator,
+            mime_type=mime_type,
+            content_sha256=receipt.sha256,
+            byte_length=receipt.size_bytes,
+            source_url=source_url,
+            raw_artifact=True,
+            preferred_for_review=preferred_for_review,
+            metadata=metadata,
+        )
