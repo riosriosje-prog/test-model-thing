@@ -9,8 +9,10 @@ on:
       - historical_store.py
       - historical_store_bundle.py
       - historical_artifacts.py
+      - historical_acquisition.py
       - galia_history_bridge.py
       - pilots/**
+      - tools/**
       - tests/**
       - docs/HISTORICAL_STORE_V0_1.md
       - .github/workflows/historical-store-v0-1.yml
