@@ -803,6 +803,28 @@ class HistoricalStore:
 
         if metadata.get("promotion_blocked_until_raw_capture"):
             document_id = row["document_id"]
+            required_types = metadata.get(
+                "promotion_required_representation_types"
+            )
+            if required_types is not None:
+                if (
+                    not isinstance(required_types, list)
+                    or not required_types
+                    or not all(
+                        isinstance(value, str) and value.strip()
+                        for value in required_types
+                    )
+                ):
+                    blockers.append(
+                        {
+                            "code": "INVALID_REQUIRED_REPRESENTATION_TYPES",
+                            "message": (
+                                "Claim raw-capture gate has an invalid "
+                                "promotion_required_representation_types value."
+                            ),
+                        }
+                    )
+                    required_types = []
             if not document_id:
                 blockers.append(
                     {
@@ -813,20 +835,33 @@ class HistoricalStore:
                         ),
                     }
                 )
-            else:
+            elif not any(
+                blocker["code"] == "INVALID_REQUIRED_REPRESENTATION_TYPES"
+                for blocker in blockers
+            ):
+                params: list[Any] = [document_id]
+                type_clause = ""
+                if required_types:
+                    placeholders = ", ".join("?" for _ in required_types)
+                    type_clause = (
+                        f" AND representation_type IN ({placeholders})"
+                    )
+                    params.extend(required_types)
                 raw = self.conn.execute(
-                    """
-                    SELECT representation_id, content_sha256, byte_length, locator
+                    f"""
+                    SELECT representation_id, representation_type,
+                           content_sha256, byte_length, locator
                     FROM document_representations
                     WHERE document_id = ?
                       AND acquisition_state = 'RAW_CAPTURED'
                       AND raw_artifact = 1
                       AND content_sha256 IS NOT NULL
                       AND byte_length IS NOT NULL
+                      {type_clause}
                     ORDER BY preferred_for_review DESC, created_at_utc, representation_id
                     LIMIT 1
                     """,
-                    (document_id,),
+                    params,
                 ).fetchone()
                 if raw is None:
                     states = [
@@ -852,6 +887,7 @@ class HistoricalStore:
                                 "representation exists."
                             ),
                             "document_id": document_id,
+                            "required_representation_types": required_types,
                             "representations": states,
                         }
                     )
