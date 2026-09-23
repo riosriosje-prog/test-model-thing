@@ -34,7 +34,7 @@ class CondadoShadowPilotTests(unittest.TestCase):
             "SELECT COUNT(*) FROM claims WHERE status = 'PROPOSED'"
         ).fetchone()[0]
         self.assertEqual(canonical, 0)
-        self.assertEqual(proposed, 6)
+        self.assertEqual(proposed, 7)
 
     def test_condado_area_discrepancy_preserves_all_variants(self):
         discrepancy_id = self.ids["area_discrepancy_id"]
