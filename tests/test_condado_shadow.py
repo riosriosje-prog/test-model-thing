@@ -74,23 +74,30 @@ class CondadoShadowPilotTests(unittest.TestCase):
         )
 
     def test_loc_primary_source_is_fail_closed_when_raw_bytes_unavailable(self):
-        document_id = self.ids["newspaper_document_id"]
+        representation_id = self.ids["newspaper_pdf_representation_id"]
         row = self.store.conn.execute(
             """
-            SELECT content_sha256, byte_length, content_locator, metadata_json
-            FROM documents WHERE document_id = ?
+            SELECT document_id, representation_type, acquisition_state,
+                   content_sha256, byte_length, locator, source_url,
+                   raw_artifact, metadata_json
+            FROM document_representations
+            WHERE representation_id = ?
             """,
-            (document_id,),
+            (representation_id,),
         ).fetchone()
         metadata = json.loads(row["metadata_json"])
+        self.assertEqual(
+            row["document_id"],
+            self.ids["newspaper_document_id"],
+        )
+        self.assertEqual(row["representation_type"], "scanned_newspaper_page_pdf")
+        self.assertEqual(row["acquisition_state"], "REMOTE_BLOCKED")
         self.assertIsNone(row["content_sha256"])
         self.assertIsNone(row["byte_length"])
-        self.assertEqual(row["content_locator"], LOC_CONDADO_1908_URL)
-        self.assertEqual(
-            metadata["acquisition"]["state"],
-            "REMOTE_BLOCKED",
-        )
-        self.assertFalse(metadata["acquisition"]["raw_artifact"])
+        self.assertEqual(row["locator"], LOC_CONDADO_1908_URL)
+        self.assertEqual(row["source_url"], LOC_CONDADO_1908_URL)
+        self.assertEqual(row["raw_artifact"], 0)
+        self.assertIn("raw PDF bytes were not capturable", metadata["note"])
 
         claim = self.store.conn.execute(
             """
