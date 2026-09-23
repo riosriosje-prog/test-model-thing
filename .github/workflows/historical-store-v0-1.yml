@@ -1,0 +1,30 @@
+name: historical-store-v0-1
+
+on:
+  push:
+    branches:
+      - galia-historical-store-v0-1
+  pull_request:
+    paths:
+      - historical_store.py
+      - galia_history_bridge.py
+      - tests/test_historical_store.py
+      - docs/HISTORICAL_STORE_V0_1.md
+      - .github/workflows/historical-store-v0-1.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run Historical Store tests
+        run: python -m unittest -v tests/test_historical_store.py
