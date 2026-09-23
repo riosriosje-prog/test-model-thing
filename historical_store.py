@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Iterator
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 EVIDENCE_ROLES = {"supports", "contradicts", "mentions"}
 
 
@@ -84,6 +84,9 @@ class HistoricalStore:
         if current == 0:
             self._create_schema_v1()
             current = 1
+        if current == 1:
+            self._migrate_v1_to_v2()
+            current = 2
         if current != SCHEMA_VERSION:
             raise RuntimeError(
                 f"No migration path from schema {current} to {SCHEMA_VERSION}"
@@ -295,9 +298,69 @@ class HistoricalStore:
             )
             self.conn.execute(
                 "INSERT INTO schema_meta(key, value) VALUES (?, ?)",
-                ("schema_version", str(SCHEMA_VERSION)),
+                ("schema_version", "1"),
             )
-            self.conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            self.conn.execute("PRAGMA user_version = 1")
+
+    def _migrate_v1_to_v2(self) -> None:
+        with self.transaction():
+            self.conn.executescript(
+                """
+                CREATE TABLE document_representations (
+                    representation_id TEXT PRIMARY KEY,
+                    document_id TEXT NOT NULL REFERENCES documents(document_id),
+                    representation_type TEXT NOT NULL,
+                    acquisition_state TEXT NOT NULL,
+                    mime_type TEXT,
+                    content_sha256 TEXT,
+                    byte_length INTEGER,
+                    locator TEXT NOT NULL,
+                    source_url TEXT,
+                    raw_artifact INTEGER NOT NULL DEFAULT 0,
+                    preferred_for_review INTEGER NOT NULL DEFAULT 0,
+                    metadata_json TEXT NOT NULL DEFAULT '{}',
+                    created_at_utc TEXT NOT NULL,
+                    CHECK (
+                        acquisition_state IN (
+                            'RAW_CAPTURED', 'TEXT_SURROGATE', 'REMOTE_BLOCKED',
+                            'LOCATOR_ONLY', 'QUARANTINED'
+                        )
+                    ),
+                    CHECK (raw_artifact IN (0, 1)),
+                    CHECK (preferred_for_review IN (0, 1)),
+                    CHECK (content_sha256 IS NULL OR length(content_sha256) = 64),
+                    CHECK (byte_length IS NULL OR byte_length >= 0),
+                    CHECK (
+                        acquisition_state != 'RAW_CAPTURED'
+                        OR (
+                            raw_artifact = 1
+                            AND content_sha256 IS NOT NULL
+                            AND byte_length IS NOT NULL
+                        )
+                    ),
+                    CHECK (
+                        acquisition_state = 'RAW_CAPTURED'
+                        OR raw_artifact = 0
+                    ),
+                    UNIQUE(document_id, representation_type, locator)
+                );
+
+                CREATE INDEX idx_document_representations_document
+                    ON document_representations(document_id);
+                CREATE INDEX idx_document_representations_state
+                    ON document_representations(acquisition_state);
+                CREATE INDEX idx_document_representations_hash
+                    ON document_representations(content_sha256);
+                """
+            )
+            self.conn.execute(
+                """
+                UPDATE schema_meta
+                SET value = '2'
+                WHERE key = 'schema_version'
+                """
+            )
+            self.conn.execute("PRAGMA user_version = 2")
 
     def _audit(
         self,
@@ -396,6 +459,100 @@ class HistoricalStore:
                 },
             )
         return document_id
+
+    def register_document_representation(
+        self,
+        *,
+        document_id: str,
+        representation_type: str,
+        acquisition_state: str,
+        locator: str,
+        mime_type: str | None = None,
+        content_sha256: str | None = None,
+        byte_length: int | None = None,
+        source_url: str | None = None,
+        raw_artifact: bool = False,
+        preferred_for_review: bool = False,
+        metadata: dict[str, Any] | None = None,
+        representation_id: str | None = None,
+    ) -> str:
+        allowed_states = {
+            "RAW_CAPTURED",
+            "TEXT_SURROGATE",
+            "REMOTE_BLOCKED",
+            "LOCATOR_ONLY",
+            "QUARANTINED",
+        }
+        if acquisition_state not in allowed_states:
+            raise ValueError(
+                f"Unsupported acquisition_state: {acquisition_state!r}"
+            )
+        if not locator.strip():
+            raise ValueError("Representation locator is required")
+        if content_sha256 is not None and len(content_sha256) != 64:
+            raise ValueError(
+                "content_sha256 must be a 64-character SHA-256 hex digest"
+            )
+        if byte_length is not None and byte_length < 0:
+            raise ValueError("byte_length cannot be negative")
+        if acquisition_state == "RAW_CAPTURED":
+            if not raw_artifact:
+                raise ValueError("RAW_CAPTURED requires raw_artifact=True")
+            if content_sha256 is None or byte_length is None:
+                raise ValueError(
+                    "RAW_CAPTURED requires content_sha256 and byte_length"
+                )
+        elif raw_artifact:
+            raise ValueError(
+                "Only RAW_CAPTURED may assert raw_artifact=True"
+            )
+
+        representation_id = representation_id or _new_id("repr")
+        with self.transaction():
+            document = self.conn.execute(
+                "SELECT document_id FROM documents WHERE document_id = ?",
+                (document_id,),
+            ).fetchone()
+            if document is None:
+                raise KeyError(f"Unknown document_id: {document_id}")
+            self.conn.execute(
+                """
+                INSERT INTO document_representations(
+                    representation_id, document_id, representation_type,
+                    acquisition_state, mime_type, content_sha256, byte_length,
+                    locator, source_url, raw_artifact, preferred_for_review,
+                    metadata_json, created_at_utc
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    representation_id,
+                    document_id,
+                    representation_type,
+                    acquisition_state,
+                    mime_type,
+                    content_sha256,
+                    byte_length,
+                    locator,
+                    source_url,
+                    1 if raw_artifact else 0,
+                    1 if preferred_for_review else 0,
+                    _canonical_json(metadata),
+                    _utc_now(),
+                ),
+            )
+            self._audit(
+                "document_representation_registered",
+                object_type="document_representation",
+                object_id=representation_id,
+                payload={
+                    "document_id": document_id,
+                    "representation_type": representation_type,
+                    "acquisition_state": acquisition_state,
+                    "content_sha256": content_sha256,
+                    "raw_artifact": bool(raw_artifact),
+                },
+            )
+        return representation_id
 
     def record_ingest_run(
         self,
@@ -788,9 +945,9 @@ class HistoricalStore:
 
     def health(self) -> dict[str, Any]:
         tables = (
-            "sources", "documents", "ingest_runs", "entities", "claims",
-            "claim_evidence", "relations", "events", "discrepancies",
-            "reviews", "audit_log",
+            "sources", "documents", "document_representations", "ingest_runs",
+            "entities", "claims", "claim_evidence", "relations", "events",
+            "discrepancies", "reviews", "audit_log",
         )
         counts = {
             table: int(self.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
