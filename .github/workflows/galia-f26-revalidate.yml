@@ -1,0 +1,59 @@
+name: GALIA F26 Revalidate
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - galia/f26-revalidate-0a477827
+
+permissions:
+  contents: read
+
+jobs:
+  f26:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bind candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "0a47782752e8eebdc3e1ab622234eeb08a7837ab"
+          test "$(git rev-parse 0a47782752e8eebdc3e1ab622234eeb08a7837ab:benchmark.py)" = "becfd50eec941173ed638bb6db96c65b685b0654"
+          test "$(git rev-parse 0a47782752e8eebdc3e1ab622234eeb08a7837ab:main.py)" = "0df0201f3cdde3e11aa84e060fbded83c97a3ce9"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: python -m pip install -r requirements.txt
+      - name: Syntax and import
+        run: |
+          python -m py_compile main.py benchmark.py
+          python - <<'PY'
+          import main
+          import benchmark
+          print("F26_IMPORT_PASS")
+          PY
+      - name: MLX smoke and persistence
+        run: |
+          python - <<'PY'
+          import os, tempfile
+          import mlx.core as mx
+          from main import Model
+          m=Model(dim=16,layers=2,spread=4,temp=.75,rate=5e-4,bound=(4,12))
+          m.reset()
+          before=m.count()
+          m(65,66,False,False)
+          with tempfile.TemporaryDirectory() as d:
+              p=os.path.join(d,"f26.safetensors")
+              m.save(p)
+              assert os.path.exists(p) and os.path.getsize(p)>0
+              n=Model(dim=16,layers=2,spread=4,temp=.75,rate=5e-4,bound=(4,12))
+              n.load(p)
+              assert n.count()==before
+              n.reset()
+              n(65,None,True,True)
+          mx.eval(m.parameters())
+          print("F26_MLX_SMOKE_PASS")
+          PY
+      - name: F26 result
+        run: echo "REVALIDATED_EXACT_CANDIDATE"
