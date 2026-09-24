@@ -28,11 +28,13 @@ class RepositoryPackageTests(unittest.TestCase):
     def test_runtime_module_required(self):
         self.assertIn("galia2/runtime_integration.py", verify_mod.REQUIRED_GALIA_MODULES)
 
-    def test_overlay_has_no_legacy_main(self):
-        self.assertFalse((ROOT / "main.py").exists())
+    def test_repository_retains_protected_legacy_main(self):
+        self.assertTrue((ROOT / "main.py").is_file())
+        self.assertIn("main.py", verify_mod.LEGACY_PROTECTED_PATHS)
 
-    def test_overlay_has_no_legacy_benchmark(self):
-        self.assertFalse((ROOT / "benchmark.py").exists())
+    def test_repository_retains_protected_legacy_benchmark(self):
+        self.assertTrue((ROOT / "benchmark.py").is_file())
+        self.assertIn("benchmark.py", verify_mod.LEGACY_PROTECTED_PATHS)
 
     def test_git_blob_sha_algorithm(self):
         data = b"hello\n"
