@@ -130,32 +130,50 @@ class AppliedMigrationRecord:
         applied_at: datetime,
         previous_record_hash: Optional[str],
     ) -> "AppliedMigrationRecord":
-        payload = {
-            "applied_at": _aware("applied_at", applied_at).isoformat(),
-            "evidence_sha256": _hash("evidence_sha256", evidence_sha256),
-            "migration_id": _required("migration_id", migration_id),
-            "migration_sha256": _hash("migration_sha256", migration_sha256),
-            "previous_record_hash": (
-                None
-                if previous_record_hash is None
-                else _hash("previous_record_hash", previous_record_hash)
-            ),
-            "receipt_id": _required("receipt_id", receipt_id),
-            "schema_fingerprint_after": _hash(
-                "schema_fingerprint_after", schema_fingerprint_after
-            ),
-            "schema_version_after": _required(
-                "schema_version_after", schema_version_after
-            ),
-            "schema_version_before": _required(
-                "schema_version_before", schema_version_before
-            ),
-            "sequence": sequence,
-        }
+        applied_at_value = _aware("applied_at", applied_at)
+        evidence_hash = _hash("evidence_sha256", evidence_sha256)
+        migration_hash = _hash("migration_sha256", migration_sha256)
+        migration_id_value = _required("migration_id", migration_id)
+        previous_hash = (
+            None
+            if previous_record_hash is None
+            else _hash("previous_record_hash", previous_record_hash)
+        )
+        receipt_id_value = _required("receipt_id", receipt_id)
+        schema_fingerprint = _hash(
+            "schema_fingerprint_after", schema_fingerprint_after
+        )
+        schema_after = _required("schema_version_after", schema_version_after)
+        schema_before = _required("schema_version_before", schema_version_before)
         if not isinstance(sequence, int) or sequence < 1:
             raise ValueError("sequence must be a positive integer")
+
+        payload = {
+            "applied_at": applied_at_value.isoformat(),
+            "evidence_sha256": evidence_hash,
+            "migration_id": migration_id_value,
+            "migration_sha256": migration_hash,
+            "previous_record_hash": previous_hash,
+            "receipt_id": receipt_id_value,
+            "schema_fingerprint_after": schema_fingerprint,
+            "schema_version_after": schema_after,
+            "schema_version_before": schema_before,
+            "sequence": sequence,
+        }
         record_hash = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
-        return cls(record_hash=record_hash, **payload)
+        return cls(
+            sequence=sequence,
+            migration_id=migration_id_value,
+            migration_sha256=migration_hash,
+            schema_version_before=schema_before,
+            schema_version_after=schema_after,
+            schema_fingerprint_after=schema_fingerprint,
+            evidence_sha256=evidence_hash,
+            receipt_id=receipt_id_value,
+            applied_at=applied_at_value,
+            previous_record_hash=previous_hash,
+            record_hash=record_hash,
+        )
 
 
 def verify_history(
