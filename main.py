@@ -183,7 +183,9 @@ class Model(nn.Module):
             data[f"decaytrace.{i}"] = layer.decaytrace
             data[f"embedtrace.{i}"] = layer.embedtrace
 
-        tmp = 'temporary-' + path
+        directory = os.path.dirname(os.path.abspath(path))
+        basename = os.path.basename(path)
+        tmp = os.path.join(directory, f".temporary-{basename}")
         mx.save_safetensors(tmp, data)
         os.replace(tmp, path)
 
