@@ -1,6 +1,6 @@
 import copy
 import hashlib
-import pytest
+import unittest
 
 from galia2 import authority_reconciliation as f22
 
@@ -55,9 +55,9 @@ def test_explicit_human_selection_preserves_candidates():
 def test_candidate_omitted_after_decision_fails_closed():
     a, b = c("A", k="K1"), c("B", k="K2")
     decision = f22.make_human_decision([a, b], "A")
-    with pytest.raises(ValueError):
+    with unittest.TestCase().assertRaises(ValueError):
         f22.reconcile([a], decision)
-    with pytest.raises(ValueError, match="candidate set mismatch"):
+    with unittest.TestCase().assertRaisesRegex(ValueError, "candidate set mismatch"):
         f22.reconcile([a, c("C", k="K3")], decision)
 
 
@@ -65,7 +65,7 @@ def test_candidate_hash_tamper_fails_closed():
     a, b = c("A", k="K1"), c("B", k="K2")
     bad = copy.deepcopy(a)
     bad["source_artifact_sha256"] = x("tampered")
-    with pytest.raises(ValueError, match="candidate hash mismatch"):
+    with unittest.TestCase().assertRaisesRegex(ValueError, "candidate hash mismatch"):
         f22.reconcile([bad, b])
 
 
@@ -73,7 +73,7 @@ def test_decision_over_different_set_fails_closed():
     a, b = c("A", k="K1"), c("B", k="K2")
     decision = f22.make_human_decision([a, b], "A")
     decision["candidate_set_sha256"] = x("other")
-    with pytest.raises(ValueError):
+    with unittest.TestCase().assertRaises(ValueError):
         f22.reconcile([a, b], decision)
 
 
