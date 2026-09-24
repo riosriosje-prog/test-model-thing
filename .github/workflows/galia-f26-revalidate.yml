@@ -19,10 +19,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git cat-file -e 0a47782752e8eebdc3e1ab622234eeb08a7837ab^{commit}
-          test "$(git merge-base HEAD 0a47782752e8eebdc3e1ab622234eeb08a7837ab)" = "0a47782752e8eebdc3e1ab622234eeb08a7837ab"
-          test "$(git rev-parse 0a47782752e8eebdc3e1ab622234eeb08a7837ab:benchmark.py)" = "becfd50eec941173ed638bb6db96c65b685b0654"
-          test "$(git rev-parse 0a47782752e8eebdc3e1ab622234eeb08a7837ab:main.py)" = "0df0201f3cdde3e11aa84e060fbded83c97a3ce9"
+          git cat-file -e c848090d4019d62ca74b78512c8a759416a3272f^{commit}
+          test "$(git merge-base HEAD c848090d4019d62ca74b78512c8a759416a3272f)" = "c848090d4019d62ca74b78512c8a759416a3272f"
+          test "$(git rev-parse c848090d4019d62ca74b78512c8a759416a3272f:benchmark.py)" = "becfd50eec941173ed638bb6db96c65b685b0654"
+          test "$(git rev-parse c848090d4019d62ca74b78512c8a759416a3272f:main.py)" = "b182a2deae5b7a2514ac73f0ac5ee5682cf8e6e9"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
