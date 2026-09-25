@@ -150,3 +150,88 @@ ordinance series beginning in 1931. The relevant pre-1931 archival route is
 therefore the Archivo General de Puerto Rico's **Fondo Municipio de San Juan**,
 especially **Serie Libros de Actas y otros (PR-SJ-AGPR-00335), 1722–1955**,
 rather than an inference from the newspaper designation.
+
+
+## Nominative-act search gate
+
+The 1915 legal/archival search must not be limited to a document titled
+"ordinance."
+
+### Governing municipal body in 1915
+
+The Archivo General de Puerto Rico's institutional history records that the
+1906 municipal law further separated the mayor's executive powers from the
+legislative powers of the **Concejo Municipal**. The later Junta de
+Comisionados belongs to a different governmental period and is not the correct
+1915 decision-making body.
+
+Contemporaneous legislative material for the 1906 Municipal Law states that
+the municipal council could vote an **ordinance or resolution** within its
+statutory powers, including matters involving the demarcation and opening of
+municipal streets and roads. Therefore the nominative search is fail-closed
+against all of the following record forms:
+
+1. ordenanza;
+2. resolución;
+3. acuerdo entered in council minutes;
+4. certified extract/certificación of a council action;
+5. correspondence implementing or transmitting such an action;
+6. street/road project records that quote or attach the governing action.
+
+Absence from an ordinance index alone is not evidence that no nominative act
+existed.
+
+### AGPR search order
+
+Primary repository:
+**Archivo General de Puerto Rico, Fondo Municipio de San Juan
+(PR-SJ-AGPR-00338).**
+
+Priority A — governing-action records:
+- **Serie Libros de Actas y otros (PR-SJ-AGPR-00335)**, especially post-1900
+  council-act/minute material, certifications, correspondence and asuntos
+  varios.
+- **Serie Expedientes Administrativos — Subserie Ordenanzas**, because a
+  formal street designation may have been filed as a standalone municipal
+  ordinance rather than only in a bound minute book.
+
+Priority B — subject-matter records:
+- **Serie Expedientes de Servicios — Subserie Calles y caminos**, because the
+  AGPR finding aid expressly classifies municipal street and road records
+  there.
+- Related **Obras Municipales**, **Obras Particulares**, **Proyectos**,
+  **Plazas y Paseos**, and municipal correspondence if they contain plans,
+  alignments, dedications or implementation instructions.
+
+Priority C — external corroboration:
+- Fondo Obras Públicas for plans, road/transport files or correspondence that
+  may reproduce the municipal designation.
+- Contemporary newspapers for publication, notice or reporting of the
+  council action.
+
+### Date window
+
+The first-pass nominative window is:
+
+**1914-01-01 through 1915-11-21**
+
+with an initial high-priority slice of:
+
+**1915-09-01 through 1915-11-21**
+
+because the 22 November 1915 newspaper issue is the present documentary
+terminus ante quem for public use of the MacLeary street designation.
+
+The search must also include spelling variants:
+`McLeary`, `MacLeary`, `Mac Leary`, `Mc Leary`, `Macleary`, and
+OCR-confusable forms.
+
+### Promotion rule
+
+A newspaper designation can establish public use of the name. It cannot, by
+itself, satisfy `MCLEARY_NAMING_ACT`.
+
+That gate may be satisfied only by a municipal record or a sufficiently
+authoritative contemporaneous record that identifies the governmental action,
+its date and the body/official responsible. If a source merely calls the road
+MacLeary, the naming-act claim remains **UNRESOLVED**.
