@@ -1,0 +1,17 @@
+{
+  "canonical_authority_transferred": false,
+  "create_pr": true,
+  "manifest_sha256": "ec24987a453b75ecfc0f76849a4c191266294d24958125609cbf15f33713a705",
+  "pr_number": 1,
+  "pr_url": "https://huggingface.co/spaces/Junitos/galia-2-diagnostic/discussions/1",
+  "private_requested": true,
+  "promotion_scope": "SPACE_STATIC_DIAGNOSTIC_CANDIDATE_ONLY",
+  "repo_id": "Junitos/galia-2-diagnostic",
+  "repo_type": "space",
+  "source_of_truth": "github",
+  "source_sha": "bb466a5cc6b41eeabd2ce9b8ade7ed563167a4af",
+  "space_runtime_promoted": false,
+  "space_sdk": "static",
+  "verified_files": 2,
+  "verified_revision": "refs/pr/1"
+}
