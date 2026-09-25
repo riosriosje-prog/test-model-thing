@@ -1,372 +1,266 @@
-# GALIA 2.0 — Early Taft street-use chronology, 1913–1916
+# GALIA 2.0 — Early Taft street-use chronology, 1912–1916
 
 Status: **RESEARCH CANDIDATE ONLY — NO CANONICAL PROMOTION**
 
-This dossier separates the earliest recovered public use of the Taft street
-name from the still-unresolved questions of physical origin, municipal naming
-act, acceptance/dedication, and eponym identity.
+> Filename retained for branch continuity. The evidence now reaches 1912.
 
-## 1. Primary anchor — 11 February 1913
+This dossier separates:
+1. recovered public use of the Taft street name;
+2. physical road existence/opening;
+3. dedication or municipal acceptance;
+4. municipal naming act; and
+5. eponym identity.
 
-Publication: *The Times*, San Juan, Puerto Rico  
-Document date: **1913-02-11**  
-UFDC object: `AA/00/09/69/97/00644/1913021101.pdf`
+These are separate claims and may not inherit evidence from one another.
+
+## 1. Earliest verified public-use anchor in the current corpus — 20 March 1912
+
+Publication: *The Times / El Tiempo*, San Juan, Puerto Rico  
+Document date: **1912-03-20**  
+UFDC object: `AA/00/09/69/97/00372/1912032001.pdf`
 
 Raw PDF:
-- bytes: **47,305,570**
+- bytes: **47,316,200**
 - SHA-256:
-  `e3452119441cbf750e748ecd69ae74e4cdb98aa565c8b1b5a075fc5abd1fc7f1`
+  `8cf0116436d6f4c6caf595ec2e18c866bc72436dc41fd3cd15d23bcb9d059121`
+
+Visual anchor:
+- PDF page: **10**
+- rendered-page SHA-256:
+  `98d6c9e585f8c8d129935f2cc6d3b12bce0cdae8854bbf07f015bca27a68fe48`
+
+The rendered primary-source page is visually readable as:
+
+> For Sale or Rent.—Furnish. A new two story house. Seven rooms, on Taft St.
+> One hundred and fifty yards from the sea.—Dr. Johnson, American Dentist.
+
+Material propositions established by the image:
+- a named **Taft St.** address/use existed publicly by 20 March 1912;
+- the advertised property was described as approximately **150 yards from the sea**;
+- the advertiser/contact was **Dr. Johnson, American Dentist**.
+
+GitHub Actions:
+- run: `36148290517`
+- artifact: `GALIA_TAFT_1912_03_20_PRIMARY`
+- artifact digest:
+  `sha256:43c3da664418e31f3b77da10c1392135e9d1d22cc083da1cdeb460f182efada3`
+
+Current state:
+
+```text
+TAFT_PUBLIC_NAME_USE_BY_1912_03_20 = DOCUMENTED
+TAFT_EARLIEST_VERIFIED_IN_CURRENT_EL_TIEMPO_CORPUS = 1912-03-20
+TAFT_ABSOLUTE_FIRST_USE = OPEN
+TAFT_PHYSICAL_OPENING_DATE = UNRESOLVED
+TAFT_NAMING_ACT = UNRESOLVED
+TAFT_EPONYM_IDENTITY = UNRESOLVED
+```
+
+## 2. Pre-anchor scan — January through 19 March 1912
+
+The hardened whole-token street-form scanner produced:
+
+### January 1912
+- **27/27 resolved publication issues**
+- **0 qualified Taft street hits**
+- unresolved dates: **0**
+- artifact digest:
+  `sha256:5e6887cb57265b61c5ce48c1edbf7d2d2c2946bf40361647fbc095d3dd8fb9df`
+
+### February 1912
+- **25/25 resolved publication issues**
+- **0 qualified Taft street hits**
+- unresolved dates: **0**
+- artifact digest:
+  `sha256:f107bcb12cfde4f567fb498779ee7324ed3a2c1ba6062c415512b65a3d3ea925`
+
+### March 1912 before the positive anchor
+Resolved issues on 1–19 March contained **0 qualified Taft street hits**.
+The first qualified March hit appears on **20 March 1912**.
+The 23 March issue was not resolved and is excluded from later counts.
+
+### Critical interpretation rule
+
+A negative newspaper issue means only:
+
+```text
+NO_QUALIFIED_TAFT_STREET_HIT_IN_THIS_RESOLVED_ISSUE
+```
+
+It does **not** mean:
+
+```text
+TAFT_STREET_DID_NOT_EXIST
+```
+
+This distinction became material because later months sometimes contain no
+Taft classified advertisement even though the 20 March 1912 primary source
+already establishes that the name was in public use.
+
+Accordingly, negative issue counts are **coverage evidence**, not a legal or
+physical terminus post quem for the road.
+
+## 3. Independent repetition — 1 April 1912
+
+Publication: *The Times / El Tiempo*  
+Document date: **1912-04-01**  
+UFDC object: `AA/00/09/69/97/00381/1912040101.pdf`
+
+Raw PDF:
+- bytes: **38,497,075**
+- SHA-256:
+  `6c7c9bdccaecf770d3e566e49f57b9bf5f88dda1ae95b28eb6f164aef683069c`
 
 Visual anchor:
 - PDF page: **9**
 - rendered-page SHA-256:
-  `68f05e1a4271a03b943d71cf4ef11dd90cf22b5aa4d00652962ca044979795b0`
+  `78ce49470570568a68e4a54322a2634561226d323a706d2aa51f6c92e87848d8`
 
-The classified advertisement is visually readable as:
+The advertisement repeats the same essential location:
 
-> House for Sale; Eight apartments, Nº 22 Taft Street, near Seashore.
-> Apply G. T. Parker, Box 667, San Juan, P.R.
-
-The material tokens are visually legible on the rendered primary-source page:
-**Taft Street**, **No. 22**, **near Seashore**, **G. T. Parker**, and
-**San Juan, P.R.**
+> For Sale or Rent.—Furnished. A new two story house. Seven rooms, on Taft St.
+> One hundred and fifty yards from the sea.—Dr. Johnson, American Dentist.
 
 GitHub Actions:
-- run: `36143268220`
-- artifact: `GALIA_TAFT_1913_02_11_PRIMARY`
+- run: `36147865085`
+- artifact: `GALIA_TAFT_1912_04_01_PRIMARY`
 - artifact digest:
-  `sha256:1257c4f088b2321e9922137e0a8e9c11b07fb8f4378d5eb44eb977740cb46ce5`
+  `sha256:320cfd5817aae774774d2dc96657347800314e23e723fc0e18e044d0cb052b55`
 
-A repeated version of the same classified address appears again on
-**12 February 1913**; that later repetition is not the earliest anchor in the
-resolved corpus.
+April contains multiple additional Taft street-form hits, confirming that the
+20 March appearance was not an isolated OCR artifact.
 
-### Backward corpus immediately preceding the anchor
+## 4. Later location anchors
 
-GALIA resolved and scanned **36/36 publication issues from 1 January through
-11 February 1913**. Only the **11 February** issue contains a qualified Taft
-street-form hit. The resolved issues from **1 January through 10 February**
-contain **zero qualified Taft street-form hits**.
+### 11 February 1913
 
-December 1912 was separately scanned:
-- 24 resolved issues;
-- 0 qualified Taft street-form hits;
-- 25 December and 31 December were not resolved in the tested UFDC mapping and
-  are excluded from the negative count rather than treated as negative issues.
+*The Times*, p. 9:
 
-Accordingly:
+> No. 22 Taft Street, near Seashore
 
-```text
-TAFT_PUBLIC_NAME_USE_BY_1913_02_11 = DOCUMENTED
-TAFT_FIRST_IN_RESOLVED_1913_CORPUS = 1913-02-11
-TAFT_FIRST_ABSOLUTE_USE            = OPEN
-TAFT_NAMING_ACT                    = UNRESOLVED
-TAFT_EPONYM_IDENTITY               = UNRESOLVED
-```
+Raw PDF SHA-256:
+`e3452119441cbf750e748ecd69ae74e4cdb98aa565c8b1b5a075fc5abd1fc7f1`
 
-A November 1912 backward scan is a separate gate and may move the
-earliest-known-use date earlier.
+Rendered page SHA-256:
+`68f05e1a4271a03b943d71cf4ef11dd90cf22b5aa4d00652962ca044979795b0`
 
+This is now a **later corroborating address**, not the earliest recovered Taft
+street-use anchor.
 
+### 18 June 1914
 
-### Extended backward corpus — October 1912 through 10 February 1913
-
-After hardening the street detector against political-news false positives
-(for example, OCR sequences such as **“gave Taft”** from election reporting),
-GALIA re-ran the pre-anchor corpus using whole-token street designators.
-
-Qualified results:
-
-- **October 1912:** 27 resolved issues, **0** Taft street-form hits.
-- **November 1912:** 24 resolved issues, **0** Taft street-form hits.
-  - unresolved/non-counted dates: **1912-11-05**, **1912-11-28**.
-- **December 1912:** 24 resolved issues, **0** Taft street-form hits.
-  - unresolved/non-counted dates: **1912-12-25**, **1912-12-31**.
-- **1 January–10 February 1913:** 35 resolved issues, **0** Taft
-  street-form hits.
-- **11 February 1913:** first qualified hit in this resolved corpus.
-
-Total resolved negative issues before the 11 February anchor:
-**110**.
-
-Therefore the supported bounded statement is:
-
-> **11 February 1913 is the earliest verified Taft street designation in the
-> resolved 1 October 1912–11 February 1913 *Times* corpus examined by GALIA.**
-
-This is not an absolute first-use claim because unresolved publication dates,
-other newspapers, directories, deeds, maps, municipal records and private
-plans remain outside this bounded corpus.
-
-The false-positive audit is itself part of the evidentiary record:
-political references to President Taft are retained as generic-Ta​​ft
-diagnostics but are not promoted as street-name evidence.
-
-
-
-
-### September 1912 extension
-
-A corrected UFDC date-to-folder scan resolved **24 September 1912 issues**
-with the hardened whole-token street detector.
-
-Result:
-- qualified Taft street-form hits: **0**;
-- unresolved/non-counted date: **1912-09-02**;
-- exact 30 September anchor folder: `00533`;
-- artifact digest:
-  `sha256:0e17c796e93ddb6d21f158393d7042513465b34e45dbefdf1aecf04eae709df7`.
-
-This raises the resolved negative pre-anchor corpus from **110** to **134**
-issues. The supported statement remains bounded to the resolved corpus; the
-2 September gap and earlier months remain open.
-
-
-
-
-### August 1912 extension
-
-The hardened resolver/scanner closed **27/27 August 1912 publication issues**
-with **zero qualified Taft street-form hits** and no unresolved dates.
-
-- 31 August anchor folder: `00509`;
-- artifact digest:
-  `sha256:3e1ec9d329199934ad5ece7f8afc90d8a71076699c60dc48ca89081d38a79bff`.
-
-This raises the resolved negative pre-anchor corpus to **161 issues** before
-the first qualified Taft street designation on 11 February 1913.
-
-The supported statement remains bounded to the resolved corpus and does not
-establish a legal naming date or physical opening date.
-
-
-
-
-### July 1912 extension
-
-GALIA resolved **26 July 1912 publication issues** and found **zero
-qualified Taft street-form hits**.
-
-- 31 July anchor folder: `00482`;
-- unresolved/non-counted date: **1912-07-04**;
-- artifact digest:
-  `sha256:a6a65fffc23aefbeac235345018a8dcf82b43004d176f57c71f54cd5a03b7221`.
-
-This raises the resolved negative pre-anchor corpus to **187 issues** before
-the first qualified Taft street designation on 11 February 1913.
-
-
-
-
-### June 1912 extension
-
-GALIA resolved **24 June 1912 publication issues** and found **zero qualified
-Taft street-form hits**.
-
-- 29 June anchor folder: `00456`;
-- unresolved/non-counted date: **1912-06-17**;
-- artifact digest:
-  `sha256:647c0797bf82ea1be391bae2caa05cb95570cec0fa12695293c353dde55822ac`.
-
-This raises the resolved negative pre-anchor corpus to **211 issues** before
-the first qualified Taft street designation on 11 February 1913.
-
-
-
-
-### May 1912 extension
-
-GALIA resolved **27/27 May 1912 publication issues** and found **zero
-qualified Taft street-form hits**, with no unresolved dates.
-
-- 31 May anchor folder: `00431`;
-- artifact digest:
-  `sha256:40f1d30dac3007f29418f8ee39d56326559bc6dc48205fa783188aba44187c69`.
-
-This raises the resolved negative pre-anchor corpus to **238 issues** before
-the first qualified Taft street designation on 11 February 1913.
-
-
-## 2. Independent later anchor — 18 June 1914
-
-Publication: *El Tiempo / The Times*  
-Document date: **1914-06-18**  
-UFDC object: `AA/00/09/69/97/01060/1914061801.pdf`
-
-Raw PDF:
-- bytes: **46,023,243**
-- SHA-256:
-  `cbc7ea21047d8f7125edae773d3521e4825e7589a1dd6c872b705d654c87497b`
-
-Page 9 contains a classified advertisement whose extracted and rendered
-content identifies:
+*El Tiempo / The Times*, p. 9:
 
 > 6 Taft Avenue, Near Stop 44
 
-Rendered-page SHA-256:
+Raw PDF SHA-256:
+`cbc7ea21047d8f7125edae773d3521e4825e7589a1dd6c872b705d654c87497b`
+
+Rendered page SHA-256:
 `533ef662cde1d474f280e424b599ad5e9dfddfdb9b9f8e76cc5e356f5a09ff1f`
 
-GitHub Actions:
-- run: `36142359534`
-- artifact: `GALIA_TAFT_1914_06_18_PRIMARY`
-- artifact digest:
-  `sha256:0ea597e55992577180870ca72f37afd21b6e2b3dbf70426d3fa4d710d833676a`
-
-This supplies an independent temporal and locational anchor:
+This supplies an independent geographic anchor:
 **Taft Avenue ↔ near Stop/Parada 44** by June 1914.
 
-## 3. Relation to the McLeary evidence
+## 5. Relation to McLeary
 
-Current verified anchors are:
+Current verified sequence:
 
 ```text
+20-Mar-1912
+  Taft St. — 150 yards from sea
+          │
+          ▼
+01-Apr-1912
+  Taft St. — same Dr. Johnson property
+          │
+          ▼
 11-Feb-1913
-  “No. 22 Taft Street, near Seashore”
-              │
-              ▼
+  No. 22 Taft Street — near Seashore
+          │
+          ▼
 18-Jun-1914
-  “6 Taft Avenue, Near Stop 44”
-              │
-              ▼
+  6 Taft Avenue — Near Stop 44
+          │
+          ▼
 22-Nov-1915
-  “Avenida MacLeary — Parada 44”
-  “Mac Leary Ave. — Stop 44”
-              │
-              ▼
+  Avenida MacLeary — Parada 44
+  Mac Leary Ave. — Stop 44
+          │
+          ▼
 08-Mar-1916
-  “Calle Mc Leary (sale de Taft)”
+  Calle Mc Leary “sale de Taft”
 ```
 
-The sequence establishes that the **Taft name is documented earlier than the
-current earliest verified MacLeary/McLeary name anchor**.
-
-It also establishes that Taft was being used as a locational axis both
-near the seashore (1913) and near Stop 44 (1914) before the recovered McLeary
-advertisements.
-
-Accordingly:
+Therefore:
 
 ```text
 TAFT_NAME_PRECEDES_CURRENT_MCLEARY_ANCHOR = DOCUMENTED
-TAFT_USED_AS_PREEXISTING_REFERENCE_AXIS   = STRONGLY_SUPPORTED
+TAFT_AS_PREEXISTING_REFERENCE_AXIS = STRONGLY_SUPPORTED
 ```
 
-The second statement describes the documentary sequence; it does not determine
-the legal origin of either road.
+The sequence does not establish the legal origin of either roadway.
 
-## 4. What this does not prove
+## 6. Private-network / proto-Ta​​ft hypothesis
 
-The following remain separate gates:
+Separate title evidence in *King v. Fernández et al., 30 D.P.R. 592 (1922)*
+documents parcelization of the Margarida/Catlin network and opened street
+edges before the later named-road evidence.
 
-- the date Taft was physically opened;
-- whether Taft began as the western/transverse street opened in the
-  Margarida finca 2109 parcelization;
-- whether the 1913 and 1914 address usages followed an earlier municipal
-  naming act;
-- dedication or municipal acceptance;
-- whether the street was named for William Howard Taft;
-- the authority/person who selected the name;
-- whether the word “Street” vs “Avenue” reflects a legal classification or
-  merely newspaper/address usage.
-
-No eponym inference is promoted from the surname alone.
-
-## 5. Geometric implication for the private-network hypothesis
-
-The title evidence in *King v. Fernández* documents a western/transverse
-opened-street edge in the Margarida/Catlin parcel network before 1914.
-
-The Taft newspaper evidence now demonstrates a named street that:
-- reaches the seashore vicinity by February 1913; and
-- is near Stop 44 by June 1914.
-
-That correspondence makes the proposed identity
+The current Taft evidence makes the proposed identity
 
 ```text
 MARGARIDA_WEST_TRANSVERSE_AXIS == LATER_TAFT
 ```
 
-more testable, but **not yet established**.
+more testable, but it remains **UNRESOLVED**.
 
-Required closure remains:
-- cadastral/subdivision plan;
+Required closure:
+- cadastral/subdivision plan tied to predecessor finca numbers;
 - metes-and-bounds continuity;
-- 1914–1917 named plan;
-- or later authoritative plan tied back to predecessor finca numbers.
-
-## 6. Eponym gate
-
-William Howard Taft is a plausible eponym candidate because he had direct
-institutional and personal involvement with Puerto Rico before the recovered
-street-name use, including a 1907 visit as U.S. Secretary of War and direct
-presidential action concerning Puerto Rican government during his 1909–1913
-presidency.
-
-This context establishes plausibility only:
-
-```text
-EPONYM_CANDIDATE_WILLIAM_H_TAFT = PLAUSIBLE
-EPONYM_WILLIAM_H_TAFT           = UNRESOLVED
-TAFT_NAMING_ACT                 = UNRESOLVED
-```
-
-Promotion requires a municipal resolution/ordinance/minute, approved plan,
-contemporaneous explanatory notice, or equivalent authoritative naming record.
-
+- contemporaneous named plan; or
+- authoritative later plan that back-chains the geometry.
 
 ## 7. Scanner false-positive control
 
-An earlier scanner version used the pattern `ave.? + Taft` without a leading
-word boundary. In the 6 November 1912 election coverage, this incorrectly
-matched the substring **"gave Taft"** and produced four apparent street hits.
+An earlier scanner version incorrectly matched political-news text such as
+**“gave Taft”** as if it were **“Ave. Taft.”**
 
-The scanner was hardened to require whole-token street designators, including:
+The scanner now requires whole-token street designators such as:
 
-- `\bave\.?\s+taft\b`;
-- `\bavenida\s+taft\b`;
-- `\btaft\s+street\b`;
-- equivalent qualified forms.
+- `\bcalle\s+taft\b`
+- `\bavenida\s+taft\b`
+- `\bave\.?\s+taft\b`
+- `\btaft\s+st\.?\b`
+- `\btaft\s+street\b`
 
-After the fix:
+The 6 November 1912 political-news false positive is explicitly rejected.
 
-- **November 1912:** 24 resolved issues, **0 qualified Taft street hits**;
-  unresolved dates: 5 and 28 November.
-- **December 1912:** 24 resolved issues, **0 qualified Taft street hits**;
-  unresolved dates: 25 and 31 December.
-- The 6 November 1912 election-news matches disappear completely.
+## 8. Naming-act and eponym gates
 
-Therefore:
+The current evidence establishes public address usage, not a municipal
+nominative act.
 
-```text
-1912_11_06_TAFT_STREET_HIT = FALSE_POSITIVE_REJECTED
-NOV_1912_RESOLVED_CORPUS   = NEGATIVE_FOR_QUALIFIED_STREET_USE
-DEC_1912_RESOLVED_CORPUS   = NEGATIVE_FOR_QUALIFIED_STREET_USE
-```
+Still unresolved:
 
-The positive 11 February 1913 anchor is independent of this regex issue:
-its exact PDF and rendered page were captured separately and visually verified.
+- municipal ordinance;
+- municipal resolution;
+- council agreement/minute;
+- certification of a naming action;
+- dedication/acceptance;
+- physical opening date;
+- person or authority who selected the name;
+- whether the eponym was William Howard Taft.
 
-## 8. Aggregate backward-search bound
-
-With the hardened street-form detector, the resolved pre-anchor corpus now is:
-
-- **October 1912:** 27 resolved issues, 0 qualified Taft street hits, 0 unresolved publication dates in the tested sequence;
-- **November 1912:** 24 resolved issues, 0 qualified hits; 5 and 28 November unresolved and excluded;
-- **December 1912:** 24 resolved issues, 0 qualified hits; 25 and 31 December unresolved and excluded;
-- **1 January–10 February 1913:** 35 resolved publication issues, 0 qualified hits;
-- **11 February 1913:** positive primary-source anchor, visually verified and byte-bound.
-
-Thus **110 resolved pre-anchor issues** from 1 October 1912 through 10 February 1913 contain zero qualified Taft street-designation hits, followed by the verified 11 February 1913 address.
-
-The supported bounded statement is:
-
-> **Earliest verified Taft street designation in the resolved October 1912–February 1913 *Times* corpus examined by GALIA: 11 February 1913.**
-
-This is not an absolute first-use claim. Earlier newspapers, maps, deeds, directories, municipal minutes, private subdivision papers, or unresolved issue dates may move the terminus earlier.
+William Howard Taft remains a historically plausible eponym candidate because
+of his direct Puerto Rico involvement before 1912, but surname coincidence and
+timing alone do not prove the eponym.
 
 ```text
-TAFT_EARLIEST_VERIFIED_IN_RESOLVED_CORPUS = 1913-02-11
-PRE_ANCHOR_RESOLVED_ISSUES_NEGATIVE        = 110
-TAFT_ABSOLUTE_FIRST_USE                    = OPEN
-TAFT_NAMING_ACT                            = UNRESOLVED
+EPONYM_CANDIDATE_WILLIAM_H_TAFT = PLAUSIBLE
+EPONYM_WILLIAM_H_TAFT = UNRESOLVED
+TAFT_NAMING_ACT = UNRESOLVED
 ```
+
+Promotion requires a municipal act, approved plan, contemporaneous explanatory
+notice, or equivalent authoritative record.
