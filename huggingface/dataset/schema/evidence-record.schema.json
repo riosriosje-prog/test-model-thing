@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://galia.local/schema/evidence-record-v1.json",
+  "title": "GALIA Evidence Record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_id",
+    "status",
+    "source",
+    "dates",
+    "provenance",
+    "authority"
+  ],
+  "properties": {
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_version": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "RAW_CAPTURE",
+        "TRANSCRIBED",
+        "NORMALIZED",
+        "CORROBORATED",
+        "DISPUTED",
+        "QUARANTINED"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_type",
+        "repository_or_custodian"
+      ],
+      "properties": {
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "PRIMARY",
+            "SECONDARY",
+            "TERTIARY",
+            "INSTITUTIONAL_RECORD",
+            "NEWS",
+            "MAP",
+            "IMAGE",
+            "LEGAL",
+            "OTHER"
+          ]
+        },
+        "repository_or_custodian": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collection": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "series": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signatura": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publication": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page_or_folio": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "accessed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "author": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "dates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_date",
+        "event_date"
+      ],
+      "properties": {
+        "document_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Date of the document itself; never silently substituted for event_date."
+        },
+        "event_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Date of the historical event/assertion; kept distinct from document_date."
+        },
+        "date_precision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "DAY",
+            "MONTH",
+            "YEAR",
+            "RANGE",
+            "APPROXIMATE",
+            "UNKNOWN",
+            null
+          ]
+        }
+      }
+    },
+    "place": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "historical_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "modern_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "geometry_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "text": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "transcription": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "normalized_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "language": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "image_evidence": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source_publication": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "image_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "date_or_range": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "place": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "subject": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "author": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gate_status": {
+          "type": "string",
+          "enum": [
+            "VERIFIED",
+            "QUARANTINED",
+            "NOT_APPLICABLE"
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capture_sha256",
+        "byte_size",
+        "prompt_version",
+        "engine_version",
+        "human_review"
+      ],
+      "properties": {
+        "capture_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "byte_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "prompt_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Kept distinct from engine_version."
+        },
+        "engine_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Kept distinct from prompt_version."
+        },
+        "transformation_chain": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "human_review": {
+          "type": "boolean"
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authentication",
+        "admissibility",
+        "weight"
+      ],
+      "properties": {
+        "authentication": {
+          "type": "string",
+          "enum": [
+            "UNASSESSED",
+            "SUPPORTED",
+            "DISPUTED",
+            "FAILED"
+          ]
+        },
+        "admissibility": {
+          "type": "string",
+          "enum": [
+            "UNASSESSED",
+            "POTENTIALLY_ADMISSIBLE",
+            "EXCLUDED",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "weight": {
+          "type": "string",
+          "enum": [
+            "UNASSESSED",
+            "LOW",
+            "MEDIUM",
+            "HIGH"
+          ],
+          "description": "Evidentiary weight is separate from authentication/admissibility."
+        }
+      }
+    },
+    "discrepancy_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  }
+}

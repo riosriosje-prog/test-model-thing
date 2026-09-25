@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://galia.local/schema/lineage-record-v1.json",
+  "title": "GALIA Lineage Record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lineage_id",
+    "record_id",
+    "parent_sha256",
+    "operation",
+    "created_at",
+    "human_review"
+  ],
+  "properties": {
+    "lineage_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parent_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "output_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "CAPTURE",
+        "TRANSCRIBE",
+        "NORMALIZE",
+        "EXTRACT",
+        "LINK",
+        "REVIEW",
+        "PROMOTE",
+        "QUARANTINE"
+      ]
+    },
+    "prompt_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "engine_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "human_review": {
+      "type": "boolean"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}
