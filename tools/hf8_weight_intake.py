@@ -13,7 +13,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import mlx.core as mx
 
 ALLOWED_PREFIXES = ("m.", "o.", "state.", "decaytrace.", "embedtrace.")
 REQUIRED_PROVENANCE_FIELDS = (
@@ -94,6 +93,8 @@ def load_provenance(path: Path | None) -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def inspect_single_file(target: Path) -> dict[str, Any]:
+    import mlx.core as mx
+
     if target.suffix != ".safetensors":
         raise ValueError("HF8 intake accepts only .safetensors checkpoint payloads")
     if not target.is_file():
