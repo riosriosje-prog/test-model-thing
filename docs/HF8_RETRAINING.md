@@ -31,7 +31,7 @@ The cleaned v0.2 retraining source was promoted through GitHub PR #22.
 Promoted source head:
 `c04b4bfdc15a7785e61881dc1c99b9b924539a42`
 
-Merge commit/current GitHub `main`:
+PR #22 source-integration merge commit:
 `051f56789de99a8db0d4aa044eaf120ea1d67805`
 
 Integrated reusable execution surface:
