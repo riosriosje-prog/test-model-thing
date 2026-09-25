@@ -103,6 +103,25 @@ political references to President Taft are retained as generic-Ta​​ft
 diagnostics but are not promoted as street-name evidence.
 
 
+
+
+### September 1912 extension
+
+A corrected UFDC date-to-folder scan resolved **24 September 1912 issues**
+with the hardened whole-token street detector.
+
+Result:
+- qualified Taft street-form hits: **0**;
+- unresolved/non-counted date: **1912-09-02**;
+- exact 30 September anchor folder: `00533`;
+- artifact digest:
+  `sha256:0e17c796e93ddb6d21f158393d7042513465b34e45dbefdf1aecf04eae709df7`.
+
+This raises the resolved negative pre-anchor corpus from **110** to **134**
+issues. The supported statement remains bounded to the resolved corpus; the
+2 September gap and earlier months remain open.
+
+
 ## 2. Independent later anchor — 18 June 1914
 
 Publication: *El Tiempo / The Times*  
