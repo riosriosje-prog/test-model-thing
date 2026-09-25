@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GALIA 2 Diagnostic</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    td, th { border-bottom: 1px solid #ddd; padding: .65rem; text-align: left; }
+    code { font-family: ui-monospace, monospace; }
+    .hold { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>GALIA 2 — Diagnostic Surface</h1>
+  <p><strong>Read-only static candidate.</strong> No inference, checkpoint writes,
+  evidence mutation, secrets, or authority transfer.</p>
+
+  <table>
+    <tr><th>Gate</th><th>Status</th></tr>
+    <tr><td>HF model distribution mirror</td><td>Promoted</td></tr>
+    <tr><td>HF8 trained weight artifact</td><td class="hold">HOLD — no real promoted weights</td></tr>
+    <tr><td>HF9 evidence schema surface</td><td>Promoted — zero evidence records</td></tr>
+    <tr><td>HF10 Linux MLX runtime parity</td><td>PASS — MLX 0.32.2 CPU</td></tr>
+    <tr><td>HF10 dynamic Gradio Space</td><td class="hold">HOLD — remote hosting tier constraint</td></tr>
+    <tr><td>Canonical authority</td><td>GitHub</td></tr>
+  </table>
+
+  <p>Ephemeral browser-session marker: <code id="session">initializing</code></p>
+  <p>This marker exists only in memory for this page load and is not persisted or transmitted.</p>
+
+  <script>
+    (() => {
+      const bytes = new Uint8Array(8);
+      crypto.getRandomValues(bytes);
+      document.getElementById("session").textContent =
+        Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+    })();
+  </script>
+</body>
+</html>

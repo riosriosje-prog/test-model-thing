@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://galia.local/schema/discrepancy-record-v1.json",
+  "title": "GALIA Discrepancy Record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "discrepancy_id",
+    "record_refs",
+    "issue",
+    "status"
+  ],
+  "properties": {
+    "discrepancy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_refs": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "issue": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "PARTIALLY_RESOLVED",
+        "RESOLVED",
+        "AUTHORITY_HOLD"
+      ]
+    },
+    "resolution": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "human_authority_selection": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

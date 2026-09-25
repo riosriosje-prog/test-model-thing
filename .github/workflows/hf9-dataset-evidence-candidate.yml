@@ -1,0 +1,106 @@
+name: hf9-dataset-evidence-candidate
+
+on:
+  push:
+    branches:
+      - galia2/huggingface-migration-v0.1
+    paths:
+      - .github/workflows/hf9-dataset-evidence-candidate.yml
+      - tools/build_hf_dataset_export.py
+      - tools/publish_hf_dataset_candidate.py
+      - huggingface/dataset/**
+      - docs/HF9_DATASET_EVIDENCE_GATE.md
+
+permissions:
+  contents: read
+
+jobs:
+  hf9:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_DATASET_REPO_ID: Junitos/galia-2-evidence
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade -r requirements-hf.txt
+
+      - name: Verify secret gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF9_SECRET_GATE=PASS"
+
+      - name: Build schema-only dataset export
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build_hf_dataset_export.py --output hf-dataset-export --source-sha "$GITHUB_SHA"
+
+      - name: Assert zero-evidence authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          m=json.load(open("hf-dataset-export/HF_DATASET_EXPORT_MANIFEST.json"))
+          assert m["source_sha"] == os.environ["GITHUB_SHA"]
+          assert m["source_of_truth"] == "github"
+          assert m["promotion_scope"] == "DATASET_SCHEMA_SURFACE_ONLY"
+          assert m["canonical_authority_transferred"] is False
+          assert m["contains_historical_evidence"] is False
+          assert m["contains_source_images"] is False
+          assert m["contains_raw_source_bytes"] is False
+          assert m["evidence_record_count"] == 0
+          print("HF9_ZERO_EVIDENCE_GATE=PASS")
+          PY
+
+      - name: Create private dataset repo, upload as PR, and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/publish_hf_dataset_candidate.py \
+            --repo-id "$HF_DATASET_REPO_ID" \
+            --export-dir hf-dataset-export \
+            --receipt hf9-remote-receipt.json | tee hf9-upload-result.txt
+
+      - name: Assert remote receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          r=json.load(open("hf9-remote-receipt.json"))
+          assert r["repo_id"] == os.environ["HF_DATASET_REPO_ID"]
+          assert r["repo_type"] == "dataset"
+          assert r["create_pr"] is True
+          assert r["pr_number"] is not None
+          assert r["evidence_record_count"] == 0
+          assert r["promotion_scope"] == "DATASET_SCHEMA_SURFACE_ONLY"
+          assert r["canonical_authority_transferred"] is False
+          print("HF9_REMOTE_GATE=PASS")
+          print("HF9_REMOTE_PR_URL=" + r["pr_url"])
+          print("HF9_REMOTE_MANIFEST_SHA256=" + r["manifest_sha256"])
+          PY
+
+      - name: Upload HF9 receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF9_DATASET_CANDIDATE_RECEIPT
+          path: |
+            hf-dataset-export/HF_DATASET_EXPORT_MANIFEST.json
+            hf9-remote-receipt.json
+            hf9-upload-result.txt
+          if-no-files-found: error
+          retention-days: 90

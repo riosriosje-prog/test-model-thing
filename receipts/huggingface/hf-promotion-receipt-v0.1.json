@@ -1,0 +1,15 @@
+{
+  "canonical_authority_transferred": false,
+  "human_promotion_authorized": true,
+  "manifest_sha256": "6542c843b8bb7e27d38cea2cf6dd71708fe1cc443f21a23f3390ac1fc66ed932",
+  "pr_number": 1,
+  "pr_status": "merged",
+  "promoted_revision": "main",
+  "promotion_scope": "DISTRIBUTION_MIRROR_ONLY",
+  "repo_id": "Junitos/galia-2",
+  "repo_type": "model",
+  "source_of_truth": "github",
+  "source_sha": "439500216fb7a27883bb007cbfa0c3cf2f07779e",
+  "verified_at_utc": "2026-09-25T17:58:59.095359+00:00",
+  "verified_files": 39
+}

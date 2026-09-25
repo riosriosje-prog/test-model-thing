@@ -1,0 +1,125 @@
+name: hf10b-diagnostic-space-candidate
+
+on:
+  push:
+    branches:
+      - galia2/huggingface-migration-v0.1
+    paths:
+      - .github/workflows/hf10b-diagnostic-space-candidate.yml
+      - huggingface/space/**
+      - tools/build_hf_space_export.py
+      - tools/publish_hf_space_candidate.py
+      - tests/test_hf10_space_surface.py
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_SPACE_REPO_ID: Junitos/galia-2-diagnostic
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned client and UI runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade "huggingface_hub>=1.19,<2" "gradio==6.26.0"
+
+      - name: Verify secret gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF10B_SECRET_GATE=PASS"
+
+      - name: Test read-only/session-isolation surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_hf10_space_surface -v
+          python - <<'PY'
+          import importlib.util, pathlib, sys
+          p=pathlib.Path("huggingface/space/app.py")
+          sys.path.insert(0, str(p.parent.resolve()))
+          spec=importlib.util.spec_from_file_location("galia_space_app", p)
+          mod=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          print("HF10B_GRADIO_IMPORT=PASS")
+          PY
+
+      - name: Build deterministic Space export
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build_hf_space_export.py \
+            --output hf-space-export \
+            --source-sha "$GITHUB_SHA"
+
+      - name: Assert diagnostic-only authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          m=json.load(open("hf-space-export/HF_SPACE_EXPORT_MANIFEST.json"))
+          assert m["source_sha"] == os.environ["GITHUB_SHA"]
+          assert m["source_of_truth"] == "github"
+          assert m["promotion_scope"] == "SPACE_DIAGNOSTIC_CANDIDATE_ONLY"
+          assert m["canonical_authority_transferred"] is False
+          assert m["diagnostic_only"] is True
+          assert m["model_inference_enabled"] is False
+          assert m["checkpoint_writes_enabled"] is False
+          assert m["weight_artifact_bound"] is False
+          assert m["persistent_session_state"] is False
+          assert m["hf8_weight_gate"] == "HOLD"
+          print("HF10B_DIAGNOSTIC_BOUNDARY=PASS")
+          PY
+
+      - name: Create private Space, upload as PR, and verify snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/publish_hf_space_candidate.py \
+            --repo-id "$HF_SPACE_REPO_ID" \
+            --export-dir hf-space-export \
+            --receipt hf10b-space-remote-receipt.json | tee hf10b-upload-result.txt
+
+      - name: Assert remote receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          r=json.load(open("hf10b-space-remote-receipt.json"))
+          assert r["repo_id"] == os.environ["HF_SPACE_REPO_ID"]
+          assert r["repo_type"] == "space"
+          assert r["create_pr"] is True
+          assert r["pr_number"] is not None
+          assert r["promotion_scope"] == "SPACE_DIAGNOSTIC_CANDIDATE_ONLY"
+          assert r["canonical_authority_transferred"] is False
+          assert r["space_runtime_promoted"] is False
+          print("HF10B_REMOTE_GATE=PASS")
+          print("HF10B_REMOTE_PR_URL=" + r["pr_url"])
+          print("HF10B_REMOTE_MANIFEST_SHA256=" + r["manifest_sha256"])
+          PY
+
+      - name: Upload candidate receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF10B_DIAGNOSTIC_SPACE_CANDIDATE_RECEIPT
+          path: |
+            hf-space-export/HF_SPACE_EXPORT_MANIFEST.json
+            hf10b-space-remote-receipt.json
+            hf10b-upload-result.txt
+          if-no-files-found: error
+          retention-days: 90

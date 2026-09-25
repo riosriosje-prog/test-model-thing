@@ -1,0 +1,249 @@
+name: hf9-promote-dataset-pr2
+
+on:
+  push:
+    branches:
+      - galia2/huggingface-migration-v0.1
+    paths:
+      - .github/workflows/hf9-promote-dataset-pr2.yml
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_REPO_ID: Junitos/galia-2-evidence
+      HF_PR_NUMBER: "2"
+      EXPECTED_SOURCE_SHA: 4a6b5862ae7b86f9db0d469e1a52b5a751de9a58
+      EXPECTED_MANIFEST_SHA256: 1a2545f83a3e6fc0c7f59fad11d7237c67781216123fd985fd56088cdfdc001e
+      EXPECTED_VERIFIED_FILES: "5"
+      EXPECTED_EVIDENCE_RECORD_COUNT: "0"
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade "huggingface_hub>=1.19,<2"
+
+      - name: Verify secret gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF9_PROMOTION_SECRET_GATE=PASS"
+
+      - name: Preflight exact dataset PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, pathlib, tempfile
+          from huggingface_hub import HfApi, snapshot_download
+
+          repo=os.environ["HF_REPO_ID"]
+          pr=int(os.environ["HF_PR_NUMBER"])
+          token=os.environ["HF_TOKEN"]
+          expected_source=os.environ["EXPECTED_SOURCE_SHA"]
+          expected_manifest=os.environ["EXPECTED_MANIFEST_SHA256"]
+          expected_files=int(os.environ["EXPECTED_VERIFIED_FILES"])
+          expected_records=int(os.environ["EXPECTED_EVIDENCE_RECORD_COUNT"])
+
+          api=HfApi(token=token)
+          d=api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="dataset",
+          )
+          if not d.is_pull_request:
+              raise SystemExit("discussion #2 is not a pull request")
+          if d.status not in ("open","draft"):
+              raise SystemExit(f"unexpected PR status before merge: {d.status}")
+
+          with tempfile.TemporaryDirectory() as td:
+              root=pathlib.Path(snapshot_download(
+                  repo_id=repo,
+                  repo_type="dataset",
+                  revision=f"refs/pr/{pr}",
+                  local_dir=td,
+                  token=token,
+              ))
+              raw=(root/"HF_DATASET_EXPORT_MANIFEST.json").read_bytes()
+              digest=hashlib.sha256(raw).hexdigest()
+              if digest != expected_manifest:
+                  raise SystemExit(f"manifest mismatch: {digest}")
+              m=json.loads(raw)
+              assert m["source_sha"] == expected_source
+              assert m["source_of_truth"] == "github"
+              assert m["promotion_scope"] == "DATASET_SCHEMA_SURFACE_ONLY"
+              assert m["canonical_authority_transferred"] is False
+              assert m["contains_historical_evidence"] is False
+              assert m["contains_source_images"] is False
+              assert m["contains_raw_source_bytes"] is False
+              assert m["evidence_record_count"] == expected_records
+              assert len(m["files"]) == expected_files
+              for row in m["files"]:
+                  p=root/row["path"]
+                  if not p.is_file():
+                      raise SystemExit(f"missing file: {row['path']}")
+                  if hashlib.sha256(p.read_bytes()).hexdigest() != row["sha256"]:
+                      raise SystemExit(f"hash mismatch: {row['path']}")
+                  if p.stat().st_size != row["bytes"]:
+                      raise SystemExit(f"size mismatch: {row['path']}")
+
+          print("HF9_PROMOTION_PREFLIGHT=PASS")
+          print("HF9_PROMOTION_SOURCE_SHA="+expected_source)
+          print("HF9_PROMOTION_MANIFEST_SHA256="+expected_manifest)
+          PY
+
+      - name: Publish draft if needed and merge exact dataset PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+
+          repo=os.environ["HF_REPO_ID"]
+          pr=int(os.environ["HF_PR_NUMBER"])
+          api=HfApi(token=os.environ["HF_TOKEN"])
+
+          d=api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="dataset",
+          )
+          if d.status == "draft":
+              ch=api.change_discussion_status(
+                  repo_id=repo,
+                  discussion_num=pr,
+                  new_status="open",
+                  repo_type="dataset",
+                  comment=(
+                      "Human promotion authorized for GALIA HF9 schema-only "
+                      "dataset surface. No evidence records are included."
+                  ),
+              )
+              print("HF9_PROMOTION_DRAFT_PUBLISH=PASS")
+              print("HF9_PROMOTION_READY_STATUS="+str(ch.new_status))
+
+          d=api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="dataset",
+          )
+          if d.status != "open":
+              raise SystemExit(f"PR is not open/mergeable: {d.status}")
+
+          result=api.merge_pull_request(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="dataset",
+              comment=(
+                  "Human promotion authorized for GALIA HF9 schema-only "
+                  "distribution surface. GitHub remains canonical; "
+                  "no evidence migration or authority transfer."
+              ),
+          )
+          print("HF9_PROMOTION_MERGE=PASS")
+          print("HF9_PROMOTION_STATUS="+str(getattr(result,"new_status","merged")))
+          PY
+
+      - name: Verify promoted dataset main
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import datetime, hashlib, json, os, pathlib, tempfile
+          from huggingface_hub import HfApi, snapshot_download
+
+          repo=os.environ["HF_REPO_ID"]
+          pr=int(os.environ["HF_PR_NUMBER"])
+          token=os.environ["HF_TOKEN"]
+          expected_source=os.environ["EXPECTED_SOURCE_SHA"]
+          expected_manifest=os.environ["EXPECTED_MANIFEST_SHA256"]
+          expected_files=int(os.environ["EXPECTED_VERIFIED_FILES"])
+          expected_records=int(os.environ["EXPECTED_EVIDENCE_RECORD_COUNT"])
+
+          api=HfApi(token=token)
+          d=api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="dataset",
+          )
+          if d.status != "merged":
+              raise SystemExit(f"PR status is not merged: {d.status}")
+
+          with tempfile.TemporaryDirectory() as td:
+              root=pathlib.Path(snapshot_download(
+                  repo_id=repo,
+                  repo_type="dataset",
+                  revision="main",
+                  local_dir=td,
+                  token=token,
+              ))
+              raw=(root/"HF_DATASET_EXPORT_MANIFEST.json").read_bytes()
+              digest=hashlib.sha256(raw).hexdigest()
+              if digest != expected_manifest:
+                  raise SystemExit(f"promoted manifest mismatch: {digest}")
+              m=json.loads(raw)
+              assert m["source_sha"] == expected_source
+              assert m["source_of_truth"] == "github"
+              assert m["promotion_scope"] == "DATASET_SCHEMA_SURFACE_ONLY"
+              assert m["canonical_authority_transferred"] is False
+              assert m["contains_historical_evidence"] is False
+              assert m["contains_source_images"] is False
+              assert m["contains_raw_source_bytes"] is False
+              assert m["evidence_record_count"] == expected_records
+              assert len(m["files"]) == expected_files
+              for row in m["files"]:
+                  p=root/row["path"]
+                  if not p.is_file():
+                      raise SystemExit(f"promoted snapshot missing: {row['path']}")
+                  if hashlib.sha256(p.read_bytes()).hexdigest() != row["sha256"]:
+                      raise SystemExit(f"promoted hash mismatch: {row['path']}")
+                  if p.stat().st_size != row["bytes"]:
+                      raise SystemExit(f"promoted size mismatch: {row['path']}")
+
+          receipt={
+              "repo_id":repo,
+              "repo_type":"dataset",
+              "pr_number":pr,
+              "pr_status":d.status,
+              "promoted_revision":"main",
+              "source_sha":expected_source,
+              "manifest_sha256":expected_manifest,
+              "verified_files":expected_files,
+              "evidence_record_count":expected_records,
+              "promotion_scope":"DATASET_SCHEMA_SURFACE_ONLY",
+              "source_of_truth":"github",
+              "canonical_authority_transferred":False,
+              "human_promotion_authorized":True,
+              "contains_historical_evidence":False,
+              "contains_source_images":False,
+              "contains_raw_source_bytes":False,
+              "verified_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          }
+          pathlib.Path("hf9-promotion-receipt.json").write_text(
+              json.dumps(receipt,indent=2,sort_keys=True)+"\n",
+              encoding="utf-8",
+          )
+          print("HF9_PROMOTION_POSTVERIFY=PASS")
+          print("HF9_PROMOTED_MANIFEST_SHA256="+expected_manifest)
+          PY
+
+      - name: Upload promotion receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF9_DATASET_PROMOTION_RECEIPT
+          path: hf9-promotion-receipt.json
+          if-no-files-found: error
+          retention-days: 90

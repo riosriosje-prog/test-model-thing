@@ -1,0 +1,98 @@
+name: huggingface-export-candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - galia2/huggingface-migration-v0.1
+    paths:
+      - .hf/publish-request.json
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  export-publish-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HF_REPO_ID: Junitos/galia-2
+      HF_OIDC_RESOURCE: Junitos/galia-2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade "huggingface_hub>=1.19,<2"
+
+      - name: Build deterministic export
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build_hf_export.py             --output hf-export             --source-sha "$GITHUB_SHA"
+
+      - name: Exchange GitHub OIDC identity for short-lived Hugging Face token
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(hf auth token)"
+          test -n "$token"
+          echo "::add-mask::$token"
+          echo "HF_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "HF_OIDC_EXCHANGE=PASS"
+
+      - name: Verify destination exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          api=HfApi(token=os.environ["HF_TOKEN"])
+          info=api.model_info(os.environ["HF_REPO_ID"])
+          assert info.id == os.environ["HF_REPO_ID"]
+          print("HF_DESTINATION_GATE=PASS")
+          print("HF_DESTINATION=" + info.id)
+          PY
+
+      - name: Publish candidate as Hugging Face PR and verify remote snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/publish_hf_candidate.py             --repo-id "$HF_REPO_ID"             --export-dir hf-export             --visibility private             --create-pr             --existing-repo-only             --receipt hf-remote-receipt.json             | tee hf-upload-result.txt
+
+      - name: Assert remote receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          receipt=json.load(open("hf-remote-receipt.json"))
+          assert receipt["repo_id"] == os.environ["HF_REPO_ID"]
+          assert receipt["repo_type"] == "model"
+          assert receipt["verified_files"] > 0
+          assert receipt["source_sha"] == os.environ["GITHUB_SHA"]
+          assert receipt["pr_number"] is not None
+          assert receipt["verified_revision"] == f"refs/pr/{receipt['pr_number']}"
+          print("HF_REMOTE_RECEIPT_GATE=PASS")
+          PY
+
+      - name: Upload migration receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HUGGINGFACE_REMOTE_RECEIPT
+          path: |
+            hf-export/HF_EXPORT_MANIFEST.json
+            hf-export/README.md
+            hf-remote-receipt.json
+            hf-upload-result.txt
+          if-no-files-found: error
+          retention-days: 90

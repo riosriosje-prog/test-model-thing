@@ -1,0 +1,30 @@
+{
+  "backend_package_expectation": "mlx[cpu]==0.32.2",
+  "canonical_authority_transferred": false,
+  "fallback_recovery_exact": true,
+  "first_generation": "7ae5bffc846b43beaffe01c6292806bb",
+  "first_manifest_sha256": "eccce59d38ee10f4b69e4c6f5a3e8c88a6aa8a2934daac58811bddab250fb6be",
+  "first_payload_sha256": "90bfe6207fd804e387947e20507a702d59e96f4a48ea8ab3b95d6370f4902191",
+  "gate": "HF10_SPACE_PARITY_GATE",
+  "legacy_unbound_taint_after_authoritative_load": false,
+  "mlx_version": "0.32.2",
+  "model_config": {
+    "dim": 16,
+    "layers": 2,
+    "lr": 0.0005,
+    "lrbegin": 4,
+    "lrend": 40,
+    "spread": 4,
+    "temp": 0.75
+  },
+  "notes": "Passing this probe establishes Linux CPU runtime/checkpoint parity only. It does not authorize a Hugging Face Space or production designation.",
+  "phase": "LINUX_CPU_RUNTIME_PROBE",
+  "platform_machine": "x86_64",
+  "platform_system": "Linux",
+  "python_version": "3.13.15",
+  "save_reload_exact": true,
+  "second_generation": "1acae08e85c34524958c93f061b00117",
+  "source_sha": "7a538cbe1ca90dfd9db393e3760511d544afbdbd",
+  "space_deployment_authorized": false,
+  "status": "PASS"
+}
