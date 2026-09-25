@@ -1,0 +1,51 @@
+{
+  "audit": "HF8_REAL_WEIGHT_DISCOVERY",
+  "audit_version": "0.2",
+  "audited_main_sha": "db884f5284a421d716fbf600c7a52f52347c7ff1",
+  "status": "HOLD",
+  "hold_reason": "NO_COMPATIBLE_REAL_WEIGHT_ARTIFACT_LOCATED_IN_AUDITED_SURFACES",
+  "user_fork": {
+    "repo": "riosriosje-prog/test-model-thing",
+    "weight_like_tree_entries": [
+      "receipts/huggingface/hf8-weight-artifact-hold-v0.1.json"
+    ],
+    "releases_found": 0,
+    "audited_main_ci_runs_with_weight_artifacts": 0
+  },
+  "upstream": {
+    "repo": "jrz97619761/test-model-thing",
+    "trained_model_claim_documented": true,
+    "trained_model_claim": "4.5M parameters, about 12 hours, dim=512, layers=16",
+    "training_dataset_documented": "simplewiki-20260801-pages-articles.xml.bz2",
+    "readme_states_weights_not_provided": true,
+    "referenced_checkpoint_filename": "smaller-4.5m.safetensors",
+    "referenced_filename_located_as_downloadable_asset": false,
+    "public_releases_found": 0,
+    "weight_like_tree_entries_found": 0
+  },
+  "compatible_fork_checks": {
+    "DrBellubins/test-model-thing": {
+      "weight_files_found": 0,
+      "release_assets_found": 0
+    },
+    "astralaster/test-model-thing": {
+      "weight_files_found": 0,
+      "release_assets_found": 0,
+      "compatibility_intent_documented": true
+    }
+  },
+  "rejected_external_candidate": {
+    "repo": "SimonVitzethum/test-model-thing-CUDA",
+    "release_tag": "Training",
+    "asset": "tmt-8h-run.tar.gz",
+    "asset_size_bytes": 129019944,
+    "reason": "CUDA rewrite changes architecture/training/checkpoint semantics and is not the current GALIA/TMT MLX checkpoint contract"
+  },
+  "policy": {
+    "synthetic_weight_may_satisfy_gate": false,
+    "random_initialization_may_satisfy_gate": false,
+    "incompatible_external_checkpoint_may_satisfy_gate": false,
+    "human_promotion_required": true,
+    "canonical_authority_transferred": false
+  }
+}
