@@ -122,6 +122,24 @@ issues. The supported statement remains bounded to the resolved corpus; the
 2 September gap and earlier months remain open.
 
 
+
+
+### August 1912 extension
+
+The hardened resolver/scanner closed **27/27 August 1912 publication issues**
+with **zero qualified Taft street-form hits** and no unresolved dates.
+
+- 31 August anchor folder: `00509`;
+- artifact digest:
+  `sha256:3e1ec9d329199934ad5ece7f8afc90d8a71076699c60dc48ca89081d38a79bff`.
+
+This raises the resolved negative pre-anchor corpus to **161 issues** before
+the first qualified Taft street designation on 11 February 1913.
+
+The supported statement remains bounded to the resolved corpus and does not
+establish a legal naming date or physical opening date.
+
+
 ## 2. Independent later anchor — 18 June 1914
 
 Publication: *El Tiempo / The Times*  
