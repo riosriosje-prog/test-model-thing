@@ -1,0 +1,219 @@
+name: hf8-retrain-v0-2-bootstrap
+
+on:
+  push:
+    branches:
+      - galia2/hf8-retrain-v0.2
+    paths:
+      - .github/workflows/hf8-retrain-v0-2-bootstrap.yml
+      - tools/hf8_v0_2_dataset_manifest.py
+      - tools/hf8_v0_2_train_files.py
+      - tools/hf8_v0_2_eval_files.py
+      - tools/hf8_v0_2_publish.py
+      - docs/HF8_RETRAIN_V0_2.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hf8-retrain-v0-2-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: macos-14
+    timeout-minutes: 45
+    env:
+      SIMPLEWIKI_URL: https://dumps.wikimedia.org/other/mediawiki_content_current/simplewiki/2026-08-01/xml/bzip2/simplewiki-2026-08-01-p1p1277745.xml.bz2
+      EXPECTED_DUMP_SHA256: 441fb855b3d907afe605b00482968e894b94798ffbe870c24be09c4e500edacb
+      WIKIEXTRACTOR_VERSION: "3.1.0"
+      WIKIEXTRACTOR_WHEEL_SHA256: de6585ecac14fe290dd64feadfa3dec01e11052bce545a5d201aecd55ab6d09e
+      TRAIN_STEPS: "4000"
+      HF_REPO_ID: Junitos/galia-2
+      HF_REVISION: hf8-retrain-v0.2
+      HF_PATH: training/hf8-retrain-v0.2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned MLX and verified WikiExtractor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade "mlx==0.32.2"
+          mkdir -p .deps
+          python -m pip download --no-deps --only-binary=:all: \
+            "wikiextractor==$WIKIEXTRACTOR_VERSION" -d .deps
+          WHEEL=".deps/wikiextractor-$WIKIEXTRACTOR_VERSION-py3-none-any.whl"
+          test -f "$WHEEL"
+          ACTUAL="$(shasum -a 256 "$WHEEL" | awk '{print $1}')"
+          test "$ACTUAL" = "$WIKIEXTRACTOR_WHEEL_SHA256"
+          python -m pip install "$WHEEL"
+          python -m wikiextractor.WikiExtractor --version
+          echo "HF8_V0_2_WIKIEXTRACTOR_PIN=PASS"
+
+      - name: Secret gate
+        shell: bash
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF8_V0_2_SECRET_GATE=PASS"
+
+      - name: Download and verify exact SimpleWiki dump
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hf8v2/data .hf8v2/wiki .hf8v2/meta .hf8v2/out .hf8v2/evidence
+          curl --fail --location --retry 4 --retry-delay 5 \
+            "$SIMPLEWIKI_URL" \
+            --output .hf8v2/data/simplewiki-20260801.xml.bz2
+          ACTUAL="$(shasum -a 256 .hf8v2/data/simplewiki-20260801.xml.bz2 | awk '{print $1}')"
+          test "$ACTUAL" = "$EXPECTED_DUMP_SHA256"
+          echo "HF8_V0_2_DUMP_SHA256=$ACTUAL"
+          echo "HF8_V0_2_DUMP_VERIFY=PASS"
+
+      - name: Build upstream-style WikiExtractor corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m wikiextractor.WikiExtractor \
+            .hf8v2/data/simplewiki-20260801.xml.bz2 \
+            -o .hf8v2/wiki \
+            --processes 4 \
+            -q
+          COUNT="$(find .hf8v2/wiki -type f -name 'wiki_*' | wc -l | tr -d ' ')"
+          test "$COUNT" -gt 1
+          echo "HF8_V0_2_WIKIEXTRACTOR_OUTPUT_FILES=$COUNT"
+          echo "HF8_V0_2_WIKIEXTRACTOR_RUN=PASS"
+
+      - name: Build deterministic file manifest and holdout split
+        run: |
+          python tools/hf8_v0_2_dataset_manifest.py \
+            --dataset-root .hf8v2/wiki \
+            --dump .hf8v2/data/simplewiki-20260801.xml.bz2 \
+            --source-url "$SIMPLEWIKI_URL" \
+            --extractor-version "$WIKIEXTRACTOR_VERSION" \
+            --seed 1976 \
+            --holdout-fraction 0.10 \
+            --output-dir .hf8v2/meta
+
+      - name: Train fresh v0.2 checkpoint for 4,000 steps
+        run: |
+          python tools/hf8_v0_2_train_files.py \
+            --dataset-root .hf8v2/wiki \
+            --train-files .hf8v2/meta/train-files.txt \
+            --dataset-manifest .hf8v2/meta/dataset-manifest.json \
+            --checkpoint-target .hf8v2/out/galia-hf8-v0-2-4p5m \
+            --state .hf8v2/out/training-state.json \
+            --receipt .hf8v2/out/training-receipt.json \
+            --steps "$TRAIN_STEPS" \
+            --seed 1976
+
+      - name: Held-out frozen evaluation
+        run: |
+          python tools/hf8_v0_2_eval_files.py \
+            --dataset-root .hf8v2/wiki \
+            --eval-files .hf8v2/meta/eval-files.txt \
+            --dataset-manifest .hf8v2/meta/dataset-manifest.json \
+            --checkpoint-target .hf8v2/out/galia-hf8-v0-2-4p5m \
+            --training-receipt .hf8v2/out/training-receipt.json \
+            --receipt .hf8v2/out/evaluation-receipt.json \
+            --max-pairs 4096
+
+      - name: Bind provenance and dataset metadata into staging snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .hf8v2/meta/dataset-manifest.json .hf8v2/out/dataset-manifest.json
+          cp .hf8v2/meta/train-files.txt .hf8v2/out/train-files.txt
+          cp .hf8v2/meta/eval-files.txt .hf8v2/out/eval-files.txt
+          python - <<'PY'
+          import json, platform
+          from importlib.metadata import version
+          from pathlib import Path
+          prov={
+              "origin_type":"reproducible_retraining",
+              "training_regime":"UPSTREAM_STYLE_WIKIEXTRACTOR_FILE_STREAM",
+              "source_dump":"simplewiki-20260801-pages-articles.xml.bz2",
+              "source_dump_sha256":"441fb855b3d907afe605b00482968e894b94798ffbe870c24be09c4e500edacb",
+              "wikiextractor_version":version("wikiextractor"),
+              "wikiextractor_wheel_sha256":"de6585ecac14fe290dd64feadfa3dec01e11052bce545a5d201aecd55ab6d09e",
+              "mlx_version":version("mlx"),
+              "python_version":platform.python_version(),
+              "machine":platform.machine(),
+              "platform":platform.platform(),
+              "seed":1976,
+              "claimed_not_synthetic":True,
+              "canonical_authority_transferred":False,
+              "human_promotion_required":True
+          }
+          Path(".hf8v2/out/provenance.json").write_text(
+              json.dumps(prov,indent=2,sort_keys=True)+"\n",
+              encoding="utf-8"
+          )
+          print("HF8_V0_2_PROVENANCE_BINDING=PASS")
+          PY
+
+      - name: Stage v0.2 snapshot to isolated Hugging Face revision and re-read
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python -m pip install --upgrade "huggingface_hub>=1.0,<2"
+          python tools/hf8_v0_2_publish.py \
+            --folder .hf8v2/out \
+            --repo-id "$HF_REPO_ID" \
+            --revision "$HF_REVISION" \
+            --path-in-repo "$HF_PATH" \
+            --token "$HF_TOKEN"
+
+      - name: Collect compact evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .hf8v2/out/training-receipt.json .hf8v2/evidence/
+          cp .hf8v2/out/evaluation-receipt.json .hf8v2/evidence/
+          cp .hf8v2/out/dataset-manifest.json .hf8v2/evidence/
+          cp .hf8v2/out/provenance.json .hf8v2/evidence/
+          cp .hf8v2/out/galia-hf8-v0-2-4p5m.head.json .hf8v2/evidence/
+          cp .hf8v2/out/HF8_V0_2_STAGE_MANIFEST.json .hf8v2/evidence/
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          tr=json.loads(Path(".hf8v2/out/training-receipt.json").read_text())
+          er=json.loads(Path(".hf8v2/out/evaluation-receipt.json").read_text())
+          summary={
+              "gate":"HF8_V0_2_BOOTSTRAP",
+              "status":"PASS",
+              "artifact_kind":"REAL_TRAINED_CHECKPOINT",
+              "training_regime":"UPSTREAM_STYLE_WIKIEXTRACTOR_FILE_STREAM",
+              "cumulative_steps":tr["cumulative_steps"],
+              "payload_sha256":tr["payload_sha256"],
+              "payload_bytes":tr["payload_bytes"],
+              "model_parameter_count":tr["model_parameter_count"],
+              "heldout_bits_per_byte":er["heldout_mean_bits_per_byte"],
+              "authority_binding":"CURRENT_BOUND",
+              "canonical_authority_transferred":False,
+              "human_promotion_required":True,
+              "promoted":False
+          }
+          Path(".hf8v2/evidence/bootstrap-summary.json").write_text(
+              json.dumps(summary,indent=2,sort_keys=True)+"\n"
+          )
+          print("HF8_V0_2_BOOTSTRAP_SUMMARY=PASS")
+          print("HF8_V0_2_BOOTSTRAP_BPC="+str(summary["heldout_bits_per_byte"]))
+          print("HF8_V0_2_BOOTSTRAP_PROMOTED=false")
+          PY
+
+      - name: Upload v0.2 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF8_RETRAIN_V0_2_BOOTSTRAP
+          path: .hf8v2/evidence/
+          if-no-files-found: error
+          retention-days: 90
