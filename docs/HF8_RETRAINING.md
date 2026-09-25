@@ -1,6 +1,6 @@
 # HF8 Retraining
 
-Status: **PROMOTED WEIGHT / SOURCE INTEGRATION PENDING**
+Status: **WEIGHT PROMOTED / SOURCE INTEGRATION PROMOTED**
 
 ## Promoted weight
 
@@ -14,6 +14,7 @@ The promoted HF8 real-weight bootstrap is:
 - payload bytes: `70,716,981`
 - manifest SHA-256: `a41110548ced010da6d1462d4c0822dd527ac7411421540bdaf817d7d3b4cbb2`
 - classification: `GALIA_CURRENT_BOUND`
+- authority binding: `CURRENT_BOUND`
 - quality gate: `PASS`
 - canonical authority transferred: `false`
 
@@ -23,40 +24,50 @@ Quality result:
 - trained held-out BPC: `5.675106937451537`
 - delta: `-3.004668138500393`
 
-## Current executable retraining surface
+## Source integration
 
-The source integration keeps only the current/reusable HF8 execution surfaces:
+The cleaned v0.2 retraining source was promoted through GitHub PR #22.
+
+Promoted source head:
+`c04b4bfdc15a7785e61881dc1c99b9b924539a42`
+
+Merge commit/current GitHub `main`:
+`051f56789de99a8db0d4aa044eaf120ea1d67805`
+
+Integrated reusable execution surface:
 
 - `.github/workflows/hf8-backend-throughput-probe-v2.yml`
 - `.github/workflows/hf8-retrain-v0-2-diagnostic.yml`
-- `.github/workflows/hf8-weight-intake-validation.yml`
 - `tools/hf8_prepare_simplewiki_v2.py`
 - `tools/hf8_retrain_v2_diagnostic.py`
-- `tools/hf8_weight_intake.py`
+- `tests/test_hf8_v02_governance.py`
 
-Superseded one-shot promotion workflows, v0.1 training workflows, recovery workflows,
-and staging publishers are intentionally not integrated into `main`.
+Superseded v0.1 training/recovery/promotion workflows and obsolete staging publishers were deliberately excluded from the promoted source surface.
 
 ## Preserved evidence
 
-Historical evidence remains in receipts, including:
-
+- `receipts/huggingface/hf8-discovery-audit-v0.2.json`
 - `receipts/huggingface/hf8-real-weight-candidate-v0.1.json`
 - `receipts/huggingface/hf8-real-weight-candidate-v0.2.json`
 - `receipts/huggingface/hf8-v0-2-weight-promotion-receipt.json`
-- `receipts/huggingface/hf8-discovery-audit-v0.2.json`
 - `receipts/huggingface/hf8-weight-artifact-hold-v0.1.json`
 
-The v0.1/20k experiments remain audit evidence only. They are not the promoted model.
+The old HOLD receipt is historical evidence of the gate before a real weight existed; it does not represent current HF8 status.
 
 ## Authority boundary
 
 ```text
-source_of_truth = github
+GitHub       = CONTROL PLANE
+Hugging Face = ML ARTIFACT PLANE
+
+source_of_truth                 = github
 canonical_authority_transferred = false
-legacy_mutation_authorized = false
-promoted_weight_scope = HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY
+legacy_mutation_authorized      = false
+promoted_weight_scope           = HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY
 ```
 
-Promotion of the weight does not itself merge the retraining source branch.
-GitHub PR #22 remains a separate source-integration decision.
+The weight promotion and source promotion were separate human decisions with separate receipts.
+
+Any future longer training run creates a new artifact candidate and must pass independent quality, provenance, identity, remote-verification and human-promotion gates.
+
+Machine-readable plane policy: `huggingface/policy/control-artifact-plane.v1.json`.
