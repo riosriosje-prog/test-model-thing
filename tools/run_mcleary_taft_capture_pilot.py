@@ -34,7 +34,16 @@ def run_pilot(source_file: str, anchor_file: str, output_dir: str) -> dict:
     if not isinstance(page_number, int) or page_number < 1:
         raise ValueError("page anchor has invalid page number")
     context = str(anchor.get("normalized_context") or "")
-    if not all(token in context for token in ("leary", "taft", "sale de")):
+    matched_relation = str(anchor.get("matched_relation") or "")
+    accepted_relations = {
+        "LEARY_NEAR_TAFT_WITH_SALE_DE",
+        "LEARY_SALE_TAFT_OCR_VARIANT_VISUALLY_CONFIRMED",
+    }
+    if (
+        "leary" not in context
+        or "taft" not in context
+        or matched_relation not in accepted_relations
+    ):
         raise ValueError("page anchor does not establish the expected street relation")
 
     db_path = out / "mcleary_taft_shadow.sqlite3"
@@ -141,6 +150,8 @@ def run_pilot(source_file: str, anchor_file: str, output_dir: str) -> dict:
             "page_text_sha256": anchor["page_text_sha256"],
             "extraction_method": anchor["extraction_method"],
             "matched_relation": anchor["matched_relation"],
+            "normalized_transcription": anchor["normalized_transcription"],
+            "normalization_basis": anchor["normalization_basis"],
         },
         "historical_store": {
             "schema_version": health["schema_version"],
