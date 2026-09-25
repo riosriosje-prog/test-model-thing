@@ -1,0 +1,89 @@
+name: hf8-retrain-v0-2-diagnostic
+
+on:
+  push:
+    branches:
+      - galia2/hf8-retrain-v0.1
+    paths:
+      - .github/workflows/hf8-retrain-v0-2-diagnostic.yml
+      - tools/hf8_prepare_simplewiki_v2.py
+      - tools/hf8_retrain_v2_diagnostic.py
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: macos-14
+    timeout-minutes: 35
+    env:
+      SIMPLEWIKI_URL: https://dumps.wikimedia.org/other/mediawiki_content_current/simplewiki/2026-08-01/xml/bzip2/simplewiki-2026-08-01-p1p1277745.xml.bz2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned MLX
+        run: python -m pip install --upgrade "mlx==0.32.2"
+
+      - name: Download exact dated SimpleWiki dump
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hf8-v02/data .hf8-v02/out
+          curl --fail --location --retry 4 --retry-delay 5 \
+            "$SIMPLEWIKI_URL" \
+            --output .hf8-v02/data/simplewiki-20260801.xml.bz2
+          test -s .hf8-v02/data/simplewiki-20260801.xml.bz2
+          echo "HF8_V02_DUMP_DOWNLOAD=PASS"
+
+      - name: Build full-dump distributed deterministic split
+        run: |
+          python tools/hf8_prepare_simplewiki_v2.py \
+            --dump .hf8-v02/data/simplewiki-20260801.xml.bz2 \
+            --train-output .hf8-v02/data/train.txt \
+            --eval-output .hf8-v02/data/eval.txt \
+            --receipt .hf8-v02/out/corpus-v02-receipt.json \
+            --source-url "$SIMPLEWIKI_URL"
+
+      - name: Train 4k diagnostic and compare against random-init baseline
+        run: |
+          python tools/hf8_retrain_v2_diagnostic.py \
+            --train .hf8-v02/data/train.txt \
+            --eval .hf8-v02/data/eval.txt \
+            --corpus-receipt .hf8-v02/out/corpus-v02-receipt.json \
+            --checkpoint-target .hf8-v02/out/galia-hf8-v02-4k \
+            --receipt .hf8-v02/out/training-v02-receipt.json \
+            --steps 4000 \
+            --sequence-bytes 256 \
+            --eval-pairs 4096 \
+            --seed 1976
+
+      - name: Assert quality result is explicitly recorded
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path(".hf8-v02/out/training-v02-receipt.json").read_text())
+          assert r["checkpoint"]["authority_binding"] == "CURRENT_BOUND"
+          assert r["training_steps"] == 4000
+          assert r["quality"]["promotion_quality_gate"] in ("PASS","HOLD")
+          assert r["promoted"] is False
+          print("HF8_V02_RECEIPT_GATE=PASS")
+          print("HF8_V02_QUALITY_GATE="+r["quality"]["promotion_quality_gate"])
+          print("HF8_V02_BASELINE_BPC="+str(r["quality"]["random_init_baseline_bpc"]))
+          print("HF8_V02_TRAINED_BPC="+str(r["quality"]["trained_bpc"]))
+          PY
+
+      - name: Upload diagnostic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF8_RETRAIN_V0_2_DIAGNOSTIC
+          path: .hf8-v02/out/
+          if-no-files-found: error
+          retention-days: 90
