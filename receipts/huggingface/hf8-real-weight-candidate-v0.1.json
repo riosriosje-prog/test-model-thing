@@ -1,0 +1,80 @@
+{
+  "candidate": "HF8_REAL_WEIGHT_CANDIDATE_v0.1",
+  "status": "READY_FOR_HUMAN_PROMOTION_BOOTSTRAP_SCOPE_ONLY",
+  "artifact_kind": "REAL_TRAINED_CHECKPOINT",
+  "training": {
+    "source_branch": "galia2/hf8-retrain-v0.1",
+    "bootstrap_source_sha": "f6b7f214938307606f873371a7e1bd8b91d7e66f",
+    "training_run_id": 36180858190,
+    "training_steps": 4000,
+    "seed": 1976,
+    "model_config": {
+      "dim": 512,
+      "layers": 16,
+      "spread": 32,
+      "temp": 0.75,
+      "lr": 0.0005,
+      "lrbegin": 40000,
+      "lrend": 120000
+    },
+    "dump_sha256": "441fb855b3d907afe605b00482968e894b94798ffbe870c24be09c4e500edacb",
+    "corpus_sha256": "c4629bb527a8fef0b405d07e2518e7c52a13fa63046c1e457e9f12013b388b29",
+    "corpus_bytes": 16773777,
+    "corpus_articles": 4274
+  },
+  "weight": {
+    "payload_sha256": "416fb2d83c56c08028931e6e907b184f211f0267f626a67ff132d2298b9db151",
+    "payload_bytes": 70716953,
+    "classification": "GALIA_CURRENT_BOUND",
+    "authority_binding": "CURRENT_BOUND",
+    "legacy_unbound_taint": false
+  },
+  "preflight": {
+    "source_sha": "61ae585de4ff311d31a6e3606d066f8cbaca44ec",
+    "run_id": 36181500959,
+    "status": "PASS",
+    "provenance_status": "COMPLETE",
+    "technical_upload_eligible": true,
+    "promotion_preflight_eligible": true,
+    "artifact_id": 10883718808,
+    "artifact_digest": "sha256:f9f64c61376807c227b3978b225cee4ee91b608618e4e9b08e1cadd09f5a6311"
+  },
+  "huggingface_candidate": {
+    "repo_id": "Junitos/galia-2",
+    "repo_type": "model",
+    "pr_number": 2,
+    "pr_url": "https://huggingface.co/Junitos/galia-2/discussions/2",
+    "verified_revision": "refs/pr/2",
+    "candidate_path": "weights/hf8-retrain-bootstrap-v0.1",
+    "manifest_sha256": "2a118e99613bcd1daa331d4688afc0c233abbe63aa2bcd9165003b1abc49355e",
+    "verified_file_count": 9,
+    "publish_run_id": 36181673195,
+    "publish_source_sha": "6e60fa33f6d2ad55f69beb3b360c6bfc45276c15",
+    "artifact_id": 10884277855,
+    "artifact_digest": "sha256:3973aac62630207acfa6159763c599802ce046e27e2519b26ef553bd335f6ccb"
+  },
+  "promotion_scope": "HF8_REAL_WEIGHT_BOOTSTRAP_ONLY",
+  "quality_claim": "BOOTSTRAP_ONLY_NOT_EQUIVALENT_TO_UNAVAILABLE_UPSTREAM_12H_CHECKPOINT",
+  "canonical_authority_transferred": false,
+  "source_of_truth": "github",
+  "human_promotion_required": true,
+  "promoted": false,
+  "validation": {
+    "source_sha": "18fd9a760476465a1867b6a2a4b9c6e0f3f28a18",
+    "run_id": 36182388574,
+    "status": "PASS",
+    "artifact_id": 10884668601,
+    "artifact_digest": "sha256:85af29011000e8a4515ef1fefb4f3b2ed44ab17bd2402c6cb9788d9f631434b1",
+    "staged_manifest_verify": "PASS",
+    "staged_current_generation_load": "PASS",
+    "resume_precondition": "PASS",
+    "frozen_trainable_parameter_identity": "PASS",
+    "frozen_checkpoint_file_identity": "PASS",
+    "heldout_bytes": 4096,
+    "heldout_bits_per_byte": 8.54508362,
+    "uniform_256_symbol_reference_bits_per_byte": 8,
+    "delta_vs_uniform_bits_per_byte": 0.54508362,
+    "quality_gate": "OBSERVATION_ONLY"
+  },
+  "quality_observation": "After 4,000 optimizer steps, held-out BPC is 8.54508362 on the independently rebuilt corpus tail. This is recorded as an observation only; no broader quality baseline claim is authorized."
+}
