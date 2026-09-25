@@ -89,10 +89,11 @@ def main() -> None:
         if second_head["previous_generation"] != first_generation:
             raise SystemExit("generation lineage did not retain exact previous generation")
 
-        current_manifest = json.loads(
-            Path(f"{target}.gen.{second_generation}.manifest.json").read_text()
+        current_payload_path, current_manifest_path = a._generation_paths(
+            str(target), second_generation
         )
-        current_payload = root / current_manifest["checkpoint_file"]
+        current_manifest = json.loads(Path(current_manifest_path).read_text())
+        current_payload = Path(current_payload_path)
         current_payload.write_bytes(current_payload.read_bytes() + b"corruption")
 
         c = Model(**config)
@@ -103,9 +104,12 @@ def main() -> None:
         if fallback_snapshot != first_snapshot:
             raise SystemExit("fallback did not restore exact previous state")
 
-        first_manifest_path = Path(f"{target}.gen.{first_generation}.manifest.json")
+        first_payload_path, first_manifest_path_raw = a._generation_paths(
+            str(target), first_generation
+        )
+        first_manifest_path = Path(first_manifest_path_raw)
         first_manifest = json.loads(first_manifest_path.read_text())
-        first_payload = root / first_manifest["checkpoint_file"]
+        first_payload = Path(first_payload_path)
 
         receipt = {
             "gate": "HF10_SPACE_PARITY_GATE",
