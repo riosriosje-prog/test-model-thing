@@ -30,9 +30,9 @@ permissions:
   contents: read
 
 jobs:
-  export-and-stage:
+  export-publish-verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_REPO_ID: ${{ inputs.hf_repo_id }}
@@ -44,11 +44,11 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install Hugging Face CLI
+      - name: Install Hugging Face client
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --upgrade "huggingface_hub>=1.0,<2"
+          python -m pip install --upgrade -r requirements-hf.txt
 
       - name: Build deterministic export
         shell: bash
@@ -60,7 +60,7 @@ jobs:
           fi
           python tools/build_hf_export.py "${args[@]}"
 
-      - name: Verify authentication gate
+      - name: Verify authentication and destination gate
         shell: bash
         run: |
           set -euo pipefail
@@ -72,45 +72,58 @@ jobs:
             echo "::error::hf_repo_id must be owner-or-org/repo-name."
             exit 2
           fi
-          hf auth whoami >/dev/null
-          echo "HF_AUTH_GATE=PASS"
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          who = api.whoami()
+          assert who and who.get("name")
+          print("HF_AUTH_GATE=PASS")
+          print("HF_AUTH_USER=" + who["name"])
+          PY
 
-      - name: Create or reuse destination model repo
-        shell: bash
-        run: |
-          set -euo pipefail
-          args=(repos create "$HF_REPO_ID" --type model --exist-ok)
-          if [ "${{ inputs.visibility }}" = "private" ]; then
-            args+=(--private)
-          else
-            args+=(--public)
-          fi
-          hf "${args[@]}"
-          echo "HF_REPO_GATE=PASS"
-
-      - name: Upload distribution mirror
+      - name: Publish candidate and verify remote snapshot
         shell: bash
         run: |
           set -euo pipefail
           args=(
-            upload "$HF_REPO_ID" hf-export .
-            --repo-type model
-            --commit-message "GALIA distribution mirror $GITHUB_SHA"
-            --commit-description "Source: https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+            --repo-id "$HF_REPO_ID"
+            --export-dir hf-export
+            --visibility "${{ inputs.visibility }}"
+            --receipt hf-remote-receipt.json
           )
           if [ "${{ inputs.create_pr }}" = "true" ]; then
             args+=(--create-pr)
+          else
+            args+=(--no-create-pr)
           fi
-          hf "${args[@]}" | tee hf-upload-result.txt
-          echo "HF_UPLOAD_GATE=PASS"
+          python tools/publish_hf_candidate.py "${args[@]}" | tee hf-upload-result.txt
 
-      - name: Upload migration receipt inputs
+      - name: Assert remote receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          receipt=json.load(open("hf-remote-receipt.json"))
+          assert receipt["repo_id"] == os.environ["HF_REPO_ID"]
+          assert receipt["repo_type"] == "model"
+          assert receipt["verified_files"] > 0
+          assert receipt["source_sha"] == os.environ["GITHUB_SHA"]
+          if "${{ inputs.create_pr }}" == "true":
+              assert receipt["pr_number"] is not None
+              assert receipt["verified_revision"] == f"refs/pr/{receipt['pr_number']}"
+          print("HF_REMOTE_RECEIPT_GATE=PASS")
+          PY
+
+      - name: Upload migration receipt
         uses: actions/upload-artifact@v4
         with:
-          name: GALIA_HUGGINGFACE_EXPORT_CANDIDATE
+          name: GALIA_HUGGINGFACE_REMOTE_RECEIPT
           path: |
             hf-export/HF_EXPORT_MANIFEST.json
             hf-export/README.md
+            hf-remote-receipt.json
             hf-upload-result.txt
           if-no-files-found: error
           retention-days: 90
