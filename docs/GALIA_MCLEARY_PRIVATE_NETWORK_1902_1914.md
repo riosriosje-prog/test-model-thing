@@ -185,3 +185,130 @@ EPONYM_IDENTITY                  = UNRESOLVED
 Promotion requires either a plan/metes-and-bounds reconstruction that closes
 the geometric identity or an authoritative contemporaneous record naming the
 street/action directly.
+
+
+## 8. Geometric decomposition of the opened-street network
+
+The registry descriptions reproduced in **King v. Fernández et al.,
+30 D.P.R. 592 (1922)** require GALIA to model more than one road axis.
+
+### Parcel 2599 — Catlin, 1906
+
+The registered parcel is described as approximately:
+
+- **north:** 47.70 m, sea;
+- **south:** 92 m, **a street**;
+- **east:** 160 m, Ceferino del Valle;
+- **west:** 131.50 m, **a street and Libertad Torres Grau**.
+
+This establishes one street on the south side and at least a partial street
+edge on the west side of the large Catlin tract.
+
+### Parcel 2465 — Torres Grau / Catlin, 1904–1905
+
+The 600 m² parcel is described as:
+
+- **north:** sea;
+- **south and east:** Margarida & Co.;
+- **west:** **a street opened by Margarida & Co. within the same parent
+  estate**.
+
+Because the west boundary is explicitly a street, this is a transverse
+north–south-type axis relative to the recorded cardinal boundaries.
+
+### 270 m² parcel derived from the 1914 Quiñones tract
+
+The later parcel is described as:
+
+- **north:** 10 m on **an opened street bordering the sea**;
+- **south:** Charles A. Catlin;
+- **east:** Concepción Tudela;
+- **west:** **an opened street in lands of Margarida & Co.**
+
+This description independently requires two distinct street edges meeting
+around the parcel: a northern/coastal edge and a western/transverse edge.
+
+### Minimal topology
+
+```text
+                     NORTH / SEA
+        ─────────────────────────────────
+            coastal/opened street ?
+        ─────────────────┬───────────────
+                         │
+                         │ western /
+                         │ transverse
+                         │ opened street ?
+                         │
+        Catlin /         │   270 m² later
+        Torres Grau      │   parcel
+        parcels          │
+                         │
+        ─────────────────┴───────────────
+             southern street of 2599 ?
+                     SOUTH
+```
+
+The topology is documentary. The modern identities are not.
+
+### Candidate identity matrix
+
+```text
+AXIS_WEST / TRANSVERSE
+  possible later Taft axis        = PLAUSIBLE / UNRESOLVED
+  possible Cordero/other axis     = OPEN
+
+AXIS_NORTH / COASTAL
+  possible later McLeary axis     = PLAUSIBLE / UNRESOLVED
+  possible Ocean Walk/other axis  = OPEN
+
+AXIS_SOUTH_OF_2599
+  possible Camino Loíza-side or another east-west street = UNRESOLVED
+```
+
+The apparent fit with the later Taft–McLeary orthogonal relationship is not
+sufficient for promotion. A geometric identity requires one of:
+
+1. a cadastral/subdivision plan tied to finca 2109 or its segregations;
+2. a metes-and-bounds chain connecting the old parcel corners to a later named
+   street;
+3. a contemporaneous 1914–1917 plan that shows the same parcel geometry and
+   names the corresponding streets; or
+4. a later authoritative plan with enough predecessor-title references to
+   back-chain the geometry.
+
+## 9. 1917 map overlay target
+
+The **General Plan of Santurce**, first section dated 30 August 1917 and held
+through the Archivo General de Puerto Rico/Archivo Digital Nacional, is the
+next map gate. It post-dates both:
+
+- the 1 July 1914 Quiñones segregation; and
+- the 22 November 1915 verified MacLeary newspaper designation.
+
+Therefore it can serve as a geometry bridge between the title descriptions
+and the named street network, but it cannot by itself prove the original
+naming act.
+
+Required overlay checks:
+
+- location of Taft;
+- location of McLeary/MacLeary;
+- shoreline position;
+- relationship to Parada 44 / Parque Borinquen;
+- any visible block whose dimensions or shape correspond to the Catlin /
+  Margarida / Quiñones parcels;
+- whether the west/transverse opened street reaches the same coastal or
+  McLeary alignment;
+- whether the southern street of finca 2599 corresponds to a later named
+  east–west road.
+
+Until that overlay is closed:
+
+```text
+TWO_OR_MORE_PRIVATE_STREET_AXES_PRE_1914 = DOCUMENTED
+ORTHOGONAL_NETWORK_STRUCTURE             = DOCUMENTED
+WEST_AXIS_EQUALS_TAFT                     = UNRESOLVED
+NORTH_AXIS_EQUALS_MCLEARY                 = UNRESOLVED
+SOUTH_AXIS_IDENTITY                       = UNRESOLVED
+```
