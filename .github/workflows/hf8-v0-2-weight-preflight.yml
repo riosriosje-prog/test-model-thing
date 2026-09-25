@@ -1,0 +1,195 @@
+name: hf8-v0-2-weight-preflight
+
+on:
+  push:
+    branches:
+      - galia2/hf8-retrain-v0.1
+    paths:
+      - .github/workflows/hf8-v0-2-weight-preflight.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SOURCE_RUN_ID: "36186857923"
+      SOURCE_ARTIFACT_NAME: GALIA_HF8_RETRAIN_V0_2_DIAGNOSTIC
+      SOURCE_ARTIFACT_ID: "10887206471"
+      SOURCE_ARTIFACT_DIGEST: sha256:5e491a1cb9a061db13ac22608d89d02d83ec21959af9acf1d012ebaff2f5a71a
+      SOURCE_SHA: 624a086ece2a97cb1c76920437a4dd80cdd88e8c
+      EXPECTED_PAYLOAD_SHA256: 3bc46a281bdb6a031f7399d46e50612b622527bcc2528fd2f0e6220694971b3c
+      EXPECTED_DUMP_SHA256: 441fb855b3d907afe605b00482968e894b94798ffbe870c24be09c4e500edacb
+      EXPECTED_TRAIN_SHA256: 148775ff8623ea1c718a039d13170326ef426f56d27413c8ea78dcbece24e4d8
+      EXPECTED_EVAL_SHA256: fabd4a56475d0754bf3d6c71aad6888fe6a9b925b73a98bd4848bfb3b34d251
+      EXPECTED_TRAINING_STEPS: "4000"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned MLX CPU runtime
+        run: python -m pip install --upgrade "mlx[cpu]==0.32.2"
+
+      - name: Download exact v0.2 diagnostic artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: GALIA_HF8_RETRAIN_V0_2_DIAGNOSTIC
+          path: .hf8-v02-source
+          github-token: ${{ github.token }}
+          run-id: 36186857923
+
+      - name: Assert source training and corpus receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          root=Path(".hf8-v02-source")
+          tr=json.loads((root/"training-v02-receipt.json").read_text())
+          cr=json.loads((root/"corpus-v02-receipt.json").read_text())
+
+          assert tr["gate"] == "HF8_RETRAIN_V0_2_DIAGNOSTIC"
+          assert tr["status"] == "PASS"
+          assert tr["artifact_kind"] == "REAL_TRAINED_CHECKPOINT_DIAGNOSTIC"
+          assert int(tr["training_steps"]) == int(os.environ["EXPECTED_TRAINING_STEPS"])
+          assert tr["checkpoint"]["authority_binding"] == "CURRENT_BOUND"
+          assert tr["checkpoint"]["payload_sha256"] == os.environ["EXPECTED_PAYLOAD_SHA256"]
+          assert tr["quality"]["promotion_quality_gate"] == "PASS"
+          assert tr["quality"]["improved_vs_random_init"] is True
+          assert tr["quality"]["trained_bpc"] < tr["quality"]["random_init_baseline_bpc"]
+          assert cr["dump_sha256"] == os.environ["EXPECTED_DUMP_SHA256"]
+          assert cr["train_sha256"] == os.environ["EXPECTED_TRAIN_SHA256"]
+          assert cr["eval_sha256"] == os.environ["EXPECTED_EVAL_SHA256"]
+          assert cr["upstream_exact_cleaning_claimed"] is False
+
+          print("HF8_V02_SOURCE_RECEIPTS=PASS")
+          print("HF8_V02_BASELINE_BPC="+str(tr["quality"]["random_init_baseline_bpc"]))
+          print("HF8_V02_TRAINED_BPC="+str(tr["quality"]["trained_bpc"]))
+          print("HF8_V02_PAYLOAD_BYTES="+str(tr["checkpoint"]["payload_bytes"]))
+          PY
+
+      - name: Create complete provenance declaration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          tr=json.loads(Path(".hf8-v02-source/training-v02-receipt.json").read_text())
+          cr=json.loads(Path(".hf8-v02-source/corpus-v02-receipt.json").read_text())
+          doc={
+              "origin_type":"reproducible_retraining",
+              "obtained_from":"GitHub Actions run "+os.environ["SOURCE_RUN_ID"]+
+                  ", artifact "+os.environ["SOURCE_ARTIFACT_NAME"]+
+                  " (artifact_id="+os.environ["SOURCE_ARTIFACT_ID"]+
+                  ", digest="+os.environ["SOURCE_ARTIFACT_DIGEST"]+")",
+              "training_dataset":"SimpleWiki 2026-08-01 pages-articles dump; deterministic GALIA v0.2 train split",
+              "training_description":(
+                  "4,000 optimizer steps; dim=512; layers=16; spread=32; "
+                  "seed=1976; sequence_bytes=256; disjoint title-hash train/eval splits; "
+                  "quality compared to same-model random-init heldout baseline"
+              ),
+              "trainer_or_custodian":"GALIA controlled GitHub Actions workflow",
+              "claimed_not_synthetic":True,
+              "source_sha":os.environ["SOURCE_SHA"],
+              "source_run_id":int(os.environ["SOURCE_RUN_ID"]),
+              "source_artifact_id":int(os.environ["SOURCE_ARTIFACT_ID"]),
+              "source_artifact_digest":os.environ["SOURCE_ARTIFACT_DIGEST"],
+              "dump_sha256":cr["dump_sha256"],
+              "train_sha256":cr["train_sha256"],
+              "eval_sha256":cr["eval_sha256"],
+              "training_steps":tr["training_steps"],
+              "random_init_baseline_bpc":tr["quality"]["random_init_baseline_bpc"],
+              "trained_bpc":tr["quality"]["trained_bpc"],
+              "quality_gate":tr["quality"]["promotion_quality_gate"],
+              "upstream_exact_cleaning_claimed":False
+          }
+          Path(".hf8-v02-source/provenance-v02.json").write_text(
+              json.dumps(doc,indent=2,sort_keys=True)+"\n"
+          )
+          print("HF8_V02_PROVENANCE_BUILD=PASS")
+          PY
+
+      - name: Run promoted HF8 intake against authoritative bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/hf8_weight_intake.py \
+            --target .hf8-v02-source/galia-hf8-v02-4k \
+            --provenance .hf8-v02-source/provenance-v02.json \
+            --output .hf8-v02-source/intake-v02.json
+
+      - name: Assert promotion preflight eligibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          i=json.loads(Path(".hf8-v02-source/intake-v02.json").read_text())
+          tr=json.loads(Path(".hf8-v02-source/training-v02-receipt.json").read_text())
+
+          assert i["status"] == "PASS_INTAKE"
+          assert i["artifact"]["classification"] == "GALIA_CURRENT_BOUND"
+          assert i["artifact"]["authority_binding"] == "CURRENT_BOUND"
+          assert i["artifact"]["payload_sha256"] == os.environ["EXPECTED_PAYLOAD_SHA256"]
+          assert i["provenance_status"]["status"] == "COMPLETE"
+          assert i["technical_upload_eligible"] is True
+          assert i["promotion_preflight_eligible"] is True
+          assert i["human_promotion_required"] is True
+          assert i["automatic_upload_performed"] is False
+          assert i["automatic_promotion_performed"] is False
+
+          receipt={
+              "gate":"HF8_V0_2_WEIGHT_PREFLIGHT",
+              "status":"PASS",
+              "source_run_id":int(os.environ["SOURCE_RUN_ID"]),
+              "source_sha":os.environ["SOURCE_SHA"],
+              "source_artifact_id":int(os.environ["SOURCE_ARTIFACT_ID"]),
+              "source_artifact_digest":os.environ["SOURCE_ARTIFACT_DIGEST"],
+              "payload_sha256":i["artifact"]["payload_sha256"],
+              "payload_bytes":i["artifact"]["payload_bytes"],
+              "classification":"GALIA_CURRENT_BOUND",
+              "authority_binding":"CURRENT_BOUND",
+              "provenance_status":"COMPLETE",
+              "technical_upload_eligible":True,
+              "promotion_preflight_eligible":True,
+              "quality_gate":tr["quality"]["promotion_quality_gate"],
+              "random_init_baseline_bpc":tr["quality"]["random_init_baseline_bpc"],
+              "trained_bpc":tr["quality"]["trained_bpc"],
+              "promotion_scope":"HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY",
+              "canonical_authority_transferred":False,
+              "human_promotion_required":True,
+              "promoted":False
+          }
+          Path(".hf8-v02-source/preflight-v02-receipt.json").write_text(
+              json.dumps(receipt,indent=2,sort_keys=True)+"\n"
+          )
+          print("HF8_V02_PREFLIGHT=PASS")
+          print("HF8_V02_PREFLIGHT_PAYLOAD_SHA256="+receipt["payload_sha256"])
+          print("HF8_V02_PREFLIGHT_PAYLOAD_BYTES="+str(receipt["payload_bytes"]))
+          print("HF8_V02_PREFLIGHT_QUALITY_GATE="+receipt["quality_gate"])
+          print("HF8_V02_PROMOTED=false")
+          PY
+
+      - name: Upload v0.2 preflight evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF8_V0_2_WEIGHT_PREFLIGHT
+          path: |
+            .hf8-v02-source/provenance-v02.json
+            .hf8-v02-source/intake-v02.json
+            .hf8-v02-source/preflight-v02-receipt.json
+            .hf8-v02-source/training-v02-receipt.json
+            .hf8-v02-source/corpus-v02-receipt.json
+          if-no-files-found: error
+          retention-days: 90
