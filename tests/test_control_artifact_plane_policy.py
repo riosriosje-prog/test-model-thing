@@ -8,6 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 POLICY = ROOT / 'huggingface' / 'policy' / 'control-artifact-plane.v1.json'
 MIGRATION = ROOT / 'docs' / 'HUGGINGFACE_MIGRATION.md'
 RETRAIN = ROOT / 'docs' / 'HF8_RETRAINING.md'
+HF8_INTAKE = ROOT / 'docs' / 'HF8_WEIGHT_INTAKE_GATE.md'
+HF9_GATE = ROOT / 'docs' / 'HF9_DATASET_EVIDENCE_GATE.md'
+HF10_GATE = ROOT / 'docs' / 'HF10_SPACE_PARITY_GATE.md'
 PROMOTION = ROOT / 'receipts' / 'huggingface' / 'hf8-v0-2-weight-promotion-receipt.json'
 
 EXPECTED_MAIN = '051f56789de99a8db0d4aa044eaf120ea1d67805'
@@ -61,6 +64,25 @@ class ControlArtifactPlanePolicyTests(unittest.TestCase):
         self.assertNotIn('HF8_WEIGHT_ARTIFACT_GATE          = HOLD', migration)
         self.assertNotIn('a09c3e953ec1799b1704783c4c3d14a1a0017f62', migration)
         self.assertNotIn('GitHub PR #22 remains a separate source-integration decision', retrain)
+
+    def test_gate_docs_reflect_current_split_states(self):
+        hf8 = HF8_INTAKE.read_text(encoding='utf-8')
+        hf9 = HF9_GATE.read_text(encoding='utf-8')
+        hf10 = HF10_GATE.read_text(encoding='utf-8')
+
+        self.assertIn('REAL WEIGHT PROMOTED', hf8)
+        self.assertIn(EXPECTED_PAYLOAD, hf8)
+        self.assertNotIn('Status: **HOLD / INTAKE TOOLING READY / NO SYNTHETIC WEIGHTS**', hf8)
+
+        self.assertIn('HF9G dataset schema-surface promotion: PROMOTED', hf9)
+        self.assertIn('HF9E evidence-record migration: HOLD', hf9)
+        self.assertIn('HF9F image/source-byte migration: HOLD', hf9)
+        self.assertNotIn('HF9G dataset promotion: HUMAN DECISION REQUIRED', hf9)
+
+        self.assertIn('HF10_LINUX_MLX_RUNTIME_PARITY = PASS', hf10)
+        self.assertIn('production_runtime_promoted   = false', hf10)
+        self.assertIn('HF10B_DYNAMIC_GRADIO_SPACE = HOLD_TIER_CONSTRAINT', hf10)
+        self.assertNotIn('HF10 remains non-promoted until', hf10)
 
 
 if __name__ == '__main__':
