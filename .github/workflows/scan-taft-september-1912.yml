@@ -51,7 +51,7 @@ jobs:
           PY
 
           anchor=""
-          for folder in $(seq 559 -1 535); do
+          for folder in $(seq 533 -1 505); do
             f=$(printf "%05d" "$folder")
             url="$base/$f/1912093001.pdf"
             code=$(curl --head --location --silent --show-error               --connect-timeout 10 --max-time 20               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"               --output /tmp/h --write-out "%{http_code}" "$url" || true)
