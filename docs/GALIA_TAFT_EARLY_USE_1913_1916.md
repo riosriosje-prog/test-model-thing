@@ -67,6 +67,42 @@ TAFT_EPONYM_IDENTITY               = UNRESOLVED
 A November 1912 backward scan is a separate gate and may move the
 earliest-known-use date earlier.
 
+
+
+### Extended backward corpus — October 1912 through 10 February 1913
+
+After hardening the street detector against political-news false positives
+(for example, OCR sequences such as **“gave Taft”** from election reporting),
+GALIA re-ran the pre-anchor corpus using whole-token street designators.
+
+Qualified results:
+
+- **October 1912:** 27 resolved issues, **0** Taft street-form hits.
+- **November 1912:** 24 resolved issues, **0** Taft street-form hits.
+  - unresolved/non-counted dates: **1912-11-05**, **1912-11-28**.
+- **December 1912:** 24 resolved issues, **0** Taft street-form hits.
+  - unresolved/non-counted dates: **1912-12-25**, **1912-12-31**.
+- **1 January–10 February 1913:** 35 resolved issues, **0** Taft
+  street-form hits.
+- **11 February 1913:** first qualified hit in this resolved corpus.
+
+Total resolved negative issues before the 11 February anchor:
+**110**.
+
+Therefore the supported bounded statement is:
+
+> **11 February 1913 is the earliest verified Taft street designation in the
+> resolved 1 October 1912–11 February 1913 *Times* corpus examined by GALIA.**
+
+This is not an absolute first-use claim because unresolved publication dates,
+other newspapers, directories, deeds, maps, municipal records and private
+plans remain outside this bounded corpus.
+
+The false-positive audit is itself part of the evidentiary record:
+political references to President Taft are retained as generic-Ta​​ft
+diagnostics but are not promoted as street-name evidence.
+
+
 ## 2. Independent later anchor — 18 June 1914
 
 Publication: *El Tiempo / The Times*  
