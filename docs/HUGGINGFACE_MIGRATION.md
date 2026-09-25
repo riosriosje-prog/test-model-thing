@@ -104,3 +104,25 @@ MLX and the target Linux/accelerator runtime must be validated before a Space
 can be considered parity-safe. No Space should be designated production until
 runtime, persistence, rollback, and authority-gate behavior match the promoted
 reference implementation.
+
+
+## Current weight inventory
+
+A recursive repository-tree inspection of the current authoritative GitHub
+baseline found **no versioned model-weight/checkpoint files** matching common
+weight formats such as:
+
+- `.safetensors`
+- `.ckpt`
+- `.pt`
+- `.pth`
+- `.npz`
+- model-weight `.bin` files
+
+Therefore the present Hugging Face migration candidate is intentionally a
+**code/reference-implementation mirror only**.
+
+No placeholder or synthetic weights will be created. The future weight gate
+starts only when an exact trained artifact is supplied, at which point GALIA
+will require byte size, SHA-256, runtime/config binding, upload verification,
+and a separate distribution receipt.
