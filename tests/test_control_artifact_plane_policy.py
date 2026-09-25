@@ -13,7 +13,6 @@ HF9_GATE = ROOT / 'docs' / 'HF9_DATASET_EVIDENCE_GATE.md'
 HF10_GATE = ROOT / 'docs' / 'HF10_SPACE_PARITY_GATE.md'
 PROMOTION = ROOT / 'receipts' / 'huggingface' / 'hf8-v0-2-weight-promotion-receipt.json'
 
-EXPECTED_MAIN = '051f56789de99a8db0d4aa044eaf120ea1d67805'
 EXPECTED_PAYLOAD = '3bc46a281bdb6a031f7399d46e50612b622527bcc2528fd2f0e6220694971b3c'
 EXPECTED_MANIFEST = 'a41110548ced010da6d1462d4c0822dd527ac7411421540bdaf817d7d3b4cbb2'
 
@@ -43,7 +42,10 @@ class ControlArtifactPlanePolicyTests(unittest.TestCase):
         policy = json.loads(POLICY.read_text(encoding='utf-8'))
         promotion = json.loads(PROMOTION.read_text(encoding='utf-8'))
         weight = policy['current_promoted_weight']
-        self.assertEqual(policy['current_github_main'], EXPECTED_MAIN)
+        self.assertEqual(policy['control_plane_repository'], 'riosriosje-prog/test-model-thing')
+        self.assertEqual(policy['control_plane_ref'], 'main')
+        self.assertTrue(policy['promotion_receipt_must_bind_merge_commit'])
+        self.assertNotIn('current_github_main', policy)
         self.assertEqual(weight['payload_sha256'], EXPECTED_PAYLOAD)
         self.assertEqual(weight['manifest_sha256'], EXPECTED_MANIFEST)
         self.assertEqual(weight['payload_sha256'], promotion['payload_sha256'])
@@ -57,8 +59,10 @@ class ControlArtifactPlanePolicyTests(unittest.TestCase):
     def test_docs_do_not_regress_to_stale_hf8_hold_or_old_main(self):
         migration = MIGRATION.read_text(encoding='utf-8')
         retrain = RETRAIN.read_text(encoding='utf-8')
-        self.assertIn(EXPECTED_MAIN, migration)
-        self.assertIn(EXPECTED_MAIN, retrain)
+        self.assertNotIn('Current promoted GitHub `main`:', migration)
+        self.assertNotIn('Merge commit/current GitHub `main`:', retrain)
+        self.assertIn('051f56789de99a8db0d4aa044eaf120ea1d67805', migration)
+        self.assertIn('051f56789de99a8db0d4aa044eaf120ea1d67805', retrain)
         self.assertIn(EXPECTED_PAYLOAD, migration)
         self.assertIn(EXPECTED_PAYLOAD, retrain)
         self.assertNotIn('HF8_WEIGHT_ARTIFACT_GATE          = HOLD', migration)
