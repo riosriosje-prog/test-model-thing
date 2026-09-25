@@ -75,6 +75,7 @@ def publish_and_verify(
     token: str,
     private: bool,
     create_pr: bool,
+    existing_repo_only: bool = False,
 ) -> dict:
     if "/" not in repo_id:
         raise ValueError("repo_id must be owner-or-org/repo-name")
@@ -90,12 +91,17 @@ def publish_and_verify(
         ) from exc
 
     api = HfApi(token=token)
-    api.create_repo(
-        repo_id=repo_id,
-        repo_type="model",
-        private=private,
-        exist_ok=True,
-    )
+    if existing_repo_only:
+        info_check = api.model_info(repo_id=repo_id)
+        if getattr(info_check, "id", None) != repo_id:
+            raise RuntimeError(f"unexpected repository identity: {info_check!r}")
+    else:
+        api.create_repo(
+            repo_id=repo_id,
+            repo_type="model",
+            private=private,
+            exist_ok=True,
+        )
 
     info = api.upload_folder(
         repo_id=repo_id,
@@ -162,6 +168,7 @@ def main() -> None:
     ap.add_argument("--export-dir", default="hf-export")
     ap.add_argument("--visibility", choices=("private", "public"), default="private")
     ap.add_argument("--create-pr", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--existing-repo-only", action="store_true")
     ap.add_argument("--receipt", default="hf-remote-receipt.json")
     args = ap.parse_args()
 
@@ -175,6 +182,7 @@ def main() -> None:
         token=token,
         private=(args.visibility == "private"),
         create_pr=args.create_pr,
+        existing_repo_only=args.existing_repo_only,
     )
 
     Path(args.receipt).write_text(
