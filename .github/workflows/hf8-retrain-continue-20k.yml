@@ -1,0 +1,210 @@
+name: hf8-retrain-continue-20k
+
+on:
+  push:
+    branches:
+      - galia2/hf8-retrain-v0.1
+    paths:
+      - .github/workflows/hf8-retrain-continue-20k.yml
+      - tools/hf8_publish_training_snapshot_v2.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hf8-retrain-continue-20k
+  cancel-in-progress: false
+
+jobs:
+  continue:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      SIMPLEWIKI_URL: https://dumps.wikimedia.org/other/mediawiki_content_current/simplewiki/2026-08-01/xml/bzip2/simplewiki-2026-08-01-p1p1277745.xml.bz2
+      HF_REPO_ID: Junitos/galia-2
+      HF_REVISION: hf8-retrain-v0.1
+      HF_PATH: training/hf8-retrain-v0.1
+      ADDITIONAL_STEPS: "16000"
+      TARGET_TOTAL_STEPS: "20000"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned runtime
+        run: python -m pip install --upgrade "mlx[cpu]==0.32.2" "huggingface_hub>=1.0,<2"
+
+      - name: Secret gate
+        shell: bash
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF8_CONTINUE_SECRET_GATE=PASS"
+
+      - name: Rebuild exact corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hf8-cont/data .hf8-cont/staging .hf8-cont/verify .hf8-cont/evidence
+          curl --fail --location --retry 4 --retry-delay 5 \
+            "$SIMPLEWIKI_URL" \
+            --output .hf8-cont/data/simplewiki-20260801.xml.bz2
+          python tools/hf8_prepare_simplewiki.py \
+            --dump .hf8-cont/data/simplewiki-20260801.xml.bz2 \
+            --output .hf8-cont/data/corpus.txt \
+            --receipt .hf8-cont/evidence/local-corpus-receipt.json \
+            --target-bytes 16777216 \
+            --source-url "$SIMPLEWIKI_URL"
+
+      - name: Download exact current staging snapshot
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import snapshot_download
+          snapshot_download(
+              repo_id=os.environ["HF_REPO_ID"],
+              repo_type="model",
+              revision=os.environ["HF_REVISION"],
+              token=os.environ["HF_TOKEN"],
+              allow_patterns=[os.environ["HF_PATH"] + "/**"],
+              local_dir=".hf8-cont/staging",
+          )
+          print("HF8_CONTINUE_STAGING_DOWNLOAD=PASS")
+          PY
+
+      - name: Verify exact resume source
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=".hf8-cont/staging/$HF_PATH"
+          python tools/hf8_validate_staged_checkpoint.py \
+            --snapshot-root "$ROOT" \
+            --corpus .hf8-cont/data/corpus.txt \
+            --corpus-receipt .hf8-cont/evidence/local-corpus-receipt.json \
+            --receipt .hf8-cont/evidence/pre-resume-validation.json \
+            --heldout-bytes 512
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path(".hf8-cont/staging")/os.environ["HF_PATH"]
+          tr=json.loads((root/"training-receipt.json").read_text())
+          if int(tr["cumulative_steps"]) != 4000:
+              raise SystemExit(f"Expected 4000-step resume source, got {tr['cumulative_steps']}")
+          Path(root/"training-receipt-004000.json").write_text(
+              json.dumps(tr,indent=2,sort_keys=True)+"\n"
+          )
+          print("HF8_CONTINUE_RESUME_SOURCE_4000=PASS")
+          PY
+
+      - name: Resume real training to 20,000 cumulative steps
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=".hf8-cont/staging/$HF_PATH"
+          python tools/hf8_retrain_chunk.py \
+            --corpus .hf8-cont/data/corpus.txt \
+            --corpus-receipt .hf8-cont/evidence/local-corpus-receipt.json \
+            --checkpoint-target "$ROOT/galia-hf8-4p5m" \
+            --state "$ROOT/training-state.json" \
+            --receipt "$ROOT/training-receipt.json" \
+            --steps "$ADDITIONAL_STEPS" \
+            --seed 1976
+          cp "$ROOT/training-receipt.json" "$ROOT/training-receipt-020000.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path(".hf8-cont/staging")/os.environ["HF_PATH"]
+          tr=json.loads((root/"training-receipt.json").read_text())
+          state=json.loads((root/"training-state.json").read_text())
+          expected=int(os.environ["TARGET_TOTAL_STEPS"])
+          if int(tr["cumulative_steps"]) != expected:
+              raise SystemExit("Training receipt did not reach target total")
+          if int(state["cumulative_steps"]) != expected:
+              raise SystemExit("Training state did not reach target total")
+          if tr["authority_binding"] != "CURRENT_BOUND":
+              raise SystemExit("Continued checkpoint lost CURRENT_BOUND status")
+          print("HF8_CONTINUE_20000_STEPS=PASS")
+          print("HF8_CONTINUE_PAYLOAD_SHA256="+tr["payload_sha256"])
+          print("HF8_CONTINUE_PAYLOAD_BYTES="+str(tr["payload_bytes"]))
+          PY
+
+      - name: Publish repeat-safe exact staging snapshot
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python tools/hf8_publish_training_snapshot_v2.py \
+            --folder ".hf8-cont/staging/$HF_PATH" \
+            --repo-id "$HF_REPO_ID" \
+            --revision "$HF_REVISION" \
+            --path-in-repo "$HF_PATH" \
+            --token "$HF_TOKEN"
+
+      - name: Download updated staging snapshot independently
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import snapshot_download
+          snapshot_download(
+              repo_id=os.environ["HF_REPO_ID"],
+              repo_type="model",
+              revision=os.environ["HF_REVISION"],
+              token=os.environ["HF_TOKEN"],
+              allow_patterns=[os.environ["HF_PATH"] + "/**"],
+              local_dir=".hf8-cont/verify",
+          )
+          print("HF8_CONTINUE_REMOTE_DOWNLOAD=PASS")
+          PY
+
+      - name: Validate remote 20k snapshot frozen/read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=".hf8-cont/verify/$HF_PATH"
+          python tools/hf8_validate_staged_checkpoint.py \
+            --snapshot-root "$ROOT" \
+            --corpus .hf8-cont/data/corpus.txt \
+            --corpus-receipt .hf8-cont/evidence/local-corpus-receipt.json \
+            --receipt .hf8-cont/evidence/post-20000-validation.json \
+            --heldout-bytes 4096
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path(".hf8-cont/verify")/os.environ["HF_PATH"]
+          tr=json.loads((root/"training-receipt.json").read_text())
+          vr=json.loads(Path(".hf8-cont/evidence/post-20000-validation.json").read_text())
+          expected=int(os.environ["TARGET_TOTAL_STEPS"])
+          if int(tr["cumulative_steps"]) != expected:
+              raise SystemExit("Remote training receipt step mismatch")
+          if int(vr["cumulative_training_steps"]) != expected:
+              raise SystemExit("Remote validation step mismatch")
+          print("HF8_CONTINUE_REMOTE_20000_VERIFY=PASS")
+          print("HF8_CONTINUE_HELDOUT_BPC="+str(vr["heldout_mean_bits_per_byte"]))
+          print("HF8_CONTINUE_PROMOTED=false")
+          PY
+
+      - name: Collect compact evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=".hf8-cont/verify/$HF_PATH"
+          cp "$ROOT/training-receipt.json" .hf8-cont/evidence/remote-training-receipt.json
+          cp "$ROOT/training-state.json" .hf8-cont/evidence/remote-training-state.json
+          cp "$ROOT/HF8_RETRAIN_SNAPSHOT_MANIFEST.json" .hf8-cont/evidence/remote-snapshot-manifest.json
+          cp "$ROOT/galia-hf8-4p5m.head.json" .hf8-cont/evidence/remote-head.json
+
+      - name: Upload continuation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF8_RETRAIN_20000_EVIDENCE
+          path: .hf8-cont/evidence/
+          if-no-files-found: error
+          retention-days: 90
