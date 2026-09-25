@@ -61,5 +61,7 @@
     "manifest_sha256": "a41110548ced010da6d1462d4c0822dd527ac7411421540bdaf817d7d3b4cbb2",
     "promotion_scope": "HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY"
   },
-  "current_github_main": "051f56789de99a8db0d4aa044eaf120ea1d67805"
+  "control_plane_ref": "main",
+  "control_plane_repository": "riosriosje-prog/test-model-thing",
+  "promotion_receipt_must_bind_merge_commit": true
 }
