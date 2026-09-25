@@ -25,7 +25,7 @@ jobs:
         run: |
           python - <<'PY'
           import json, platform, time
-from importlib.metadata import version
+          from importlib.metadata import version
           import mlx.core as mx
           from main import Model
 
@@ -75,7 +75,7 @@ from importlib.metadata import version
         run: |
           python - <<'PY'
           import json, platform, time
-from importlib.metadata import version
+          from importlib.metadata import version
           import mlx.core as mx
           from main import Model
 
