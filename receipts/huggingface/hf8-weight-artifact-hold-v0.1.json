@@ -1,0 +1,39 @@
+{
+  "gate": "HF8_WEIGHT_ARTIFACT_GATE",
+  "status": "HOLD",
+  "reason": "NO_REAL_VERSIONED_WEIGHT_ARTIFACT_PRESENT",
+  "inventory": {
+    "github_repo": "riosriosje-prog/test-model-thing",
+    "main_sha": "a09c3e953ec1799b1704783c4c3d14a1a0017f62",
+    "migration_branch": "galia2/huggingface-migration-v0.1",
+    "migration_branch_sha": "fb263342c85dc156bd72e8cf3025b51b7e37c259",
+    "matched_weight_or_checkpoint_artifacts": []
+  },
+  "accepted_weight_formats": [
+    ".safetensors",
+    ".ckpt",
+    ".pt",
+    ".pth",
+    ".bin",
+    ".npz"
+  ],
+  "exit_criteria": [
+    "A real trained artifact exists; no placeholder or synthetic weight file.",
+    "Exact artifact byte size is recorded.",
+    "Artifact SHA-256 is recorded before upload.",
+    "Training/runtime/config provenance is bound to the artifact.",
+    "Optimizer/recurrent state is separately identified when required for reproducibility.",
+    "Upload occurs to the intended Hugging Face repository/revision.",
+    "Remote artifact is re-read or downloaded and SHA-256/size are verified against the pre-upload record.",
+    "A distribution receipt is produced and human promotion remains separate from technical verification."
+  ],
+  "authority": {
+    "source_of_truth": "github",
+    "promotion_scope": "WEIGHT_DISTRIBUTION_GATE_ONLY",
+    "canonical_authority_transferred": false,
+    "legacy_mutation_authorized": false
+  },
+  "related_hf_repo": "Junitos/galia-2",
+  "related_promoted_distribution_manifest_sha256": "6542c843b8bb7e27d38cea2cf6dd71708fe1cc443f21a23f3390ac1fc66ed932",
+  "recorded_at_utc": "2026-09-25T18:00:00Z"
+}
