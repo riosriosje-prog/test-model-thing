@@ -9,6 +9,7 @@ on:
       - tools/publish_hf_candidate.py
       - tests/test_hf_export.py
       - tests/test_hf_remote_verify.py
+      - tests/test_hf_workflow_contract.py
       - huggingface/**
       - docs/HUGGINGFACE_MIGRATION.md
       - requirements-hf.txt
