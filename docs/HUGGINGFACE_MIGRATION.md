@@ -126,3 +126,50 @@ No placeholder or synthetic weights will be created. The future weight gate
 starts only when an exact trained artifact is supplied, at which point GALIA
 will require byte size, SHA-256, runtime/config binding, upload verification,
 and a separate distribution receipt.
+
+
+## Live Hugging Face connector state
+
+ChatGPT's Hugging Face connector is authenticated as:
+
+- account: `Junitos`;
+- account type: user;
+- app permission in ChatGPT: **Allow all actions**;
+- OAuth scopes exposed by Hugging Face:
+  `jobs`, `openid`, `profile`, `read-mcp`, `read-repos`.
+
+Important distinction:
+
+```text
+CHATGPT_APP_PERMISSION = FULL_ACTIONS
+HUGGING_FACE_OAUTH_SCOPE = READ_REPOS_ONLY
+```
+
+The ChatGPT permission setting governs whether ChatGPT may invoke connected
+actions without asking. It does **not** add missing Hugging Face OAuth scopes.
+
+Repository discovery confirmed that none of the following model repositories
+currently exists under the authenticated namespace:
+
+- `Junitos/galia-2`
+- `Junitos/galia2`
+- `Junitos/GALIA-2`
+
+Therefore the next remote operation is necessarily repository creation, which
+requires a Hugging Face credential with repository-write scope.
+
+Current gate state:
+
+```text
+HF_REMOTE_CONNECTOR_AUTHENTICATED = PASS
+HF_REMOTE_NAMESPACE               = Junitos
+HF_REMOTE_TARGET_EXISTS           = NO
+HF_REMOTE_WRITE_SCOPE             = HOLD
+HF5_HUB_REPO_CREATE               = HOLD_AUTH_SCOPE
+HF6_HUB_UPLOAD_AS_PR              = HOLD_AUTH_SCOPE
+HF7_REMOTE_MANIFEST_COMPARE       = NOT_RUN
+```
+
+No token value is required from the user. The existing Hugging Face connection
+must be re-authorized with repository-write scope; after that, the prepared
+publisher can create the private model repo and verify the remote snapshot.
