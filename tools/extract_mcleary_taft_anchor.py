@@ -74,6 +74,16 @@ def extract_anchor(pdf_path: str) -> dict:
     )
     best = candidates[0]
     if "sale de" not in best["normalized_context"]:
+        diagnostics = {
+            "status": "ANCHOR_DIAGNOSTIC_ONLY",
+            "source_pdf_sha256": source_sha,
+            "page_count_extracted": len(pages),
+            "top_candidates": candidates[:10],
+        }
+        print(
+            json.dumps(diagnostics, sort_keys=True, ensure_ascii=False),
+            flush=True,
+        )
         raise RuntimeError(
             "ANCHOR_NOT_FOUND: Leary/Taft co-occur but expected 'sale de' relation was not found"
         )
