@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: hf8-staging-validation
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-24.04
@@ -80,7 +84,7 @@ jobs:
             --corpus .hf8-validation/data/corpus.txt \
             --corpus-receipt .hf8-validation/out/local-corpus-receipt.json \
             --receipt .hf8-validation/out/staging-validation-receipt.json \
-            --heldout-bytes 32768
+            --heldout-bytes 4096
 
       - name: Upload validation receipt
         uses: actions/upload-artifact@v4
