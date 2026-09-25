@@ -26,24 +26,25 @@ def sha256_file(path: Path) -> str:
 
 
 def tensor_copy_map(model: Model) -> dict[str, mx.array]:
+    """Copy only trainable parameters; recurrent traces/state are runtime buffers."""
     copied = {}
-    for key, value in util.tree_flatten(model.parameters()):
+    for key, value in util.tree_flatten(model.trainable_parameters()):
         copied[key] = value + mx.zeros_like(value)
     mx.eval(*copied.values())
     return copied
 
 
 def assert_parameter_identity(before: dict[str, mx.array], model: Model) -> None:
-    after = dict(util.tree_flatten(model.parameters()))
+    after = dict(util.tree_flatten(model.trainable_parameters()))
     if set(before) != set(after):
-        raise SystemExit("Parameter key set changed during frozen evaluation")
+        raise SystemExit("Trainable parameter key set changed during frozen evaluation")
     changed = []
     for key in sorted(before):
         equal = bool(mx.array_equal(before[key], after[key]).item())
         if not equal:
             changed.append(key)
     if changed:
-        raise SystemExit(f"Frozen evaluation mutated parameters: {changed[:20]}")
+        raise SystemExit(f"Frozen evaluation mutated trainable parameters: {changed[:20]}")
 
 
 def verify_snapshot_manifest(snapshot_root: Path) -> dict:
@@ -171,7 +172,8 @@ def main() -> None:
         "heldout_mean_nats_per_byte": mean_nats,
         "heldout_mean_bits_per_byte": mean_bpc,
         "quality_gate": "OBSERVATION_ONLY",
-        "frozen_parameter_identity": "PASS",
+        "frozen_trainable_parameter_identity": "PASS",
+        "runtime_state_mutation_expected": True,
         "checkpoint_file_identity_after_eval": "PASS",
         "resume_from_staging_load": "PASS",
         "canonical_authority_transferred": False,
@@ -186,7 +188,7 @@ def main() -> None:
     print("HF8_STAGED_MANIFEST_VERIFY=PASS")
     print("HF8_STAGED_CURRENT_GENERATION_LOAD=PASS")
     print("HF8_STAGED_RESUME_PRECONDITION=PASS")
-    print("HF8_FROZEN_PARAMETER_IDENTITY=PASS")
+    print("HF8_FROZEN_TRAINABLE_PARAMETER_IDENTITY=PASS")
     print("HF8_FROZEN_FILE_IDENTITY=PASS")
     print(f"HF8_HELDOUT_BPC={mean_bpc:.8f}")
     print("HF8_STAGED_VALIDATION=PASS")
