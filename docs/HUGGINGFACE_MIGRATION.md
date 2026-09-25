@@ -4,7 +4,7 @@ Status: **ACTIVE / GITHUB CONTROL PLANE / HUGGING FACE ML ARTIFACT PLANE / NO AU
 
 Authoritative engineering repository: `riosriosje-prog/test-model-thing`
 
-Current promoted GitHub `main`: `051f56789de99a8db0d4aa044eaf120ea1d67805`
+Canonical control-plane ref: `main`
 
 ## Authority model
 
@@ -27,7 +27,7 @@ A Hugging Face artifact promotion does not imply a GitHub source merge. A GitHub
 - PR #19 — HF8 weight-intake infrastructure — PROMOTED
 - PR #22 — cleaned HF8 v0.2 retraining source — PROMOTED
 
-PR #22 merge commit/current `main`: `051f56789de99a8db0d4aa044eaf120ea1d67805`
+PR #22 source-integration merge commit: `051f56789de99a8db0d4aa044eaf120ea1d67805`
 
 ## Model distribution
 
