@@ -5,7 +5,6 @@ from pathlib import Path
 import tempfile
 import unittest
 
-import mlx.core as mx
 
 from tools.hf8_weight_intake import (
     classify_tensor_keys,
@@ -41,6 +40,11 @@ class HF8WeightIntakeTests(unittest.TestCase):
         self.assertFalse(status["claimed_not_synthetic"])
 
     def test_upstream_fixture_is_held_not_promoted(self):
+        try:
+            import mlx.core as mx
+        except ModuleNotFoundError:
+            self.skipTest("MLX is not installed in the general dependency-light suite")
+
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "fixture.safetensors"
             mx.save_safetensors(str(p), {
