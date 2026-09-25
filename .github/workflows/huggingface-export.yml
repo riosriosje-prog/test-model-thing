@@ -1,0 +1,116 @@
+name: huggingface-export-candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      hf_repo_id:
+        description: "Hugging Face destination in owner-or-org/repo-name form"
+        required: true
+        type: string
+      visibility:
+        description: "Destination visibility"
+        required: true
+        default: private
+        type: choice
+        options:
+          - private
+          - public
+      create_pr:
+        description: "Upload as a Hugging Face pull request"
+        required: true
+        default: true
+        type: boolean
+      include_tests:
+        description: "Include tests in the distribution mirror"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  export-and-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_REPO_ID: ${{ inputs.hf_repo_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade "huggingface_hub>=1.0,<2"
+
+      - name: Build deterministic export
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--output hf-export --source-sha "$GITHUB_SHA")
+          if [ "${{ inputs.include_tests }}" = "true" ]; then
+            args+=(--include-tests)
+          fi
+          python tools/build_hf_export.py "${args[@]}"
+
+      - name: Verify authentication gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${HF_TOKEN:-}" ]; then
+            echo "::error::HF_TOKEN repository secret is not configured."
+            exit 2
+          fi
+          if [ -z "${HF_REPO_ID:-}" ] || [[ "$HF_REPO_ID" != */* ]]; then
+            echo "::error::hf_repo_id must be owner-or-org/repo-name."
+            exit 2
+          fi
+          hf auth whoami >/dev/null
+          echo "HF_AUTH_GATE=PASS"
+
+      - name: Create or reuse destination model repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(repos create "$HF_REPO_ID" --type model --exist-ok)
+          if [ "${{ inputs.visibility }}" = "private" ]; then
+            args+=(--private)
+          else
+            args+=(--public)
+          fi
+          hf "${args[@]}"
+          echo "HF_REPO_GATE=PASS"
+
+      - name: Upload distribution mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(
+            upload "$HF_REPO_ID" hf-export .
+            --repo-type model
+            --commit-message "GALIA distribution mirror $GITHUB_SHA"
+            --commit-description "Source: https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+          )
+          if [ "${{ inputs.create_pr }}" = "true" ]; then
+            args+=(--create-pr)
+          fi
+          hf "${args[@]}" | tee hf-upload-result.txt
+          echo "HF_UPLOAD_GATE=PASS"
+
+      - name: Upload migration receipt inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HUGGINGFACE_EXPORT_CANDIDATE
+          path: |
+            hf-export/HF_EXPORT_MANIFEST.json
+            hf-export/README.md
+            hf-upload-result.txt
+          if-no-files-found: error
+          retention-days: 90
