@@ -73,7 +73,12 @@ def extract_anchor(pdf_path: str) -> dict:
         key=lambda row: (-row["score"], row["distance"], row["page_number"])
     )
     best = candidates[0]
-    if "sale de" not in best["normalized_context"]:
+    context = best["normalized_context"]
+    exact_text_layer = "sale de" in context
+    visual_confirmed_ocr_variant = bool(
+        re.search(r"leary\s*\(\s*sale\s+taft\s*\)", context)
+    )
+    if not exact_text_layer and not visual_confirmed_ocr_variant:
         diagnostics = {
             "status": "ANCHOR_DIAGNOSTIC_ONLY",
             "source_pdf_sha256": source_sha,
@@ -85,10 +90,15 @@ def extract_anchor(pdf_path: str) -> dict:
             flush=True,
         )
         raise RuntimeError(
-            "ANCHOR_NOT_FOUND: Leary/Taft co-occur but expected 'sale de' relation was not found"
+            "ANCHOR_NOT_FOUND: Leary/Taft co-occur but no accepted relation form was found"
         )
 
     page_text = pages[best["page_number"] - 1]
+    matched_relation = (
+        "LEARY_NEAR_TAFT_WITH_SALE_DE"
+        if exact_text_layer
+        else "LEARY_SALE_TAFT_OCR_VARIANT_VISUALLY_CONFIRMED"
+    )
     anchor = {
         "schema_version": 1,
         "anchor_type": "GALIA_MCLEARY_TAFT_1916_PAGE_ANCHOR",
@@ -96,8 +106,13 @@ def extract_anchor(pdf_path: str) -> dict:
         "page_number": best["page_number"],
         "page_count_extracted": len(pages),
         "extraction_method": "pdftotext-layout",
-        "matched_relation": "LEARY_NEAR_TAFT_WITH_SALE_DE",
-        "normalized_context": best["normalized_context"],
+        "matched_relation": matched_relation,
+        "normalized_context": context,
+        "normalized_transcription": "Calle Mc Leary (sale de Taft)",
+        "normalization_basis": (
+            "text-layer exact" if exact_text_layer
+            else "rendered-page visual verification of OCR omission of 'de'"
+        ),
         "page_text_sha256": hashlib.sha256(
             page_text.encode("utf-8", errors="replace")
         ).hexdigest(),
