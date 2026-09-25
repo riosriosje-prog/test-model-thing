@@ -192,3 +192,36 @@ TAFT_NAMING_ACT                 = UNRESOLVED
 
 Promotion requires a municipal resolution/ordinance/minute, approved plan,
 contemporaneous explanatory notice, or equivalent authoritative naming record.
+
+
+## 7. Scanner false-positive control
+
+An earlier scanner version used the pattern `ave.? + Taft` without a leading
+word boundary. In the 6 November 1912 election coverage, this incorrectly
+matched the substring **"gave Taft"** and produced four apparent street hits.
+
+The scanner was hardened to require whole-token street designators, including:
+
+- `\bave\.?\s+taft\b`;
+- `\bavenida\s+taft\b`;
+- `\btaft\s+street\b`;
+- equivalent qualified forms.
+
+After the fix:
+
+- **November 1912:** 24 resolved issues, **0 qualified Taft street hits**;
+  unresolved dates: 5 and 28 November.
+- **December 1912:** 24 resolved issues, **0 qualified Taft street hits**;
+  unresolved dates: 25 and 31 December.
+- The 6 November 1912 election-news matches disappear completely.
+
+Therefore:
+
+```text
+1912_11_06_TAFT_STREET_HIT = FALSE_POSITIVE_REJECTED
+NOV_1912_RESOLVED_CORPUS   = NEGATIVE_FOR_QUALIFIED_STREET_USE
+DEC_1912_RESOLVED_CORPUS   = NEGATIVE_FOR_QUALIFIED_STREET_USE
+```
+
+The positive 11 February 1913 anchor is independent of this regex issue:
+its exact PDF and rendered page were captured separately and visually verified.
