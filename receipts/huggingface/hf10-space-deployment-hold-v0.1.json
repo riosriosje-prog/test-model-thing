@@ -1,0 +1,37 @@
+{
+  "gate": "HF10_SPACE_DEPLOYMENT_GATE",
+  "status": "HOLD",
+  "runtime_parity": {
+    "linux_cpu": "PASS",
+    "source_sha": "7a538cbe1ca90dfd9db393e3760511d544afbdbd",
+    "mlx_version": "0.32.2",
+    "save_reload_exact": true,
+    "fallback_recovery_exact": true
+  },
+  "blocking_items": [
+    "HF8_WEIGHT_ARTIFACT_GATE remains HOLD; no real promoted weight artifact exists.",
+    "No Hugging Face Space UI/API contract has been validated.",
+    "Concurrent-session state isolation has not been validated.",
+    "Checkpoint persistence across Space restart/rebuild has not been validated.",
+    "External durable checkpoint/state storage has not been bound and verified.",
+    "Secrets handling and read/write authority boundaries inside a Space have not been validated.",
+    "GPU/CUDA parity is not required for an initial CPU Space, but remains unvalidated."
+  ],
+  "deployment_policy": {
+    "create_compute_space_without_explicit_gate": false,
+    "production_designation_authorized": false,
+    "canonical_authority_transferred": false,
+    "source_of_truth": "github"
+  },
+  "exit_criteria": [
+    "Choose an explicit Space surface: static inspector, Gradio CPU, or Docker CPU/GPU.",
+    "Bind the Space to an exact source commit and dependency lock.",
+    "Validate session isolation and request concurrency semantics.",
+    "Use external durable storage for mutable checkpoints/state; do not treat ephemeral Space disk as canonical.",
+    "Verify restart/rebuild recovery from the external durable state.",
+    "Validate secrets and least-privilege write scope.",
+    "If the Space executes model inference, bind a real verified weight artifact or explicitly define a no-weight diagnostic mode.",
+    "Produce a remote Space receipt and require a separate human promotion for production designation."
+  ],
+  "related_runtime_receipt": "receipts/huggingface/hf10-linux-runtime-parity-receipt-v0.1.json"
+}
