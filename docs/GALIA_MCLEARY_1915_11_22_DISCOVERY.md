@@ -3,8 +3,9 @@
 Status: **DISCOVERY RECORD ONLY — NOT CANONICAL HISTORICAL PROMOTION**
 
 This record preserves a reproducible source-discovery result for the earliest
-McLeary/MacLeary street designation recovered in the November 1915 corpus of
-*El Tiempo / The Times* examined by GALIA.
+McLeary/MacLeary street designation recovered in the September–November 1915
+*El Tiempo / The Times* corpus examined by GALIA, subject to the explicit
+coverage limits stated below.
 
 ## Positive source anchor
 
@@ -46,22 +47,56 @@ lot area, phone number and sea-front description. This is strong internal
 corroboration for the street designation, but it is still one newspaper issue
 rather than an independent custodial source.
 
-## Negative search window
+## Backward search coverage
 
-GALIA scanned the text layers of every publication day mapped in the same UFDC
-series from **1915-11-01 through 1915-11-20**, excluding Sundays when the paper
-did not publish. Eighteen issues were examined.
+GALIA searched the text layers for street-form variants including
+`McLeary`, `MacLeary`, `Mac Leary`, and `Mc Leary`. Generic
+`Leary` occurrences are retained separately as diagnostics and do not count
+as street hits.
 
-No `McLeary`, `MacLeary`, `Mac Leary`, `Mc Leary`, or generic `Leary`
-hit was recovered in those 18 text layers.
+### November 1915
 
-This negative result supports the bounded statement:
+All eighteen mapped publication days from **1915-11-01 through 1915-11-20**
+(excluding Sundays) were examined. Street-form hits: **0**.
 
-> **Earliest verified McLeary/MacLeary street designation in the November 1915
-> El Tiempo corpus examined by GALIA: 22 November 1915.**
+### October 1915
 
-It does **not** establish that 22 November 1915 was the legal naming date, the
-physical opening date, or the first use in all surviving sources.
+All twenty-six mapped publication days from **1915-10-01 through 1915-10-30**
+(excluding Sundays) were examined. Street-form hits: **0**.
+
+The initial October pass produced generic `O'Leary` diagnostics on
+1915-10-02; the scanner was then hardened to keep those person-name diagnostics
+separate from McLeary/MacLeary street forms. A dedicated retry independently
+resolved 1915-10-30 and returned zero McLeary/MacLeary street hits.
+
+### September 1915
+
+Twenty-five issues from **1915-09-01 through 1915-09-30** were resolved and
+examined. Street-form hits: **0**.
+
+One candidate publication date remains unresolved in the UFDC mapping:
+**1915-09-06**. Accordingly, GALIA does not characterize September 1915 as a
+complete negative month.
+
+## Bounded historical result
+
+The evidence currently supports this statement:
+
+> **Earliest verified McLeary/MacLeary street designation in the
+> September–November 1915 El Tiempo corpus recovered and examined by GALIA:
+> 22 November 1915.**
+
+Coverage before that positive anchor consists of **69 resolved earlier issues**
+(25 September + 26 October + 18 November), all with zero McLeary/MacLeary
+street-form hits. The unresolved 1915-09-06 date remains an explicit coverage
+gap.
+
+This result does **not** establish that 22 November 1915 was:
+- the legal naming date;
+- the physical opening date;
+- the dedication or municipal-acceptance date;
+- the first use in every surviving newspaper or archival source; or
+- proof of the identity of the avenue's eponym.
 
 ## Workflow evidence
 
@@ -81,6 +116,24 @@ Early November scan, 1–13 November:
 - Artifact digest:
   `sha256:2b21cec4168039969754d2ab24f00b4441694c1cfac3691840868d0f9ed06597`
 
+October hardened street-form scan:
+- GitHub Actions run: `36139111929`
+- Artifact: `GALIA_MCLEARY_OCTOBER_1915_SCAN`
+- Artifact digest:
+  `sha256:eda52020ca38bfa3254f57e4544108fdc244e6210613f41f9fe27ec94a28997c`
+
+Independent 30 October retry:
+- GitHub Actions run: `36139174577`
+- Artifact: `GALIA_MCLEARY_1915_10_30_RETRY`
+- Artifact digest:
+  `sha256:66f6885eb99a016c580c1847da893ac8f5376e812febc5351ad2692768515876`
+
+September date-resolved scan:
+- GitHub Actions run: `36139358167`
+- Artifact: `GALIA_MCLEARY_SEPTEMBER_1915_SCAN`
+- Artifact digest:
+  `sha256:9f2da69c7a52a53731dde134397cd49f3118750ffab750ff5d694624fae013c7`
+
 ## Authority boundary
 
 This discovery does not establish:
@@ -91,3 +144,9 @@ This discovery does not establish:
 - the date the physical road was opened.
 
 Those propositions remain separate claims and require their own evidence.
+
+For the legal-nominative question, the municipal web library presently exposes
+ordinance series beginning in 1931. The relevant pre-1931 archival route is
+therefore the Archivo General de Puerto Rico's **Fondo Municipio de San Juan**,
+especially **Serie Libros de Actas y otros (PR-SJ-AGPR-00335), 1722–1955**,
+rather than an inference from the newspaper designation.
