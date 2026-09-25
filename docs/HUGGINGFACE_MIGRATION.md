@@ -128,6 +128,47 @@ will require byte size, SHA-256, runtime/config binding, upload verification,
 and a separate distribution receipt.
 
 
+## Trusted Publisher OIDC path
+
+GALIA uses Hugging Face Trusted Publishers for the first remote publication.
+This removes the need to store a long-lived `HF_TOKEN` in GitHub.
+
+One-time Hugging Face setup:
+
+1. Create a **private model repository** named `Junitos/galia-2`.
+2. Open that repo's **Settings → Trusted Publishers**.
+3. Add a **GitHub Actions** publisher with exact claims:
+   - repository: `riosriosje-prog/test-model-thing`
+   - branch: `galia2/huggingface-migration-v0.1`
+   - workflow: `huggingface-export.yml`
+4. Save the publisher.
+
+The workflow then uses:
+
+```text
+GitHub OIDC issuer
+https://token.actions.githubusercontent.com
+        |
+        | exact repo + branch + workflow claims
+        v
+Hugging Face token exchange
+        |
+        | short-lived (~1 hour), repo-scoped token
+        v
+Junitos/galia-2
+```
+
+No persistent Hugging Face write token is stored in GitHub.
+
+The candidate workflow is deliberately not triggered by every branch push.
+Remote publication runs only when either:
+
+- it is explicitly dispatched; or
+- `.hf/publish-request.json` is committed on the migration branch.
+
+That publish request must only be created after the private destination repo
+and Trusted Publisher are confirmed.
+
 ## Live Hugging Face connector state
 
 ChatGPT's Hugging Face connector is authenticated as:
@@ -164,12 +205,10 @@ Current gate state:
 HF_REMOTE_CONNECTOR_AUTHENTICATED = PASS
 HF_REMOTE_NAMESPACE               = Junitos
 HF_REMOTE_TARGET_EXISTS           = NO
-HF_REMOTE_WRITE_SCOPE             = HOLD
-HF5_HUB_REPO_CREATE               = HOLD_AUTH_SCOPE
-HF6_HUB_UPLOAD_AS_PR              = HOLD_AUTH_SCOPE
-HF7_REMOTE_MANIFEST_COMPARE       = NOT_RUN
+HF_REMOTE_WRITE_SCOPE             = BYPASSED_VIA_TRUSTED_PUBLISHER
+HF5_HUB_REPO_CREATE               = MANUAL_ONE_TIME_SETUP
+HF6_HUB_UPLOAD_AS_PR              = READY_AFTER_PUBLISHER_SETUP
+HF7_REMOTE_MANIFEST_COMPARE       = READY_AFTER_UPLOAD
 ```
 
-No token value is required from the user. The existing Hugging Face connection
-must be re-authorized with repository-write scope; after that, the prepared
-publisher can create the private model repo and verify the remote snapshot.
+No token value is required from the user. The ChatGPT connector itself does not need repository-write scope for the CI publish path. The private destination repo and its Trusted Publisher must be configured once in the Hugging Face UI; GitHub Actions then obtains a short-lived repo-scoped write token through OIDC and verifies the remote snapshot.
