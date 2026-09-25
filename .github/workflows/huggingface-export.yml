@@ -2,40 +2,23 @@ name: huggingface-export-candidate
 
 on:
   workflow_dispatch:
-    inputs:
-      hf_repo_id:
-        description: "Hugging Face destination in owner-or-org/repo-name form"
-        required: true
-        type: string
-      visibility:
-        description: "Destination visibility"
-        required: true
-        default: private
-        type: choice
-        options:
-          - private
-          - public
-      create_pr:
-        description: "Upload as a Hugging Face pull request"
-        required: true
-        default: true
-        type: boolean
-      include_tests:
-        description: "Include tests in the distribution mirror"
-        required: true
-        default: false
-        type: boolean
+  push:
+    branches:
+      - galia2/huggingface-migration-v0.1
+    paths:
+      - .hf/publish-request.json
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   export-publish-verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      HF_REPO_ID: ${{ inputs.hf_repo_id }}
+      HF_REPO_ID: Junitos/galia-2
+      HF_OIDC_RESOURCE: Junitos/galia-2
 
     steps:
       - uses: actions/checkout@v4
@@ -48,56 +31,43 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --upgrade -r requirements-hf.txt
+          python -m pip install --upgrade "huggingface_hub>=1.19,<2"
 
       - name: Build deterministic export
         shell: bash
         run: |
           set -euo pipefail
-          args=(--output hf-export --source-sha "$GITHUB_SHA")
-          if [ "${{ inputs.include_tests }}" = "true" ]; then
-            args+=(--include-tests)
-          fi
-          python tools/build_hf_export.py "${args[@]}"
+          python tools/build_hf_export.py             --output hf-export             --source-sha "$GITHUB_SHA"
 
-      - name: Verify authentication and destination gate
+      - name: Exchange GitHub OIDC identity for short-lived Hugging Face token
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${HF_TOKEN:-}" ]; then
-            echo "::error::HF_TOKEN repository secret is not configured."
-            exit 2
-          fi
-          if [ -z "${HF_REPO_ID:-}" ] || [[ "$HF_REPO_ID" != */* ]]; then
-            echo "::error::hf_repo_id must be owner-or-org/repo-name."
-            exit 2
-          fi
+          token="$(hf auth token)"
+          test -n "$token"
+          echo "::add-mask::$token"
+          echo "HF_TOKEN=$token" >> "$GITHUB_ENV"
+          echo "HF_OIDC_EXCHANGE=PASS"
+
+      - name: Verify destination exists
+        shell: bash
+        run: |
+          set -euo pipefail
           python - <<'PY'
           import os
           from huggingface_hub import HfApi
-          api = HfApi(token=os.environ["HF_TOKEN"])
-          who = api.whoami()
-          assert who and who.get("name")
-          print("HF_AUTH_GATE=PASS")
-          print("HF_AUTH_USER=" + who["name"])
+          api=HfApi(token=os.environ["HF_TOKEN"])
+          info=api.model_info(os.environ["HF_REPO_ID"])
+          assert info.id == os.environ["HF_REPO_ID"]
+          print("HF_DESTINATION_GATE=PASS")
+          print("HF_DESTINATION=" + info.id)
           PY
 
-      - name: Publish candidate and verify remote snapshot
+      - name: Publish candidate as Hugging Face PR and verify remote snapshot
         shell: bash
         run: |
           set -euo pipefail
-          args=(
-            --repo-id "$HF_REPO_ID"
-            --export-dir hf-export
-            --visibility "${{ inputs.visibility }}"
-            --receipt hf-remote-receipt.json
-          )
-          if [ "${{ inputs.create_pr }}" = "true" ]; then
-            args+=(--create-pr)
-          else
-            args+=(--no-create-pr)
-          fi
-          python tools/publish_hf_candidate.py "${args[@]}" | tee hf-upload-result.txt
+          python tools/publish_hf_candidate.py             --repo-id "$HF_REPO_ID"             --export-dir hf-export             --visibility private             --create-pr             --existing-repo-only             --receipt hf-remote-receipt.json             | tee hf-upload-result.txt
 
       - name: Assert remote receipt
         shell: bash
@@ -110,9 +80,8 @@ jobs:
           assert receipt["repo_type"] == "model"
           assert receipt["verified_files"] > 0
           assert receipt["source_sha"] == os.environ["GITHUB_SHA"]
-          if "${{ inputs.create_pr }}" == "true":
-              assert receipt["pr_number"] is not None
-              assert receipt["verified_revision"] == f"refs/pr/{receipt['pr_number']}"
+          assert receipt["pr_number"] is not None
+          assert receipt["verified_revision"] == f"refs/pr/{receipt['pr_number']}"
           print("HF_REMOTE_RECEIPT_GATE=PASS")
           PY
 
