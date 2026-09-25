@@ -261,3 +261,28 @@ DEC_1912_RESOLVED_CORPUS   = NEGATIVE_FOR_QUALIFIED_STREET_USE
 
 The positive 11 February 1913 anchor is independent of this regex issue:
 its exact PDF and rendered page were captured separately and visually verified.
+
+## 8. Aggregate backward-search bound
+
+With the hardened street-form detector, the resolved pre-anchor corpus now is:
+
+- **October 1912:** 27 resolved issues, 0 qualified Taft street hits, 0 unresolved publication dates in the tested sequence;
+- **November 1912:** 24 resolved issues, 0 qualified hits; 5 and 28 November unresolved and excluded;
+- **December 1912:** 24 resolved issues, 0 qualified hits; 25 and 31 December unresolved and excluded;
+- **1 January–10 February 1913:** 35 resolved publication issues, 0 qualified hits;
+- **11 February 1913:** positive primary-source anchor, visually verified and byte-bound.
+
+Thus **110 resolved pre-anchor issues** from 1 October 1912 through 10 February 1913 contain zero qualified Taft street-designation hits, followed by the verified 11 February 1913 address.
+
+The supported bounded statement is:
+
+> **Earliest verified Taft street designation in the resolved October 1912–February 1913 *Times* corpus examined by GALIA: 11 February 1913.**
+
+This is not an absolute first-use claim. Earlier newspapers, maps, deeds, directories, municipal minutes, private subdivision papers, or unresolved issue dates may move the terminus earlier.
+
+```text
+TAFT_EARLIEST_VERIFIED_IN_RESOLVED_CORPUS = 1913-02-11
+PRE_ANCHOR_RESOLVED_ISSUES_NEGATIVE        = 110
+TAFT_ABSOLUTE_FIRST_USE                    = OPEN
+TAFT_NAMING_ACT                            = UNRESOLVED
+```
