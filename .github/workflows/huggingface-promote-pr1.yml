@@ -102,7 +102,7 @@ jobs:
           print("HF_PROMOTION_MANIFEST_SHA256=" + expected_manifest_sha)
           PY
 
-      - name: Merge exact Hugging Face PR
+      - name: Publish draft and merge exact Hugging Face PR
         shell: bash
         run: |
           set -euo pipefail
@@ -110,10 +110,40 @@ jobs:
           import os
           from huggingface_hub import HfApi
 
+          repo = os.environ["HF_REPO_ID"]
+          pr = int(os.environ["HF_PR_NUMBER"])
           api = HfApi(token=os.environ["HF_TOKEN"])
+
+          details = api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="model",
+          )
+          if details.status == "draft":
+              change = api.change_discussion_status(
+                  repo_id=repo,
+                  discussion_num=pr,
+                  new_status="open",
+                  repo_type="model",
+                  comment=(
+                      "Human promotion authorized; publishing verified draft "
+                      "for merge as distribution mirror only."
+                  ),
+              )
+              print("HF_PROMOTION_DRAFT_PUBLISH=PASS")
+              print("HF_PROMOTION_READY_STATUS=" + str(change.new_status))
+
+          details = api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="model",
+          )
+          if details.status != "open":
+              raise SystemExit(f"PR is not open/mergeable: {details.status}")
+
           result = api.merge_pull_request(
-              repo_id=os.environ["HF_REPO_ID"],
-              discussion_num=int(os.environ["HF_PR_NUMBER"]),
+              repo_id=repo,
+              discussion_num=pr,
               repo_type="model",
               comment=(
                   "Human promotion authorized for GALIA 2.0 distribution mirror. "
