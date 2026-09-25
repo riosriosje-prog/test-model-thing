@@ -1,262 +1,119 @@
-# GALIA 2.0 — Hugging Face migration status
+# GALIA 2.0 — Hugging Face integration status
 
-Status: **ACTIVE MIGRATION / GITHUB CANONICAL / NO AUTHORITY TRANSFER / NO LEGACY MUTATION**
+Status: **ACTIVE / GITHUB CONTROL PLANE / HUGGING FACE ML ARTIFACT PLANE / NO AUTHORITY TRANSFER**
 
-Authoritative engineering source:
-`riosriosje-prog/test-model-thing`
+Authoritative engineering repository: `riosriosje-prog/test-model-thing`
 
-Authoritative GitHub `main` remains:
-`a09c3e953ec1799b1704783c4c3d14a1a0017f62`
+Current promoted GitHub `main`: `051f56789de99a8db0d4aa044eaf120ea1d67805`
 
-Migration branch:
-`galia2/huggingface-migration-v0.1`
-
-## Authority boundary
-
-Hugging Face is a distribution / inspection surface only.
+## Authority model
 
 ```text
-source_of_truth                    = github
-canonical_authority_transferred    = false
-legacy_mutation_authorized         = false
+GitHub       = CONTROL PLANE
+Hugging Face = ML ARTIFACT PLANE
+
+source_of_truth                 = github
+canonical_authority_transferred = false
+legacy_mutation_authorized      = false
 ```
 
-No Hugging Face promotion in this migration changes GALIA Legacy or advances GitHub `main`.
+Core invariant: `CODE_AUTHORITY != MODEL_ARTIFACT_AUTHORITY`.
 
-## Current topology
+A Hugging Face artifact promotion does not imply a GitHub source merge. A GitHub source merge does not imply a Hugging Face artifact promotion.
+
+## Completed source integrations
+
+- PR #18 — Hugging Face migration/tooling — PROMOTED
+- PR #19 — HF8 weight-intake infrastructure — PROMOTED
+- PR #22 — cleaned HF8 v0.2 retraining source — PROMOTED
+
+PR #22 merge commit/current `main`: `051f56789de99a8db0d4aa044eaf120ea1d67805`
+
+## Model distribution
+
+`Junitos/galia-2` remains the promoted model/code distribution repository.
+
+Base distribution mirror:
+- source SHA: `439500216fb7a27883bb007cbfa0c3cf2f07779e`
+- manifest SHA-256: `6542c843b8bb7e27d38cea2cf6dd71708fe1cc443f21a23f3390ac1fc66ed932`
+- verified files: 39
+- scope: `DISTRIBUTION_MIRROR_ONLY`
+
+## HF8 real trained weight
+
+HF8 is no longer blocked on absence of a real trained artifact.
+
+Promoted bootstrap:
 
 ```text
-GitHub
-  canonical engineering source / CI / receipts / rollback
-        |
-        +--> Junitos/galia-2
-        |      private model/code distribution mirror
-        |
-        +--> Junitos/galia-2-evidence
-        |      private schema-only evidence dataset surface
-        |
-        +--> Junitos/galia-2-diagnostic
-               private static diagnostic Space surface
+repo_id           = Junitos/galia-2
+revision          = main
+candidate_path    = weights/hf8-retrain-v0.2-4k
+training_steps    = 4000
+payload_sha256    = 3bc46a281bdb6a031f7399d46e50612b622527bcc2528fd2f0e6220694971b3c
+payload_bytes     = 70716981
+manifest_sha256   = a41110548ced010da6d1462d4c0822dd527ac7411421540bdaf817d7d3b4cbb2
+classification    = GALIA_CURRENT_BOUND
+authority_binding = CURRENT_BOUND
+quality_gate      = PASS
+promotion_scope   = HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY
 ```
 
-## Migration gates
+Quality:
+- random-init held-out BPC: `8.67977507595193`
+- trained held-out BPC: `5.675106937451537`
+- delta: `-3.004668138500393`
 
-```text
-HF1_EXPORT_DETERMINISM            = PASS
-HF2_SOURCE_SHA_BINDING            = PASS
-HF3_PER_FILE_SHA256               = PASS
-HF4_TOKEN_FAIL_CLOSED             = PASS
+Promotion workflow run: `36188913806`
 
-HF5_HUB_MODEL_REPO_CREATE         = PASS
-HF6_HUB_MODEL_UPLOAD_AS_PR        = PASS
-HF7_MODEL_REMOTE_MANIFEST_COMPARE = PASS
-HF_MODEL_DISTRIBUTION_PROMOTION   = PASS
+Durable receipt: `receipts/huggingface/hf8-v0-2-weight-promotion-receipt.json`
 
-HF8_WEIGHT_ARTIFACT_GATE          = HOLD
-  reason: no real versioned/promoted trained weight artifact exists
+The older v0.1/20k experiment remains preserved as audit evidence and is not the promoted model.
 
-HF9_DATASET_SCHEMA_SURFACE        = PROMOTED
-  evidence_record_count           = 0
-  source_images                   = 0
-  raw_source_bytes                = 0
+## HF9 evidence dataset
 
-HF10_LINUX_MLX_RUNTIME_PARITY     = PASS
-  platform                        = Linux x86_64
-  python                          = 3.13.15
-  mlx                             = 0.32.2
-  save_reload_exact               = true
-  fallback_recovery_exact         = true
+`Junitos/galia-2-evidence` remains **PROMOTED — SCHEMA SURFACE ONLY**.
 
-HF10B_STATIC_DIAGNOSTIC_SPACE     = HUMAN_REPORTED_MERGED
-  independent_connector postverify = HOLD
+- source SHA: `4a6b5862ae7b86f9db0d469e1a52b5a751de9a58`
+- manifest SHA-256: `1a2545f83a3e6fc0c7f59fad11d7237c67781216123fd985fd56088cdfdc001e`
+- verified files: 5
+- evidence records: 0
+- source images: 0
+- raw evidence bytes: 0
 
-HF10B_DYNAMIC_GRADIO_SPACE        = HOLD_TIER_CONSTRAINT
-  remote reason                   = Gradio/Docker cpu-basic requires PRO on this account
-```
+Actual historical evidence migration remains a separate gate.
 
-## Model distribution mirror
+## Runtime parity and backend diagnostics
 
-Repository:
-`Junitos/galia-2`
+HF10 Linux runtime parity remains PASS on Ubuntu 24.04 x86_64 / Python 3.13.15 / `mlx[cpu] 0.32.2`.
 
-Promoted distribution source SHA:
-`439500216fb7a27883bb007cbfa0c3cf2f07779e`
+HF8 throughput probe:
+- Linux x86_64: `16.34565835 steps/s`
+- macOS arm64: `19.22950910 steps/s`
 
-Promoted manifest SHA-256:
-`6542c843b8bb7e27d38cea2cf6dd71708fe1cc443f21a23f3390ac1fc66ed932`
-
-Verified files: **39**
-
-Scope:
-`DISTRIBUTION_MIRROR_ONLY`
-
-The mirror was uploaded as a Hugging Face pull request, byte/hash verified, human-promoted, merged, and post-verified.
-
-## Weight gate
-
-HF8 remains **HOLD**.
-
-Repository-tree inspection found no real versioned model weight/checkpoint artifact matching common formats such as:
-
-- `.safetensors`
-- `.ckpt`
-- `.pt`
-- `.pth`
-- `.bin`
-- `.npz`
-
-GALIA will not create placeholder or synthetic weights to satisfy the gate.
-
-HF8 exits HOLD only after a real trained artifact is available and bound to:
-
-1. exact byte size;
-2. SHA-256;
-3. model/config/runtime provenance;
-4. optimizer/recurrent state when required;
-5. remote upload identity;
-6. remote re-read/download hash verification;
-7. a separate human promotion decision.
-
-## Evidence dataset surface
-
-Repository:
-`Junitos/galia-2-evidence`
-
-Promoted source SHA:
-`4a6b5862ae7b86f9db0d469e1a52b5a751de9a58`
-
-Promoted manifest SHA-256:
-`1a2545f83a3e6fc0c7f59fad11d7237c67781216123fd985fd56088cdfdc001e`
-
-Verified files: **5**
-
-Scope:
-`DATASET_SCHEMA_SURFACE_ONLY`
-
-Current evidence payload:
-
-```text
-historical evidence records = 0
-source images               = 0
-raw source bytes            = 0
-```
-
-The dataset surface enforces the following governance boundaries:
-
-- `DOCUMENT_DATE` remains distinct from `EVENT_DATE`;
-- `PROMPT_VERSION` remains distinct from `ENGINE_VERSION`;
-- authentication/admissibility remain distinct from evidentiary weight;
-- image evidence requires provenance fields and gate status;
-- discrepancies remain explicit and cannot be silently normalized away;
-- human review remains explicit.
-
-Actual historical evidence migration is a separate future gate.
-
-## Linux MLX runtime parity
-
-HF10 established that the GALIA runtime can execute on Linux CPU using:
-
-```text
-Ubuntu 24.04 x86_64
-Python 3.13.15
-mlx[cpu] 0.32.2
-```
-
-Validated:
-
-- GALIA 2 regression suite;
-- exact checkpoint save/reload;
-- exact previous-generation fallback after corruption of the current generation;
-- authoritative loads without legacy-unbound taint.
-
-This proves Linux CPU runtime/checkpoint parity only. It does not itself authorize a production Space.
+This benchmark is diagnostic only.
 
 ## Diagnostic Space
 
-Candidate repository:
-`Junitos/galia-2-diagnostic`
-
-Static candidate source SHA:
-`bb466a5cc6b41eeabd2ce9b8ade7ed563167a4af`
-
-Static candidate manifest SHA-256:
-`ec24987a453b75ecfc0f76849a4c191266294d24958125609cbf15f33713a705`
-
-Verified candidate files: **2**
-
-Scope:
-`SPACE_STATIC_DIAGNOSTIC_CANDIDATE_ONLY`
-
-The static surface contains no:
-
-- model inference;
-- trained weights;
-- checkpoint writes;
-- evidence mutation;
-- source images;
-- persistent session state;
-- canonical authority transfer.
-
-The human operator reported completing the Hugging Face merge for Space PR #1. Independent post-verification remains **HOLD** because the current Hugging Face connector can authenticate as `Junitos` with `read-repos`, but its Space lookup still returns `Not found or authentication required` for this private Space.
-
-Therefore GALIA records this state as:
+Static Space remains:
 
 ```text
-human_merge_reported        = true
+human_merge_reported          = true
 independent_remote_postverify = HOLD
-production_runtime_promoted = false
+production_runtime_promoted   = false
 ```
 
-No technical PASS is inferred from the human report alone.
+Dynamic Gradio remains `HOLD_TIER_CONSTRAINT`.
 
-## Dynamic Gradio Space
+## Authentication
 
-The Gradio 6.26.0 diagnostic surface passed local tests for:
+Successful Hugging Face publications use GitHub Actions secret `HF_TOKEN`. The token value is never written into exports or receipts.
 
-- import/runtime;
-- read-only boundary;
-- session fingerprint isolation;
-- no environment-secret access;
-- no filesystem write surface.
+## Remaining independent gates
 
-Remote creation failed with HTTP **402 Payment Required**. Hugging Face reported that Gradio/Docker Spaces on free `cpu-basic` require a PRO subscription for this account.
+1. `HF10B_REMOTE_POSTVERIFY` for the private static Space.
+2. Actual historical evidence migration beyond the promoted HF9 schema.
+3. Any longer HF8 training run: new quality, identity, remote-verification and human-promotion gates.
+4. Any production dynamic runtime: separate optional gate.
 
-GALIA does **not** require a subscription upgrade to continue the migration.
-
-Dynamic Gradio remains:
-
-`HOLD_TIER_CONSTRAINT`
-
-The verified static Space is the no-cost diagnostic surface.
-
-## Authentication path actually used
-
-The successful remote publications in this migration used the GitHub Actions repository secret:
-
-`HF_TOKEN`
-
-The token value is never written into exports or receipts.
-
-This supersedes the earlier planning text that described Trusted Publisher/OIDC as the active publication path. Trusted Publisher remains an optional future hardening path, not the path used for the successful model/dataset publications recorded here.
-
-## Durable receipts
-
-Relevant durable receipts on the migration branch include:
-
-- `receipts/huggingface/hf-promotion-receipt-v0.1.json`
-- `receipts/huggingface/hf8-weight-artifact-hold-v0.1.json`
-- `receipts/huggingface/hf9-dataset-candidate-receipt-v0.1.json`
-- `receipts/huggingface/hf9-dataset-promotion-receipt-v0.1.json`
-- `receipts/huggingface/hf10-linux-runtime-parity-receipt-v0.1.json`
-- `receipts/huggingface/hf10-space-deployment-hold-v0.1.json`
-- `receipts/huggingface/hf10b-static-space-candidate-receipt-v0.1.json`
-- `receipts/huggingface/hf10b-gradio-tier-hold-v0.1.json`
-
-## Next gates
-
-The next independent gates are:
-
-1. **HF10B_REMOTE_POSTVERIFY** — independently read the merged private Static Space and re-check the exact manifest/hash.
-2. **HF8_WEIGHT_ARTIFACT_GATE** — remains blocked until a real trained weight artifact exists.
-3. **HF10_DYNAMIC_RUNTIME_GATE** — remains optional/HOLD unless a paid or otherwise suitable runtime surface is deliberately selected.
-4. **SOURCE PR #18 review** — migration-branch integration into GitHub `main` remains a separate human-governed source promotion and is not implied by any Hugging Face promotion.
+Machine-readable control/artifact-plane policy: `huggingface/policy/control-artifact-plane.v1.json`.
