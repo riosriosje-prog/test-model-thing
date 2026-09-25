@@ -1,0 +1,207 @@
+name: huggingface-promote-pr1
+
+on:
+  push:
+    branches:
+      - galia2/huggingface-migration-v0.1
+    paths:
+      - .github/workflows/huggingface-promote-pr1.yml
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_REPO_ID: Junitos/galia-2
+      HF_PR_NUMBER: "1"
+      EXPECTED_SOURCE_SHA: 439500216fb7a27883bb007cbfa0c3cf2f07779e
+      EXPECTED_MANIFEST_SHA256: 6542c843b8bb7e27d38cea2cf6dd71708fe1cc443f21a23f3390ac1fc66ed932
+      EXPECTED_FILE_COUNT: "39"
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade "huggingface_hub>=1.19,<2"
+
+      - name: Verify secret gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF_PROMOTION_SECRET_GATE=PASS"
+
+      - name: Preflight exact PR candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, pathlib, tempfile
+          from huggingface_hub import HfApi, snapshot_download
+
+          repo = os.environ["HF_REPO_ID"]
+          pr = int(os.environ["HF_PR_NUMBER"])
+          token = os.environ["HF_TOKEN"]
+          expected_source = os.environ["EXPECTED_SOURCE_SHA"]
+          expected_manifest_sha = os.environ["EXPECTED_MANIFEST_SHA256"]
+          expected_count = int(os.environ["EXPECTED_FILE_COUNT"])
+
+          api = HfApi(token=token)
+          details = api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="model",
+          )
+          if not details.is_pull_request:
+              raise SystemExit("discussion #1 is not a pull request")
+          if details.status not in ("open", "draft"):
+              raise SystemExit(f"unexpected PR status before merge: {details.status}")
+
+          with tempfile.TemporaryDirectory() as td:
+              root = pathlib.Path(snapshot_download(
+                  repo_id=repo,
+                  repo_type="model",
+                  revision=f"refs/pr/{pr}",
+                  local_dir=td,
+                  token=token,
+              ))
+              manifest_path = root / "HF_EXPORT_MANIFEST.json"
+              raw = manifest_path.read_bytes()
+              digest = hashlib.sha256(raw).hexdigest()
+              if digest != expected_manifest_sha:
+                  raise SystemExit(f"manifest hash mismatch: {digest}")
+              manifest = json.loads(raw)
+              assert manifest["source_sha"] == expected_source
+              assert manifest["source_of_truth"] == "github"
+              assert manifest["promotion_scope"] == "DISTRIBUTION_MIRROR_ONLY"
+              assert manifest["canonical_authority_transferred"] is False
+              assert len(manifest["files"]) == expected_count
+
+              for row in manifest["files"]:
+                  p = root / row["path"]
+                  if not p.is_file():
+                      raise SystemExit(f"missing file: {row['path']}")
+                  h = hashlib.sha256(p.read_bytes()).hexdigest()
+                  if h != row["sha256"]:
+                      raise SystemExit(f"file hash mismatch: {row['path']}")
+                  if p.stat().st_size != row["bytes"]:
+                      raise SystemExit(f"file size mismatch: {row['path']}")
+
+          print("HF_PROMOTION_PREFLIGHT=PASS")
+          print("HF_PROMOTION_CANDIDATE_PR=1")
+          print("HF_PROMOTION_SOURCE_SHA=" + expected_source)
+          print("HF_PROMOTION_MANIFEST_SHA256=" + expected_manifest_sha)
+          PY
+
+      - name: Merge exact Hugging Face PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          result = api.merge_pull_request(
+              repo_id=os.environ["HF_REPO_ID"],
+              discussion_num=int(os.environ["HF_PR_NUMBER"]),
+              repo_type="model",
+              comment=(
+                  "Human promotion authorized for GALIA 2.0 distribution mirror. "
+                  "GitHub remains canonical authority; no authority transfer."
+              ),
+          )
+          print("HF_PROMOTION_MERGE=PASS")
+          print("HF_PROMOTION_STATUS=" + str(getattr(result, "new_status", "merged")))
+          PY
+
+      - name: Verify promoted main snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, pathlib, tempfile, datetime
+          from huggingface_hub import HfApi, snapshot_download
+
+          repo = os.environ["HF_REPO_ID"]
+          token = os.environ["HF_TOKEN"]
+          expected_source = os.environ["EXPECTED_SOURCE_SHA"]
+          expected_manifest_sha = os.environ["EXPECTED_MANIFEST_SHA256"]
+          expected_count = int(os.environ["EXPECTED_FILE_COUNT"])
+          pr = int(os.environ["HF_PR_NUMBER"])
+
+          api = HfApi(token=token)
+          details = api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="model",
+          )
+          if details.status != "merged":
+              raise SystemExit(f"PR status is not merged: {details.status}")
+
+          with tempfile.TemporaryDirectory() as td:
+              root = pathlib.Path(snapshot_download(
+                  repo_id=repo,
+                  repo_type="model",
+                  revision="main",
+                  local_dir=td,
+                  token=token,
+              ))
+              raw = (root / "HF_EXPORT_MANIFEST.json").read_bytes()
+              digest = hashlib.sha256(raw).hexdigest()
+              if digest != expected_manifest_sha:
+                  raise SystemExit(f"promoted manifest mismatch: {digest}")
+              manifest = json.loads(raw)
+              assert manifest["source_sha"] == expected_source
+              assert manifest["source_of_truth"] == "github"
+              assert manifest["promotion_scope"] == "DISTRIBUTION_MIRROR_ONLY"
+              assert manifest["canonical_authority_transferred"] is False
+              assert len(manifest["files"]) == expected_count
+              for row in manifest["files"]:
+                  p = root / row["path"]
+                  if not p.is_file():
+                      raise SystemExit(f"promoted snapshot missing: {row['path']}")
+                  if hashlib.sha256(p.read_bytes()).hexdigest() != row["sha256"]:
+                      raise SystemExit(f"promoted hash mismatch: {row['path']}")
+                  if p.stat().st_size != row["bytes"]:
+                      raise SystemExit(f"promoted size mismatch: {row['path']}")
+
+          receipt = {
+              "repo_id": repo,
+              "repo_type": "model",
+              "pr_number": pr,
+              "pr_status": details.status,
+              "promoted_revision": "main",
+              "source_sha": expected_source,
+              "manifest_sha256": expected_manifest_sha,
+              "verified_files": expected_count,
+              "source_of_truth": "github",
+              "promotion_scope": "DISTRIBUTION_MIRROR_ONLY",
+              "canonical_authority_transferred": False,
+              "human_promotion_authorized": True,
+              "verified_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          }
+          pathlib.Path("hf-promotion-receipt.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print("HF_PROMOTION_POSTVERIFY=PASS")
+          print("HF_PROMOTED_MANIFEST_SHA256=" + expected_manifest_sha)
+          PY
+
+      - name: Upload promotion receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HUGGINGFACE_PROMOTION_RECEIPT
+          path: hf-promotion-receipt.json
+          if-no-files-found: error
+          retention-days: 90
