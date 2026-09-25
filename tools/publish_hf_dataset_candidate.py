@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 import tempfile
 
-PR_URL_RE = re.compile(r"/discussions/(\\d+)(?:$|[/?#])")
+PR_URL_RE = re.compile(r"/discussions/(\d+)(?:$|[/?#])")
 
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
