@@ -1,0 +1,130 @@
+name: discover-mcleary-1915-11-22
+
+on:
+  push:
+    branches:
+      - galia2/mcleary-1915-source-discovery-v0.1
+    paths:
+      - .github/workflows/discover-mcleary-1915-11-22.yml
+      - tools/discover_mcleary_1915_11_22.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install PDF text tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Resolve exact UFDC folder for 22 Nov 1915
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p discovery
+          base="https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97"
+          found=""
+          for folder in $(seq 1425 1460); do
+            f=$(printf "%05d" "$folder")
+            url="$base/$f/1915112201.pdf"
+            code=$(curl               --head --location --silent --show-error               --connect-timeout 10 --max-time 20               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"               --output /tmp/headers.txt               --write-out "%{http_code}"               "$url" || true)
+            ctype=$(grep -i '^content-type:' /tmp/headers.txt | tail -1 | tr -d '\r' || true)
+            clen=$(grep -i '^content-length:' /tmp/headers.txt | tail -1 | tr -d '\r' || true)
+            echo "PROBE folder=$f code=$code $ctype $clen"
+            if [ "$code" = "200" ]; then
+              found="$folder"
+              printf "%s\n" "$url" > discovery/SOURCE_URL.txt
+              printf "%s\n" "$folder" > discovery/UFDC_FOLDER.txt
+              break
+            fi
+          done
+
+          if [ -z "$found" ]; then
+            echo "No exact issue located in probe window" >&2
+            exit 1
+          fi
+
+          echo "MCLEARY_1915_UFDC_FOLDER=$found"
+
+      - name: Download and verify issue
+        shell: bash
+        run: |
+          set -euo pipefail
+          url=$(cat discovery/SOURCE_URL.txt)
+          curl             --fail --location --silent --show-error             --retry 3 --retry-delay 2             --connect-timeout 30 --max-time 300             --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"             --output discovery/el_tiempo_1915_11_22.pdf             "$url"
+
+          python - <<'PY'
+          import hashlib, pathlib
+          p = pathlib.Path("discovery/el_tiempo_1915_11_22.pdf")
+          data = p.read_bytes()
+          assert data.startswith(b"%PDF-"), "resolved object is not a PDF"
+          assert len(data) > 1_000_000, "resolved PDF is unexpectedly small"
+          print("MCLEARY_1915_RAW_SHA256=" + hashlib.sha256(data).hexdigest())
+          print("MCLEARY_1915_RAW_SIZE=" + str(len(data)))
+          PY
+
+      - name: Inspect issue for McLeary
+        shell: bash
+        run: |
+          set -euo pipefail
+          url=$(cat discovery/SOURCE_URL.txt)
+          folder=$(cat discovery/UFDC_FOLDER.txt)
+          PYTHONPATH=. python tools/discover_mcleary_1915_11_22.py             --pdf discovery/el_tiempo_1915_11_22.pdf             --source-url "$url"             --folder "$folder"             --output discovery/MCLEARY_1915_DISCOVERY.json
+
+          python - <<'PY'
+          import json, pathlib
+          d = json.loads(pathlib.Path("discovery/MCLEARY_1915_DISCOVERY.json").read_text())
+          print("MCLEARY_1915_PAGE_COUNT=" + str(d["page_count_extracted"]))
+          print("MCLEARY_1915_HIT_COUNT=" + str(len(d["leary_hits"])))
+          for hit in d["leary_hits"][:10]:
+              print("MCLEARY_1915_HIT=" + json.dumps(hit, ensure_ascii=False, sort_keys=True))
+          assert d["historical_claim_promoted"] is False
+          assert d["nominative_act_inferred"] is False
+          PY
+
+      - name: Render pages with Leary hits
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f discovery/MCLEARY_1915_DISCOVERY.json || exit 0
+          mkdir -p discovery/rendered
+          python - <<'PY' > discovery/HIT_PAGES.txt
+          import json
+          d=json.load(open("discovery/MCLEARY_1915_DISCOVERY.json"))
+          for p in sorted({h["page_number"] for h in d["leary_hits"]}):
+              print(p)
+          PY
+          while read -r page; do
+            [ -n "$page" ] || continue
+            pdftoppm -f "$page" -l "$page" -singlefile -png -r 180               discovery/el_tiempo_1915_11_22.pdf               "discovery/rendered/page_${page}"
+          done < discovery/HIT_PAGES.txt
+
+      - name: Upload discovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_MCLEARY_1915_11_22_DISCOVERY
+          path: |
+            discovery/SOURCE_URL.txt
+            discovery/UFDC_FOLDER.txt
+            discovery/el_tiempo_1915_11_22.pdf
+            discovery/MCLEARY_1915_DISCOVERY.json
+            discovery/HIT_PAGES.txt
+            discovery/rendered/
+          if-no-files-found: warn
+          retention-days: 30
