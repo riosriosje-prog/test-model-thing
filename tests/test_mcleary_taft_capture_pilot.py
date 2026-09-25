@@ -27,6 +27,8 @@ class McLearyTaftRawCapturePilotTests(unittest.TestCase):
                         "extraction_method": "pdftotext-layout",
                         "matched_relation": "LEARY_NEAR_TAFT_WITH_SALE_DE",
                         "normalized_context": "calle mcleary sale de taft",
+                        "normalized_transcription": "Calle Mc Leary (sale de Taft)",
+                        "normalization_basis": "text-layer exact",
                         "page_text_sha256": hashlib.sha256(
                             b"fixture page text"
                         ).hexdigest(),
