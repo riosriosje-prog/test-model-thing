@@ -25,6 +25,7 @@ jobs:
         run: |
           python - <<'PY'
           import json, platform, time
+from importlib.metadata import version
           import mlx.core as mx
           from main import Model
 
@@ -42,7 +43,7 @@ jobs:
               "backend":"linux-cpu",
               "machine":platform.machine(),
               "platform":platform.platform(),
-              "mlx_version":__import__("mlx").__version__,
+              "mlx_version":version("mlx"),
               "steps":steps,
               "elapsed_seconds":elapsed,
               "steps_per_second":steps/elapsed,
@@ -74,6 +75,7 @@ jobs:
         run: |
           python - <<'PY'
           import json, platform, time
+from importlib.metadata import version
           import mlx.core as mx
           from main import Model
 
@@ -91,7 +93,7 @@ jobs:
               "backend":"macos",
               "machine":platform.machine(),
               "platform":platform.platform(),
-              "mlx_version":__import__("mlx").__version__,
+              "mlx_version":version("mlx"),
               "steps":steps,
               "elapsed_seconds":elapsed,
               "steps_per_second":steps/elapsed,
