@@ -1,0 +1,108 @@
+name: scan-taft-november-1915
+
+on:
+  push:
+    branches:
+      - galia2/taft-1915-source-discovery-v0.1
+    paths:
+      - .github/workflows/scan-taft-november-1915.yml
+      - tools/scan_taft_street_1915.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install PDF text tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Scan November 1915 for Taft street forms
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scan
+          base="https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97"
+
+          python - <<'PY' > scan/issues.tsv
+          from datetime import date, timedelta
+
+          d = date(1915, 11, 1)
+          folder = 1426
+          while d <= date(1915, 11, 22):
+              if d.weekday() != 6:
+                  print(f"{d.isoformat()}\t{folder}\t{d.strftime('%Y%m%d')}01.pdf")
+                  folder += 1
+              d += timedelta(days=1)
+          assert folder == 1445
+          PY
+
+          : > scan/SUMMARY.jsonl
+          while IFS=$'\t' read -r date folder file; do
+            f=$(printf "%05d" "$folder")
+            url="$base/$f/$file"
+            echo "SCAN_TAFT date=$date folder=$f"
+
+            curl --fail --location --silent --show-error               --retry 4 --retry-all-errors --retry-delay 2               --connect-timeout 30 --max-time 300               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"               --output scan/current.pdf "$url"
+
+            PYTHONPATH=. python tools/scan_taft_street_1915.py               --pdf scan/current.pdf               --date "$date"               --folder "$folder"               --url "$url"               --output scan/current.json
+
+            cat scan/current.json >> scan/SUMMARY.jsonl
+
+            python - <<'PY'
+          import json
+          d = json.load(open("scan/current.json"))
+          print("TAFT_SCAN_RESULT date=%s street_hits=%s generic_taft=%s sha=%s" % (
+              d["date"],
+              len(d["street_hits"]),
+              len(d["taft_diagnostics"]),
+              d["raw_pdf_sha256"],
+          ))
+          for hit in d["street_hits"][:8]:
+              print("TAFT_STREET_HIT=" + json.dumps(hit, ensure_ascii=False, sort_keys=True))
+          PY
+
+            rm -f scan/current.pdf scan/current.json
+          done < scan/issues.tsv
+
+          python - <<'PY'
+          import json
+
+          rows = [json.loads(x) for x in open("scan/SUMMARY.jsonl") if x.strip()]
+          hit_rows = [r for r in rows if r["street_hits"]]
+
+          print("TAFT_NOV_ISSUES=" + str(len(rows)))
+          print("TAFT_NOV_HIT_ISSUES=" + str(len(hit_rows)))
+          if hit_rows:
+              earliest = min(r["date"] for r in hit_rows)
+              print("EARLIEST_TAFT_STREET_DATE=" + earliest)
+              row = next(r for r in hit_rows if r["date"] == earliest)
+              print("EARLIEST_TAFT_STREET_URL=" + row["source_url"])
+              print("EARLIEST_TAFT_STREET_SHA256=" + row["raw_pdf_sha256"])
+          else:
+              print("EARLIEST_TAFT_STREET_DATE=NONE_IN_WINDOW")
+          PY
+
+      - name: Upload scan summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_TAFT_NOVEMBER_1915_SCAN
+          path: |
+            scan/issues.tsv
+            scan/SUMMARY.jsonl
+          if-no-files-found: error
+          retention-days: 30
