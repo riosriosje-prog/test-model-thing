@@ -6,48 +6,66 @@ This dossier separates the earliest recovered public use of the Taft street
 name from the still-unresolved questions of physical origin, municipal naming
 act, acceptance/dedication, and eponym identity.
 
-## 1. Primary anchor — 12 February 1913
+## 1. Primary anchor — 11 February 1913
 
 Publication: *The Times*, San Juan, Puerto Rico  
-Document date: **1913-02-12**  
-UFDC object: `AA/00/09/69/97/00645/1913021201.pdf`
+Document date: **1913-02-11**  
+UFDC object: `AA/00/09/69/97/00644/1913021101.pdf`
 
 Raw PDF:
-- bytes: **47,014,513**
+- bytes: **47,305,570**
 - SHA-256:
-  `3732d38ddf2d867caa5761b74e4b54ce51953f633e09205a0afbc87f4b789834`
+  `e3452119441cbf750e748ecd69ae74e4cdb98aa565c8b1b5a075fc5abd1fc7f1`
 
 Visual anchor:
 - PDF page: **9**
 - rendered-page SHA-256:
-  `6ce40c7dbb0ef10c55b36ebd0e50bebc438ac6f42d3c663a7499b4cb3b292530`
+  `68f05e1a4271a03b943d71cf4ef11dd90cf22b5aa4d00652962ca044979795b0`
 
 The classified advertisement is visually readable as:
 
 > House for Sale; Eight apartments, Nº 22 Taft Street, near Seashore.
 > Apply G. T. Parker, Box 667, San Juan, P.R.
 
-The exact punctuation is subject to diplomatic transcription review, but
+The material tokens are visually legible on the rendered primary-source page:
 **Taft Street**, **No. 22**, **near Seashore**, **G. T. Parker**, and
-**San Juan** are visually legible.
+**San Juan, P.R.**
 
 GitHub Actions:
-- run: `36142519484`
-- artifact: `GALIA_TAFT_1913_02_12_PRIMARY`
+- run: `36143268220`
+- artifact: `GALIA_TAFT_1913_02_11_PRIMARY`
 - artifact digest:
-  `sha256:8dc84a663e25e9d0ed14b8213c65ace93b5a59836b7a579c4deeca4a79deef47`
+  `sha256:1257c4f088b2321e9922137e0a8e9c11b07fb8f4378d5eb44eb977740cb46ce5`
 
-Bounded state:
+A repeated version of the same classified address appears again on
+**12 February 1913**; that later repetition is not the earliest anchor in the
+resolved corpus.
+
+### Backward corpus immediately preceding the anchor
+
+GALIA resolved and scanned **36/36 publication issues from 1 January through
+11 February 1913**. Only the **11 February** issue contains a qualified Taft
+street-form hit. The resolved issues from **1 January through 10 February**
+contain **zero qualified Taft street-form hits**.
+
+December 1912 was separately scanned:
+- 24 resolved issues;
+- 0 qualified Taft street-form hits;
+- 25 December and 31 December were not resolved in the tested UFDC mapping and
+  are excluded from the negative count rather than treated as negative issues.
+
+Accordingly:
 
 ```text
-TAFT_PUBLIC_NAME_USE_BY_1913_02_12 = DOCUMENTED
+TAFT_PUBLIC_NAME_USE_BY_1913_02_11 = DOCUMENTED
+TAFT_FIRST_IN_RESOLVED_1913_CORPUS = 1913-02-11
 TAFT_FIRST_ABSOLUTE_USE            = OPEN
 TAFT_NAMING_ACT                    = UNRESOLVED
 TAFT_EPONYM_IDENTITY               = UNRESOLVED
 ```
 
-A backward scan of resolved *Times* issues before this date is a separate gate
-and may move the earliest-known-use date earlier.
+A November 1912 backward scan is a separate gate and may move the
+earliest-known-use date earlier.
 
 ## 2. Independent later anchor — 18 June 1914
 
@@ -82,7 +100,7 @@ This supplies an independent temporal and locational anchor:
 Current verified anchors are:
 
 ```text
-12-Feb-1913
+11-Feb-1913
   “No. 22 Taft Street, near Seashore”
               │
               ▼
