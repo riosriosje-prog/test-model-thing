@@ -1,0 +1,187 @@
+name: hf8-recover-verify-20k
+
+on:
+  push:
+    branches:
+      - galia2/hf8-retrain-v0.1
+    paths:
+      - .github/workflows/hf8-recover-verify-20k.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SIMPLEWIKI_URL: https://dumps.wikimedia.org/other/mediawiki_content_current/simplewiki/2026-08-01/xml/bzip2/simplewiki-2026-08-01-p1p1277745.xml.bz2
+      HF_REPO_ID: Junitos/galia-2
+      HF_REVISION: hf8-retrain-v0.1
+      HF_PATH: training/hf8-retrain-v0.1
+      EXPECTED_STEPS: "20000"
+      EXPECTED_PAYLOAD_SHA256: fbc7d18bdfd2f9c68c630c77e8123d4eb941acc7878bef87fbff5496a268f23b
+      EXPECTED_PAYLOAD_BYTES: "70716943"
+      EXPECTED_CORPUS_SHA256: c4629bb527a8fef0b405d07e2518e7c52a13fa63046c1e457e9f12013b388b29
+      EXPECTED_DUMP_SHA256: 441fb855b3d907afe605b00482968e894b94798ffbe870c24be09c4e500edacb
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned runtime
+        run: python -m pip install --upgrade "mlx[cpu]==0.32.2" "huggingface_hub>=1.0,<2"
+
+      - name: Secret gate
+        shell: bash
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF8_20K_RECOVERY_SECRET_GATE=PASS"
+
+      - name: Rebuild exact corpus independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .hf8-20k/data .hf8-20k/remote .hf8-20k/evidence
+          curl --fail --location --retry 4 --retry-delay 5 \
+            "$SIMPLEWIKI_URL" \
+            --output .hf8-20k/data/simplewiki-20260801.xml.bz2
+          python tools/hf8_prepare_simplewiki.py \
+            --dump .hf8-20k/data/simplewiki-20260801.xml.bz2 \
+            --output .hf8-20k/data/corpus.txt \
+            --receipt .hf8-20k/evidence/local-corpus-receipt.json \
+            --target-bytes 16777216 \
+            --source-url "$SIMPLEWIKI_URL"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          r=json.loads(Path(".hf8-20k/evidence/local-corpus-receipt.json").read_text())
+          assert r["dump_sha256"] == os.environ["EXPECTED_DUMP_SHA256"]
+          assert r["corpus_sha256"] == os.environ["EXPECTED_CORPUS_SHA256"]
+          print("HF8_20K_CORPUS_REBUILD=PASS")
+          PY
+
+      - name: Download exact remote staging snapshot
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import snapshot_download
+          snapshot_download(
+              repo_id=os.environ["HF_REPO_ID"],
+              repo_type="model",
+              revision=os.environ["HF_REVISION"],
+              token=os.environ["HF_TOKEN"],
+              allow_patterns=[os.environ["HF_PATH"] + "/**"],
+              local_dir=".hf8-20k/remote",
+          )
+          print("HF8_20K_REMOTE_DOWNLOAD=PASS")
+          PY
+
+      - name: Assert exact recovered 20k identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+
+          root=Path(".hf8-20k/remote")/os.environ["HF_PATH"]
+          tr=json.loads((root/"training-receipt.json").read_text())
+          state=json.loads((root/"training-state.json").read_text())
+          manifest=json.loads((root/"HF8_RETRAIN_SNAPSHOT_MANIFEST.json").read_text())
+
+          assert tr["artifact_kind"] == "REAL_TRAINED_CHECKPOINT"
+          assert tr["authority_binding"] == "CURRENT_BOUND"
+          assert tr["legacy_unbound_taint"] is False
+          assert int(tr["cumulative_steps"]) == int(os.environ["EXPECTED_STEPS"])
+          assert int(state["cumulative_steps"]) == int(os.environ["EXPECTED_STEPS"])
+          assert tr["payload_sha256"] == os.environ["EXPECTED_PAYLOAD_SHA256"]
+          assert int(tr["payload_bytes"]) == int(os.environ["EXPECTED_PAYLOAD_BYTES"])
+          assert manifest["latest_payload_sha256"] == os.environ["EXPECTED_PAYLOAD_SHA256"]
+          assert int(manifest["latest_payload_bytes"]) == int(os.environ["EXPECTED_PAYLOAD_BYTES"])
+          assert int(manifest["latest_cumulative_steps"]) == int(os.environ["EXPECTED_STEPS"])
+
+          payload=root/Path(tr["payload_path"]).name
+          h=hashlib.sha256(payload.read_bytes()).hexdigest()
+          assert h == os.environ["EXPECTED_PAYLOAD_SHA256"]
+          assert payload.stat().st_size == int(os.environ["EXPECTED_PAYLOAD_BYTES"])
+
+          print("HF8_20K_REMOTE_IDENTITY=PASS")
+          print("HF8_20K_PAYLOAD_SHA256="+h)
+          print("HF8_20K_PAYLOAD_BYTES="+str(payload.stat().st_size))
+          print("HF8_20K_CUMULATIVE_STEPS="+str(tr["cumulative_steps"]))
+          PY
+
+      - name: Frozen read-only validation of recovered 20k snapshot
+        run: |
+          python tools/hf8_validate_staged_checkpoint.py \
+            --snapshot-root ".hf8-20k/remote/$HF_PATH" \
+            --corpus .hf8-20k/data/corpus.txt \
+            --corpus-receipt .hf8-20k/evidence/local-corpus-receipt.json \
+            --receipt .hf8-20k/evidence/validation-20000.json \
+            --heldout-bytes 4096
+
+      - name: Assert quality observation and collect evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path(".hf8-20k/remote")/os.environ["HF_PATH"]
+          vr=json.loads(Path(".hf8-20k/evidence/validation-20000.json").read_text())
+          tr=json.loads((root/"training-receipt.json").read_text())
+          assert int(vr["cumulative_training_steps"]) == int(os.environ["EXPECTED_STEPS"])
+          assert vr["checkpoint_payload_sha256"] == os.environ["EXPECTED_PAYLOAD_SHA256"]
+          assert vr["frozen_trainable_parameter_identity"] == "PASS"
+          assert vr["checkpoint_file_identity_after_eval"] == "PASS"
+          receipt={
+              "gate":"HF8_REAL_WEIGHT_20000_RECOVERY_VERIFY",
+              "status":"PASS",
+              "artifact_kind":"REAL_TRAINED_CHECKPOINT",
+              "cumulative_steps":int(tr["cumulative_steps"]),
+              "payload_sha256":tr["payload_sha256"],
+              "payload_bytes":tr["payload_bytes"],
+              "authority_binding":tr["authority_binding"],
+              "corpus_sha256":tr["corpus_sha256"],
+              "heldout_bytes":vr["heldout_bytes"],
+              "heldout_bits_per_byte":vr["heldout_mean_bits_per_byte"],
+              "quality_gate":"OBSERVATION_ONLY",
+              "canonical_authority_transferred":False,
+              "human_promotion_required":True,
+              "promoted":False
+          }
+          Path(".hf8-20k/evidence/recovery-20000-receipt.json").write_text(
+              json.dumps(receipt,indent=2,sort_keys=True)+"\n"
+          )
+          for name in [
+              "training-receipt.json",
+              "training-receipt-004000.json",
+              "training-receipt-020000.json",
+              "training-state.json",
+              "HF8_RETRAIN_SNAPSHOT_MANIFEST.json",
+              "galia-hf8-4p5m.head.json",
+          ]:
+              p=root/name
+              if p.exists():
+                  (Path(".hf8-20k/evidence")/name).write_bytes(p.read_bytes())
+          print("HF8_20K_FROZEN_VALIDATION=PASS")
+          print("HF8_20K_HELDOUT_BPC="+str(vr["heldout_mean_bits_per_byte"]))
+          print("HF8_20K_PROMOTED=false")
+          PY
+
+      - name: Upload recovered 20k evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF8_REAL_WEIGHT_20000_VERIFIED
+          path: .hf8-20k/evidence/
+          if-no-files-found: error
+          retention-days: 90
