@@ -1,0 +1,240 @@
+name: capture-mcleary-taft-1916
+
+on:
+  push:
+    branches:
+      - galia2/mcleary-taft-raw-capture-v0.1
+    paths:
+      - .github/workflows/capture-mcleary-taft-1916.yml
+      - pilots/mcleary_taft_acceptance.py
+      - tools/extract_mcleary_taft_anchor.py
+      - tools/run_mcleary_taft_capture_pilot.py
+      - tests/test_mcleary_taft_capture_pilot.py
+      - historical_store.py
+      - historical_artifacts.py
+      - historical_store_bundle.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SOURCE_URL: https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01534/1916030801.pdf
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install PDF extraction dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Capture exact UFDC PDF bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture
+          curl             --fail --location --silent --show-error             --retry 4 --retry-delay 3             --connect-timeout 30 --max-time 300             --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"             --output capture/mcleary_taft_1916_03_08.pdf             "$SOURCE_URL"
+
+          python - <<'PY'
+          import hashlib, pathlib
+          p = pathlib.Path("capture/mcleary_taft_1916_03_08.pdf")
+          data = p.read_bytes()
+          assert data.startswith(b"%PDF-"), "Downloaded bytes are not a PDF"
+          assert len(data) > 1_000_000, "Downloaded PDF is unexpectedly small"
+          print("MCLEARY_TAFT_RAW_SHA256=" + hashlib.sha256(data).hexdigest())
+          print("MCLEARY_TAFT_RAW_SIZE=" + str(len(data)))
+          PY
+
+      - name: Extract and verify page anchor
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=. python tools/extract_mcleary_taft_anchor.py             --source-file capture/mcleary_taft_1916_03_08.pdf             --output capture/MCLEARY_TAFT_PAGE_ANCHOR.json
+
+          python - <<'PY'
+          import json, pathlib
+          a = json.loads(
+              pathlib.Path("capture/MCLEARY_TAFT_PAGE_ANCHOR.json").read_text()
+          )
+          assert a["matched_relation"] in {
+              "LEARY_NEAR_TAFT_WITH_SALE_DE",
+              "LEARY_SALE_TAFT_OCR_VARIANT_VISUALLY_CONFIRMED",
+          }
+          assert a["page_number"] >= 1
+          assert a["page_count_extracted"] >= a["page_number"]
+          assert "leary" in a["normalized_context"]
+          assert "taft" in a["normalized_context"]
+          assert a["normalized_transcription"] == "Calle Mc Leary (sale de Taft)"
+          print("MCLEARY_TAFT_PAGE_ANCHOR=PASS")
+          print("MCLEARY_TAFT_PAGE=" + str(a["page_number"]))
+          print("MCLEARY_TAFT_CONTEXT=" + a["normalized_context"])
+          PY
+
+      - name: Render verified anchor page
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture/verified
+          PAGE=$(python - <<'PY'
+          import json
+          print(json.load(open("capture/MCLEARY_TAFT_PAGE_ANCHOR.json"))["page_number"])
+          PY
+          )
+          pdftoppm -f "$PAGE" -l "$PAGE" -singlefile -png -r 180 \
+            capture/mcleary_taft_1916_03_08.pdf \
+            capture/verified/mcleary_taft_anchor_page
+          test -s capture/verified/mcleary_taft_anchor_page.png
+
+      - name: Render diagnostic page 4 when text anchor fails
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture/diagnostic
+          pdftoppm -f 4 -l 4 -singlefile -png -r 180 \
+            capture/mcleary_taft_1916_03_08.pdf \
+            capture/diagnostic/mcleary_taft_page4
+          test -s capture/diagnostic/mcleary_taft_page4.png
+
+      - name: Upload diagnostic page
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_MCLEARY_TAFT_1916_PAGE4_DIAGNOSTIC
+          path: |
+            capture/mcleary_taft_1916_03_08.pdf
+            capture/diagnostic/mcleary_taft_page4.png
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Run focused unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=. python -m unittest -v tests.test_mcleary_taft_capture_pilot
+
+      - name: Run Historical Store raw capture pilot
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=. python tools/run_mcleary_taft_capture_pilot.py             --source-file capture/mcleary_taft_1916_03_08.pdf             --anchor-file capture/MCLEARY_TAFT_PAGE_ANCHOR.json             --output-dir capture/pilot
+
+          python - <<'PY'
+          import json, pathlib
+          receipt = json.loads(
+              pathlib.Path("capture/pilot/CAPTURE_PILOT_RECEIPT.json").read_text()
+          )
+          assert receipt["status"] == "RAW_PRIMARY_SOURCE_PAGE_ANCHOR_PASS"
+          assert receipt["authority"]["raw_capture_verified"] is True
+          assert receipt["authority"]["page_anchor_verified"] is True
+          assert receipt["authority"]["relation_objective_gate_satisfied"] is True
+          assert receipt["authority"]["nominative_act_gate_satisfied"] is False
+          assert receipt["authority"]["canonical_promotion_executed"] is False
+          assert (
+              receipt["historical_store"]["relation_claim_status_after_capture"]
+              == "PROPOSED"
+          )
+          assert (
+              receipt["historical_store"]["nominative_claim_status_after_capture"]
+              == "PROPOSED"
+          )
+          assert receipt["historical_store"]["promotion_blockers_after_capture"] == []
+          print("MCLEARY_TAFT_RAW_CAPTURE_PILOT=PASS")
+          PY
+
+      - name: Build deterministic evidence subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, pathlib, zipfile
+
+          files = [
+              pathlib.Path("capture/mcleary_taft_1916_03_08.pdf"),
+              pathlib.Path("capture/MCLEARY_TAFT_PAGE_ANCHOR.json"),
+              pathlib.Path("capture/verified/mcleary_taft_anchor_page.png"),
+              pathlib.Path("capture/pilot/CAPTURE_PILOT_RECEIPT.json"),
+              pathlib.Path("capture/pilot/mcleary_taft_shadow.bundle.json"),
+              pathlib.Path("capture/pilot/mcleary_taft_shadow.sqlite3"),
+          ]
+          manifest = []
+          for path in files:
+              data = path.read_bytes()
+              manifest.append(
+                  f"{hashlib.sha256(data).hexdigest()}  {path.name}\n"
+              )
+          manifest_path = pathlib.Path("capture/EVIDENCE_MANIFEST_SHA256.txt")
+          manifest_path.write_text("".join(manifest), encoding="utf-8")
+          files.append(manifest_path)
+
+          out = pathlib.Path(
+              "capture/GALIA_MCLEARY_TAFT_1916_EVIDENCE.zip"
+          )
+          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+              for path in files:
+                  info = zipfile.ZipInfo(path.name)
+                  info.date_time = (1980, 1, 1, 0, 0, 0)
+                  info.compress_type = zipfile.ZIP_DEFLATED
+                  info.external_attr = 0o100644 << 16
+                  z.writestr(info, path.read_bytes())
+          with zipfile.ZipFile(out) as z:
+              assert z.testzip() is None
+          print(
+              "EVIDENCE_SUBJECT_SHA256="
+              + hashlib.sha256(out.read_bytes()).hexdigest()
+          )
+          PY
+
+      - name: Generate GitHub artifact attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: capture/GALIA_MCLEARY_TAFT_1916_EVIDENCE.zip
+
+      - name: Verify GitHub artifact attestation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            if gh attestation verify               capture/GALIA_MCLEARY_TAFT_1916_EVIDENCE.zip               -R riosriosje-prog/test-model-thing               --format json               > capture/GITHUB_ATTESTATION_VERIFICATION.json; then
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          test "$ok" -eq 1
+          test -s capture/GITHUB_ATTESTATION_VERIFICATION.json
+          echo "GITHUB_PRIMARY_SOURCE_ATTESTATION_VERIFY=PASS"
+
+      - name: Upload raw source and attested provenance bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_MCLEARY_TAFT_1916_RAW_CAPTURE
+          path: |
+            capture/mcleary_taft_1916_03_08.pdf
+            capture/MCLEARY_TAFT_PAGE_ANCHOR.json
+            capture/verified/mcleary_taft_anchor_page.png
+            capture/EVIDENCE_MANIFEST_SHA256.txt
+            capture/GALIA_MCLEARY_TAFT_1916_EVIDENCE.zip
+            capture/GITHUB_ATTESTATION_VERIFICATION.json
+            capture/pilot/CAPTURE_PILOT_RECEIPT.json
+            capture/pilot/mcleary_taft_shadow.bundle.json
+            capture/pilot/mcleary_taft_shadow.sqlite3
+            capture/pilot/artifact_store/
+          if-no-files-found: error
+          retention-days: 90
