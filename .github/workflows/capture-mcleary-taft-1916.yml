@@ -80,6 +80,28 @@ jobs:
           print("MCLEARY_TAFT_CONTEXT=" + a["normalized_context"])
           PY
 
+      - name: Render diagnostic page 4 when text anchor fails
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture/diagnostic
+          pdftoppm -f 4 -l 4 -singlefile -png -r 180 \
+            capture/mcleary_taft_1916_03_08.pdf \
+            capture/diagnostic/mcleary_taft_page4
+          test -s capture/diagnostic/mcleary_taft_page4.png
+
+      - name: Upload diagnostic page
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_MCLEARY_TAFT_1916_PAGE4_DIAGNOSTIC
+          path: |
+            capture/mcleary_taft_1916_03_08.pdf
+            capture/diagnostic/mcleary_taft_page4.png
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Run focused unit tests
         shell: bash
         run: |
