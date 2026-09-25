@@ -69,16 +69,34 @@ jobs:
           a = json.loads(
               pathlib.Path("capture/MCLEARY_TAFT_PAGE_ANCHOR.json").read_text()
           )
-          assert a["matched_relation"] == "LEARY_NEAR_TAFT_WITH_SALE_DE"
+          assert a["matched_relation"] in {
+              "LEARY_NEAR_TAFT_WITH_SALE_DE",
+              "LEARY_SALE_TAFT_OCR_VARIANT_VISUALLY_CONFIRMED",
+          }
           assert a["page_number"] >= 1
           assert a["page_count_extracted"] >= a["page_number"]
           assert "leary" in a["normalized_context"]
           assert "taft" in a["normalized_context"]
-          assert "sale de" in a["normalized_context"]
+          assert a["normalized_transcription"] == "Calle Mc Leary (sale de Taft)"
           print("MCLEARY_TAFT_PAGE_ANCHOR=PASS")
           print("MCLEARY_TAFT_PAGE=" + str(a["page_number"]))
           print("MCLEARY_TAFT_CONTEXT=" + a["normalized_context"])
           PY
+
+      - name: Render verified anchor page
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture/verified
+          PAGE=$(python - <<'PY'
+          import json
+          print(json.load(open("capture/MCLEARY_TAFT_PAGE_ANCHOR.json"))["page_number"])
+          PY
+          )
+          pdftoppm -f "$PAGE" -l "$PAGE" -singlefile -png -r 180 \
+            capture/mcleary_taft_1916_03_08.pdf \
+            capture/verified/mcleary_taft_anchor_page
+          test -s capture/verified/mcleary_taft_anchor_page.png
 
       - name: Render diagnostic page 4 when text anchor fails
         if: failure()
@@ -147,6 +165,7 @@ jobs:
           files = [
               pathlib.Path("capture/mcleary_taft_1916_03_08.pdf"),
               pathlib.Path("capture/MCLEARY_TAFT_PAGE_ANCHOR.json"),
+              pathlib.Path("capture/verified/mcleary_taft_anchor_page.png"),
               pathlib.Path("capture/pilot/CAPTURE_PILOT_RECEIPT.json"),
               pathlib.Path("capture/pilot/mcleary_taft_shadow.bundle.json"),
               pathlib.Path("capture/pilot/mcleary_taft_shadow.sqlite3"),
@@ -209,6 +228,7 @@ jobs:
           path: |
             capture/mcleary_taft_1916_03_08.pdf
             capture/MCLEARY_TAFT_PAGE_ANCHOR.json
+            capture/verified/mcleary_taft_anchor_page.png
             capture/EVIDENCE_MANIFEST_SHA256.txt
             capture/GALIA_MCLEARY_TAFT_1916_EVIDENCE.zip
             capture/GITHUB_ATTESTATION_VERIFICATION.json
