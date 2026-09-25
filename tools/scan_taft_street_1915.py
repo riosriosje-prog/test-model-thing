@@ -9,14 +9,14 @@ import subprocess
 
 
 STREET_PATTERNS = (
-    r"calle\s+taft\b",
-    r"avenida\s+taft\b",
-    r"ave\.?\s+taft\b",
-    r"av\.?\s+taft\b",
-    r"taft\s+ave\.?\b",
-    r"taft\s+avenue\b",
-    r"taft\s+st\.?\b",
-    r"taft\s+street\b",
+    r"\bcalle\s+taft\b",
+    r"\bavenida\s+taft\b",
+    r"\bave\.?\s+taft\b",
+    r"\bav\.?\s+taft\b",
+    r"\btaft\s+ave\.?\b",
+    r"\btaft\s+avenue\b",
+    r"\btaft\s+st\.?\b",
+    r"\btaft\s+street\b",
 )
 
 CONTEXT_TOKENS = (
@@ -89,8 +89,10 @@ def inspect(pdf: Path, *, date: str, folder: int, url: str) -> dict:
                     }
                 )
 
+    # Guard against lexical bleed such as "gave Taft" in political news.
+    # Qualified street hits require whole-token street designators.
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "scan_type": "GALIA_TAFT_STREET_1915",
         "date": date,
         "ufdc_folder": folder,
