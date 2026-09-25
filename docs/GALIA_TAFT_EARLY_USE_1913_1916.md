@@ -156,6 +156,22 @@ This raises the resolved negative pre-anchor corpus to **187 issues** before
 the first qualified Taft street designation on 11 February 1913.
 
 
+
+
+### June 1912 extension
+
+GALIA resolved **24 June 1912 publication issues** and found **zero qualified
+Taft street-form hits**.
+
+- 29 June anchor folder: `00456`;
+- unresolved/non-counted date: **1912-06-17**;
+- artifact digest:
+  `sha256:647c0797bf82ea1be391bae2caa05cb95570cec0fa12695293c353dde55822ac`.
+
+This raises the resolved negative pre-anchor corpus to **211 issues** before
+the first qualified Taft street designation on 11 February 1913.
+
+
 ## 2. Independent later anchor — 18 June 1914
 
 Publication: *El Tiempo / The Times*  
