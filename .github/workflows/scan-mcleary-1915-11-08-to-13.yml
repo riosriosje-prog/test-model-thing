@@ -1,0 +1,82 @@
+name: scan-mcleary-1915-11-08-to-13
+
+on:
+  push:
+    branches:
+      - galia2/mcleary-1915-source-discovery-v0.1
+    paths:
+      - .github/workflows/scan-mcleary-1915-11-08-to-13.yml
+      - tools/scan_mcleary_pre_1915_11_22.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install PDF text tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+      - name: Scan 8-13 Nov 1915 issues
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scan
+          base="https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97"
+          cat > scan/issues.tsv <<'EOF'
+          1915-11-08	1432	1915110801.pdf
+          1915-11-09	1433	1915110901.pdf
+          1915-11-10	1434	1915111001.pdf
+          1915-11-11	1435	1915111101.pdf
+          1915-11-12	1436	1915111201.pdf
+          1915-11-13	1437	1915111301.pdf
+          EOF
+          : > scan/SUMMARY.jsonl
+          while IFS=$'\t' read -r date folder file; do
+            f=$(printf "%05d" "$folder")
+            url="$base/$f/$file"
+            code=$(curl --head --location --silent --show-error               --connect-timeout 15 --max-time 30               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"               --output /tmp/headers.txt --write-out "%{http_code}" "$url" || true)
+            if [ "$code" != "200" ]; then
+              echo "MAPPING_MISS date=$date folder=$f code=$code"
+              exit 1
+            fi
+            curl --fail --location --silent --show-error               --retry 2 --retry-delay 2               --connect-timeout 30 --max-time 300               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"               --output scan/current.pdf "$url"
+            PYTHONPATH=. python tools/scan_mcleary_pre_1915_11_22.py               --pdf scan/current.pdf --date "$date" --folder "$folder"               --url "$url" --output scan/current.json
+            cat scan/current.json >> scan/SUMMARY.jsonl
+            python - <<'PY'
+          import json
+          d=json.load(open("scan/current.json"))
+          print("SCAN_RESULT date=%s hits=%s sha=%s" % (
+              d["date"], len(d["hits"]), d["raw_pdf_sha256"]
+          ))
+          for hit in d["hits"][:4]:
+              print("SCAN_HIT " + json.dumps(hit, ensure_ascii=False, sort_keys=True))
+          PY
+            rm -f scan/current.pdf scan/current.json
+          done < scan/issues.tsv
+          python - <<'PY'
+          import json
+          rows=[json.loads(x) for x in open("scan/SUMMARY.jsonl") if x.strip()]
+          hits=[r for r in rows if r["hits"]]
+          print("SCAN_ISSUES=" + str(len(rows)))
+          print("SCAN_HIT_ISSUES=" + str(len(hits)))
+          print("EARLIEST_HIT_DATE=" + (min(r["date"] for r in hits) if hits else "NONE_IN_WINDOW"))
+          PY
+      - name: Upload scan summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_MCLEARY_1915_11_08_13_SCAN
+          path: |
+            scan/issues.tsv
+            scan/SUMMARY.jsonl
+          if-no-files-found: error
+          retention-days: 30
