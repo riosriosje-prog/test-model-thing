@@ -1,0 +1,74 @@
+name: hf10-space-parity-linux
+
+on:
+  push:
+    branches:
+      - galia2/huggingface-migration-v0.1
+    paths:
+      - .github/workflows/hf10-space-parity-linux.yml
+      - tools/hf10_space_parity_probe.py
+      - main.py
+      - galia2/**
+      - tests/test_galia2_*.py
+
+permissions:
+  contents: read
+
+jobs:
+  linux-cpu-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned MLX Linux CPU backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade "mlx[cpu]==0.32.2"
+
+      - name: Run GALIA 2 non-MLX regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_galia2_*.py' -v
+
+      - name: Run HF10 MLX Linux parity probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/hf10_space_parity_probe.py \
+            --source-sha "$GITHUB_SHA" \
+            --receipt hf10-linux-parity-receipt.json
+
+      - name: Assert Space remains unpromoted
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          r=json.load(open("hf10-linux-parity-receipt.json"))
+          assert r["status"] == "PASS"
+          assert r["source_sha"] == os.environ["GITHUB_SHA"]
+          assert r["platform_system"] == "Linux"
+          assert r["mlx_version"] == "0.32.2"
+          assert r["save_reload_exact"] is True
+          assert r["fallback_recovery_exact"] is True
+          assert r["canonical_authority_transferred"] is False
+          assert r["space_deployment_authorized"] is False
+          print("HF10_PARITY_RECEIPT_GATE=PASS")
+          print("HF10_SPACE_DEPLOYMENT_AUTHORIZED=false")
+          PY
+
+      - name: Upload HF10 parity receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF10_LINUX_PARITY_RECEIPT
+          path: hf10-linux-parity-receipt.json
+          if-no-files-found: error
+          retention-days: 90
