@@ -13,7 +13,61 @@ This dossier separates:
 
 These are separate claims and may not inherit evidence from one another.
 
-## 1. Earliest verified public-use anchor in the current corpus — 20 March 1912
+## 0. Municipal official-use anchor — 15 February 1912
+
+Publication: *El Tiempo / The Times*, San Juan, Puerto Rico  
+Document date: **1912-02-15**  
+UFDC object: `AA/00/09/69/97/00343/1912021501.pdf`
+
+Raw PDF:
+- bytes: **46,916,354**
+- SHA-256:
+  `68429060b964605284c27febf7c73a8d97284a3533d652151bda70595e11ca43`
+
+Visual anchor:
+- PDF page: **12**
+- rendered-page SHA-256:
+  `19125a365ebbdb9a6085de95b5e0a5475e7fadec1c02ee4349ca7e40e2dfa72a`
+- page text SHA-256:
+  `8e24d5f417f319a548802b1d04a22d464d222203f2d0ed48a09c8399ba016298`
+
+The rendered primary-source page contains an **ANUNCIO DE SUBASTA** signed by
+**R. H. Todd, Alcalde de San Juan**, dated **15 February 1912**. The notice
+announces a 26 February public auction for municipal works involving
+**afirmado** and construction of **encintados y cunetas de hormigón** on the
+**calle denominada “Taft”, Santurce**. It further states that **“La Ordenanza
+y demás antecedentes relativos a esta subasta”** were available for
+examination in the **Secretaría Municipal**.
+
+GitHub Actions:
+- run: `36149150452`
+- artifact: `GALIA_TAFT_MUNICIPAL_1912_02_15_PRIMARY`
+- artifact digest:
+  `sha256:2c3a8e85f2dfa9800f9f331c13f27855a29f9db02480e362644d6b1993b7fefa`
+
+### Evidentiary effect
+
+This notice establishes more than private address usage:
+
+```text
+TAFT_OFFICIAL_MUNICIPAL_USE_BY_1912_02_15 = DOCUMENTED
+TAFT_MUNICIPAL_IMPROVEMENT_PROJECT_1912   = DOCUMENTED
+TAFT_WORKS_ORDINANCE_REFERENCED           = DOCUMENTED
+TAFT_NAMING_ACT                           = UNRESOLVED
+TAFT_ORDINANCE_IS_NAMING_ORDINANCE        = UNRESOLVED
+```
+
+The phrase **calle denominada “Taft”** shows that the Municipality of San Juan
+was already treating Taft as an identified street by 15 February 1912.
+The reference to **La Ordenanza** proves that an ordinance formed part of the
+administrative background of the auction/project. It does **not**, without the
+ordinance itself, prove that the ordinance created the street name.
+
+The archival target therefore narrows sharply: recover the ordinance and
+auction antecedents that were physically held in the Municipal Secretariat by
+15 February 1912.
+
+## 1. Earliest verified private-address/public-use anchor in the current corpus — 20 March 1912
 
 Publication: *The Times / El Tiempo*, San Juan, Puerto Rico  
 Document date: **1912-03-20**  
@@ -167,6 +221,11 @@ This supplies an independent geographic anchor:
 Current verified sequence:
 
 ```text
+15-Feb-1912
+  Municipal auction notice — “calle denominada Taft”, Santurce
+  R. H. Todd, Mayor; ordinance/antecedents referenced
+          │
+          ▼
 20-Mar-1912
   Taft St. — 150 yards from sea
           │
