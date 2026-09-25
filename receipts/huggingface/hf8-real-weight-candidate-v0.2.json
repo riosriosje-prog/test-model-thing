@@ -1,0 +1,84 @@
+{
+  "candidate": "HF8_REAL_WEIGHT_CANDIDATE_v0.2_4k",
+  "status": "READY_FOR_HUMAN_PROMOTION",
+  "supersedes": {
+    "candidate": "HF8_REAL_WEIGHT_CANDIDATE_v0.1",
+    "huggingface_pr_number": 2,
+    "status": "SUPERSEDED_NOT_PROMOTED",
+    "reason": "v0.1 corpus/training regime failed quality diagnostics; v0.2 uses distributed full-dump train/eval splits and passes held-out quality gate"
+  },
+  "source": {
+    "branch": "galia2/hf8-retrain-v0.1",
+    "source_sha": "624a086ece2a97cb1c76920437a4dd80cdd88e8c",
+    "training_run_id": 36186857923,
+    "training_artifact_id": 10887206471,
+    "training_artifact_digest": "sha256:5e491a1cb9a061db13ac22608d89d02d83ec21959af9acf1d012ebaff2f5a71a",
+    "preflight_sha": "f2513915667c159daf1e85035070b9c57629b0bb",
+    "preflight_run_id": 36187854108,
+    "preflight_artifact_id": 10887386925,
+    "preflight_artifact_digest": "sha256:ebb2e971f6ebc92aed83e8dbb53bbd722aadbec8e3ef74ba1156f9086a253fac",
+    "publish_sha": "c436498bbe3f7b7dc7a30f1416feffc7ef62a247",
+    "publish_run_id": 36187993837,
+    "publish_artifact_id": 10887332171,
+    "publish_artifact_digest": "sha256:fbc7865dea8eb16cee300422580fa0a3f36d35a3ceb980d23624fe49d009b15a"
+  },
+  "training": {
+    "artifact_kind": "REAL_TRAINED_CHECKPOINT",
+    "training_steps": 4000,
+    "seed": 1976,
+    "model_config": {
+      "dim": 512,
+      "layers": 16,
+      "spread": 32,
+      "temp": 0.75,
+      "lr": 0.0005,
+      "lrbegin": 40000,
+      "lrend": 120000
+    },
+    "sequence_bytes": 256,
+    "dump_sha256": "441fb855b3d907afe605b00482968e894b94798ffbe870c24be09c4e500edacb",
+    "train_sha256": "148775ff8623ea1c718a039d13170326ef426f56d27413c8ea78dcbece24e4d8",
+    "eval_sha256": "fabd4a56475d0754bf3d6c71aad6888fe6a9b925b73a98bd4848bfb3b34d2514",
+    "train_bytes": 112836236,
+    "eval_bytes": 13832739,
+    "pages_seen": 944872,
+    "pages_train": 118617,
+    "pages_eval": 14734,
+    "upstream_exact_cleaning_claimed": false
+  },
+  "quality": {
+    "metric": "heldout_bits_per_byte",
+    "eval_pairs": 4096,
+    "random_init_baseline_bpc": 8.67977507595193,
+    "trained_bpc": 5.675106937451537,
+    "delta_trained_minus_baseline": -3.004668138500393,
+    "improved_vs_random_init": true,
+    "promotion_quality_gate": "PASS"
+  },
+  "weight": {
+    "payload_sha256": "3bc46a281bdb6a031f7399d46e50612b622527bcc2528fd2f0e6220694971b3c",
+    "payload_bytes": 70716981,
+    "classification": "GALIA_CURRENT_BOUND",
+    "authority_binding": "CURRENT_BOUND",
+    "legacy_unbound_taint": false,
+    "provenance_status": "COMPLETE",
+    "technical_upload_eligible": true,
+    "promotion_preflight_eligible": true
+  },
+  "huggingface_candidate": {
+    "repo_id": "Junitos/galia-2",
+    "repo_type": "model",
+    "pr_number": 3,
+    "pr_url": "https://huggingface.co/Junitos/galia-2/discussions/3",
+    "verified_revision": "refs/pr/3",
+    "candidate_path": "weights/hf8-retrain-v0.2-4k",
+    "manifest_sha256": "a41110548ced010da6d1462d4c0822dd527ac7411421540bdaf817d7d3b4cbb2",
+    "verified_file_count": 10
+  },
+  "promotion_scope": "HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY",
+  "quality_claim": "QUALITY_GATED_BOOTSTRAP_ONLY_NOT_EQUIVALENT_TO_UNAVAILABLE_UPSTREAM_12H_CHECKPOINT",
+  "canonical_authority_transferred": false,
+  "source_of_truth": "github",
+  "human_promotion_required": true,
+  "promoted": false
+}
