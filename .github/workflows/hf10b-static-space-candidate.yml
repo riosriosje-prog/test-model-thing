@@ -1,0 +1,105 @@
+name: hf10b-static-space-candidate
+
+on:
+  push:
+    branches:
+      - galia2/huggingface-migration-v0.1
+    paths:
+      - .github/workflows/hf10b-static-space-candidate.yml
+      - huggingface/space-static/**
+      - tools/build_hf_static_space_export.py
+      - tools/publish_hf_static_space_candidate.py
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_SPACE_REPO_ID: Junitos/galia-2-diagnostic
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face client
+        run: python -m pip install --upgrade "huggingface_hub>=1.19,<2"
+
+      - name: Verify secret gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF10B_STATIC_SECRET_GATE=PASS"
+
+      - name: Build static diagnostic export
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build_hf_static_space_export.py \
+            --output hf-static-space-export \
+            --source-sha "$GITHUB_SHA"
+
+      - name: Assert static authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          m=json.load(open("hf-static-space-export/HF_STATIC_SPACE_EXPORT_MANIFEST.json"))
+          assert m["source_sha"] == os.environ["GITHUB_SHA"]
+          assert m["source_of_truth"] == "github"
+          assert m["space_sdk"] == "static"
+          assert m["promotion_scope"] == "SPACE_STATIC_DIAGNOSTIC_CANDIDATE_ONLY"
+          assert m["canonical_authority_transferred"] is False
+          assert m["server_runtime"] is False
+          assert m["model_inference_enabled"] is False
+          assert m["checkpoint_writes_enabled"] is False
+          assert m["weight_artifact_bound"] is False
+          assert m["persistent_session_state"] is False
+          assert m["hf8_weight_gate"] == "HOLD"
+          print("HF10B_STATIC_BOUNDARY=PASS")
+          PY
+
+      - name: Create private static Space, upload as PR, and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/publish_hf_static_space_candidate.py \
+            --repo-id "$HF_SPACE_REPO_ID" \
+            --export-dir hf-static-space-export \
+            --receipt hf10b-static-space-receipt.json | tee hf10b-static-upload.txt
+
+      - name: Assert remote receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          r=json.load(open("hf10b-static-space-receipt.json"))
+          assert r["repo_id"] == os.environ["HF_SPACE_REPO_ID"]
+          assert r["repo_type"] == "space"
+          assert r["space_sdk"] == "static"
+          assert r["create_pr"] is True
+          assert r["canonical_authority_transferred"] is False
+          assert r["space_runtime_promoted"] is False
+          print("HF10B_STATIC_REMOTE_GATE=PASS")
+          print("HF10B_STATIC_REMOTE_PR_URL=" + r["pr_url"])
+          print("HF10B_STATIC_REMOTE_MANIFEST_SHA256=" + r["manifest_sha256"])
+          PY
+
+      - name: Upload candidate receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF10B_STATIC_SPACE_CANDIDATE_RECEIPT
+          path: |
+            hf-static-space-export/HF_STATIC_SPACE_EXPORT_MANIFEST.json
+            hf10b-static-space-receipt.json
+            hf10b-static-upload.txt
+          if-no-files-found: error
+          retention-days: 90
