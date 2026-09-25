@@ -1,0 +1,27 @@
+{
+  "gate": "HF10B_DYNAMIC_GRADIO_SPACE_REMOTE_GATE",
+  "status": "HOLD",
+  "reason": "HF_HOSTING_TIER_CONSTRAINT",
+  "http_status": 402,
+  "remote_message": "Static Spaces are free for everyone, but hosting Gradio and Docker Spaces on free cpu-basic requires a PRO subscription.",
+  "technical_validation": {
+    "gradio_version": "6.26.0",
+    "local_import": "PASS",
+    "read_only_surface_tests": "PASS",
+    "session_fingerprint_isolation_test": "PASS",
+    "diagnostic_boundary_test": "PASS"
+  },
+  "policy": {
+    "subscription_upgrade_required_by_galia": false,
+    "automatic_purchase_or_plan_change_authorized": false,
+    "canonical_authority_transferred": false,
+    "source_of_truth": "github"
+  },
+  "fallback_surface": {
+    "repo_id": "Junitos/galia-2-diagnostic",
+    "sdk": "static",
+    "candidate_pr": 1,
+    "manifest_sha256": "ec24987a453b75ecfc0f76849a4c191266294d24958125609cbf15f33713a705",
+    "status": "VERIFIED_CANDIDATE"
+  }
+}
