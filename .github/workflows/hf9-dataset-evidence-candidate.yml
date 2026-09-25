@@ -6,6 +6,10 @@ on:
       - galia2/huggingface-migration-v0.1
     paths:
       - .github/workflows/hf9-dataset-evidence-candidate.yml
+      - tools/build_hf_dataset_export.py
+      - tools/publish_hf_dataset_candidate.py
+      - huggingface/dataset/**
+      - docs/HF9_DATASET_EVIDENCE_GATE.md
 
 permissions:
   contents: read
