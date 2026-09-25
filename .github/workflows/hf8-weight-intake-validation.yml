@@ -1,0 +1,33 @@
+name: hf8-weight-intake-contract
+
+on:
+  push:
+    branches:
+      - galia2/hf8-weight-intake-v0.2
+    paths:
+      - .github/workflows/hf8-weight-intake-validation.yml
+      - tools/validate_hf8_weight_package.py
+      - tests/test_hf8_weight_intake.py
+      - huggingface/weights/**
+      - docs/HF8_WEIGHT_INTAKE.md
+      - receipts/huggingface/hf8-weight-artifact-hold-v0.2.json
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate HF8 fail-closed intake contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_hf8_weight_intake -v
+          echo "HF8_INTAKE_CONTRACT=PASS"
+          echo "HF8_WEIGHT_ARTIFACT_GATE=HOLD"

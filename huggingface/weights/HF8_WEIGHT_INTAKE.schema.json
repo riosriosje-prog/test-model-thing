@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://galia.local/schema/hf8-weight-intake-v1.json",
+  "title": "GALIA HF8 Weight Intake v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "synthetic_or_placeholder",
+    "human_promotion_required",
+    "canonical_authority_transferred",
+    "source_repo",
+    "source_commit",
+    "checkpoint_target",
+    "training_provenance",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "artifact_kind": {
+      "const": "GALIA_TRAINED_CHECKPOINT_BUNDLE"
+    },
+    "synthetic_or_placeholder": {
+      "const": false
+    },
+    "human_promotion_required": {
+      "const": true
+    },
+    "canonical_authority_transferred": {
+      "const": false
+    },
+    "source_repo": {
+      "const": "riosriosje-prog/test-model-thing"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "checkpoint_target": {
+      "type": "string",
+      "minLength": 1
+    },
+    "training_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "training_data_id",
+        "training_data_sha256",
+        "training_steps",
+        "started_at_utc",
+        "finished_at_utc",
+        "runtime",
+        "python_version",
+        "mlx_version",
+        "operator_or_workflow"
+      ],
+      "properties": {
+        "training_data_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_data_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "training_steps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "started_at_utc": {
+          "type": "string",
+          "minLength": 1
+        },
+        "finished_at_utc": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "python_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mlx_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_or_workflow": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

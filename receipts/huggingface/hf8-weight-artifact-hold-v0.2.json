@@ -1,0 +1,32 @@
+{
+  "gate": "HF8_WEIGHT_ARTIFACT_GATE",
+  "status": "HOLD",
+  "audit_version": "0.2",
+  "reason": "NO_REAL_TRAINED_WEIGHT_ARTIFACT_DISCOVERED",
+  "audited_main_sha": "db884f5284a421d716fbf600c7a52f52347c7ff1",
+  "searched_surfaces": [
+    "GitHub main recursive tree",
+    "GitHub releases",
+    "current Project/conversation files",
+    "personal Library files"
+  ],
+  "findings": {
+    "github_weight_or_checkpoint_files": 0,
+    "github_releases": 0,
+    "project_or_conversation_weight_files": 0,
+    "library_weight_files": 0
+  },
+  "intake_contract": {
+    "branch": "galia2/hf8-weight-intake-v0.2",
+    "requires_real_trained_checkpoint": true,
+    "allows_placeholder_or_synthetic_weights": false,
+    "requires_sha256_and_byte_size": true,
+    "requires_training_data_hash": true,
+    "requires_training_steps_gte_1": true,
+    "requires_runtime_provenance": true,
+    "requires_authoritative_runtime_load": true,
+    "human_promotion_required": true
+  },
+  "canonical_authority_transferred": false,
+  "source_of_truth": "github"
+}
