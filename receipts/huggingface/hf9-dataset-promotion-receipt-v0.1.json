@@ -1,0 +1,19 @@
+{
+  "canonical_authority_transferred": false,
+  "contains_historical_evidence": false,
+  "contains_raw_source_bytes": false,
+  "contains_source_images": false,
+  "evidence_record_count": 0,
+  "human_promotion_authorized": true,
+  "manifest_sha256": "1a2545f83a3e6fc0c7f59fad11d7237c67781216123fd985fd56088cdfdc001e",
+  "pr_number": 2,
+  "pr_status": "merged",
+  "promoted_revision": "main",
+  "promotion_scope": "DATASET_SCHEMA_SURFACE_ONLY",
+  "repo_id": "Junitos/galia-2-evidence",
+  "repo_type": "dataset",
+  "source_of_truth": "github",
+  "source_sha": "4a6b5862ae7b86f9db0d469e1a52b5a751de9a58",
+  "verified_at_utc": "2026-09-25T18:18:36.816475+00:00",
+  "verified_files": 5
+}
