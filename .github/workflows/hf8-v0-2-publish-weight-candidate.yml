@@ -1,0 +1,306 @@
+name: hf8-v0-2-publish-weight-candidate
+
+on:
+  push:
+    branches:
+      - galia2/hf8-retrain-v0.1
+    paths:
+      - .github/workflows/hf8-v0-2-publish-weight-candidate.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  publish-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      HF_REPO_ID: Junitos/galia-2
+      CANDIDATE_PATH: weights/hf8-retrain-v0.2-4k
+      SOURCE_RUN_ID: "36186857923"
+      SOURCE_ARTIFACT_ID: "10887206471"
+      SOURCE_ARTIFACT_DIGEST: sha256:5e491a1cb9a061db13ac22608d89d02d83ec21959af9acf1d012ebaff2f5a71a
+      PREFLIGHT_RUN_ID: "36187854108"
+      PREFLIGHT_ARTIFACT_ID: "10887386925"
+      PREFLIGHT_ARTIFACT_DIGEST: sha256:ebb2e971f6ebc92aed83e8dbb53bbd722aadbec8e3ef74ba1156f9086a253fac
+      SOURCE_SHA: 624a086ece2a97cb1c76920437a4dd80cdd88e8c
+      PREFLIGHT_SHA: f2513915667c159daf1e85035070b9c57629b0bb
+      EXPECTED_PAYLOAD_SHA256: 3bc46a281bdb6a031f7399d46e50612b622527bcc2528fd2f0e6220694971b3c
+      EXPECTED_PAYLOAD_BYTES: "70716981"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face client
+        run: python -m pip install --upgrade "huggingface_hub>=1.0,<2"
+
+      - name: Secret gate
+        shell: bash
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF8_V02_PUBLISH_SECRET_GATE=PASS"
+
+      - name: Download exact source checkpoint artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: GALIA_HF8_RETRAIN_V0_2_DIAGNOSTIC
+          path: .hf8-v02-source
+          github-token: ${{ github.token }}
+          run-id: 36186857923
+
+      - name: Download exact preflight evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: GALIA_HF8_V0_2_WEIGHT_PREFLIGHT
+          path: .hf8-v02-preflight
+          github-token: ${{ github.token }}
+          run-id: 36187854108
+
+      - name: Freeze exact v0.2 candidate bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, shutil
+          from pathlib import Path
+
+          def sha256_file(p: Path) -> str:
+              h=hashlib.sha256()
+              with p.open("rb") as f:
+                  for b in iter(lambda:f.read(1024*1024),b""):
+                      h.update(b)
+              return h.hexdigest()
+
+          src=Path(".hf8-v02-source")
+          pre=Path(".hf8-v02-preflight")
+          out=Path(".hf8-v02-candidate")
+          out.mkdir(parents=True,exist_ok=True)
+
+          tr=json.loads((src/"training-v02-receipt.json").read_text())
+          cr=json.loads((src/"corpus-v02-receipt.json").read_text())
+          pf=json.loads((pre/"preflight-v02-receipt.json").read_text())
+          intake=json.loads((pre/"intake-v02.json").read_text())
+
+          assert tr["checkpoint"]["payload_sha256"] == os.environ["EXPECTED_PAYLOAD_SHA256"]
+          assert int(tr["checkpoint"]["payload_bytes"]) == int(os.environ["EXPECTED_PAYLOAD_BYTES"])
+          assert tr["quality"]["promotion_quality_gate"] == "PASS"
+          assert pf["status"] == "PASS"
+          assert pf["promotion_preflight_eligible"] is True
+          assert pf["technical_upload_eligible"] is True
+          assert intake["artifact"]["classification"] == "GALIA_CURRENT_BOUND"
+          assert intake["provenance_status"]["status"] == "COMPLETE"
+
+          generation=tr["checkpoint"]["generation_id"]
+          required_source=[
+              "galia-hf8-v02-4k.head.json",
+              f"galia-hf8-v02-4k.g-{generation}.manifest.json",
+              f"galia-hf8-v02-4k.g-{generation}.safetensors",
+              "galia-hf8-v02-4k.audit.jsonl",
+              "training-v02-receipt.json",
+              "corpus-v02-receipt.json",
+          ]
+          required_pre=[
+              "provenance-v02.json",
+              "intake-v02.json",
+              "preflight-v02-receipt.json",
+          ]
+
+          for name in required_source:
+              p=src/name
+              if not p.is_file():
+                  raise SystemExit(f"missing source file: {name}")
+              shutil.copy2(p,out/name)
+          for name in required_pre:
+              p=pre/name
+              if not p.is_file():
+                  raise SystemExit(f"missing preflight file: {name}")
+              shutil.copy2(p,out/name)
+
+          payload=out/f"galia-hf8-v02-4k.g-{generation}.safetensors"
+          assert sha256_file(payload) == os.environ["EXPECTED_PAYLOAD_SHA256"]
+          assert payload.stat().st_size == int(os.environ["EXPECTED_PAYLOAD_BYTES"])
+
+          rows=[]
+          for p in sorted(x for x in out.rglob("*") if x.is_file()):
+              rows.append({
+                  "path":p.relative_to(out).as_posix(),
+                  "bytes":p.stat().st_size,
+                  "sha256":sha256_file(p),
+              })
+
+          manifest={
+              "candidate":"HF8_REAL_WEIGHT_CANDIDATE_v0.2_4k",
+              "artifact_kind":"REAL_TRAINED_CHECKPOINT",
+              "repo_id":os.environ["HF_REPO_ID"],
+              "candidate_path":os.environ["CANDIDATE_PATH"],
+              "source_sha":os.environ["SOURCE_SHA"],
+              "source_run_id":int(os.environ["SOURCE_RUN_ID"]),
+              "source_artifact_id":int(os.environ["SOURCE_ARTIFACT_ID"]),
+              "source_artifact_digest":os.environ["SOURCE_ARTIFACT_DIGEST"],
+              "preflight_sha":os.environ["PREFLIGHT_SHA"],
+              "preflight_run_id":int(os.environ["PREFLIGHT_RUN_ID"]),
+              "preflight_artifact_id":int(os.environ["PREFLIGHT_ARTIFACT_ID"]),
+              "preflight_artifact_digest":os.environ["PREFLIGHT_ARTIFACT_DIGEST"],
+              "training_steps":tr["training_steps"],
+              "payload_sha256":os.environ["EXPECTED_PAYLOAD_SHA256"],
+              "payload_bytes":int(os.environ["EXPECTED_PAYLOAD_BYTES"]),
+              "classification":"GALIA_CURRENT_BOUND",
+              "authority_binding":"CURRENT_BOUND",
+              "quality":{
+                  "metric":tr["quality"]["metric"],
+                  "eval_pairs":tr["quality"]["eval_pairs"],
+                  "random_init_baseline_bpc":tr["quality"]["random_init_baseline_bpc"],
+                  "trained_bpc":tr["quality"]["trained_bpc"],
+                  "delta_trained_minus_baseline":tr["quality"]["delta_trained_minus_baseline"],
+                  "promotion_quality_gate":tr["quality"]["promotion_quality_gate"],
+              },
+              "corpus":{
+                  "dump_sha256":cr["dump_sha256"],
+                  "train_sha256":cr["train_sha256"],
+                  "eval_sha256":cr["eval_sha256"],
+                  "train_bytes":cr["train_bytes"],
+                  "eval_bytes":cr["eval_bytes"],
+                  "upstream_exact_cleaning_claimed":False,
+              },
+              "promotion_scope":"HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY",
+              "canonical_authority_transferred":False,
+              "source_of_truth":"github",
+              "human_promotion_required":True,
+              "promoted":False,
+              "files":rows,
+          }
+          mp=out/"HF8_WEIGHT_CANDIDATE_MANIFEST.json"
+          mp.write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
+
+          print("HF8_V02_CANDIDATE_FREEZE=PASS")
+          print("HF8_V02_CANDIDATE_MANIFEST_SHA256="+sha256_file(mp))
+          print("HF8_V02_CANDIDATE_FILE_COUNT="+str(len(rows)+1))
+          print("HF8_V02_CANDIDATE_PAYLOAD_SHA256="+manifest["payload_sha256"])
+          PY
+
+      - name: Publish exact candidate as new Hugging Face PR and re-read
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, re, tempfile
+          from pathlib import Path
+          from huggingface_hub import HfApi, snapshot_download
+
+          def sha256_file(p: Path) -> str:
+              h=hashlib.sha256()
+              with p.open("rb") as f:
+                  for b in iter(lambda:f.read(1024*1024),b""):
+                      h.update(b)
+              return h.hexdigest()
+
+          def tree(root: Path):
+              return {
+                  p.relative_to(root).as_posix():{
+                      "bytes":p.stat().st_size,
+                      "sha256":sha256_file(p),
+                  }
+                  for p in sorted(x for x in root.rglob("*") if x.is_file())
+              }
+
+          repo=os.environ["HF_REPO_ID"]
+          token=os.environ["HF_TOKEN"]
+          local=Path(".hf8-v02-candidate")
+          local_tree=tree(local)
+
+          api=HfApi(token=token)
+          info=api.upload_folder(
+              repo_id=repo,
+              repo_type="model",
+              folder_path=str(local),
+              path_in_repo=os.environ["CANDIDATE_PATH"],
+              commit_message="GALIA HF8 real retrained weight candidate v0.2 4k",
+              commit_description=(
+                  "Quality-gated 4k bootstrap checkpoint from distributed full-dump corpus. "
+                  "Human promotion required; GitHub remains canonical."
+              ),
+              create_pr=True,
+          )
+          pr_url=str(getattr(info,"pr_url",""))
+          m=re.search(r"/discussions/(\d+)",pr_url)
+          if not m:
+              raise SystemExit("Hugging Face upload did not return a PR URL")
+          pr=int(m.group(1))
+          revision=f"refs/pr/{pr}"
+
+          with tempfile.TemporaryDirectory() as td:
+              root=Path(snapshot_download(
+                  repo_id=repo,
+                  repo_type="model",
+                  revision=revision,
+                  token=token,
+                  allow_patterns=[os.environ["CANDIDATE_PATH"]+"/**"],
+                  local_dir=td,
+              ))
+              remote=root/os.environ["CANDIDATE_PATH"]
+              remote_tree=tree(remote)
+
+          if remote_tree != local_tree:
+              missing=sorted(set(local_tree)-set(remote_tree))
+              extra=sorted(set(remote_tree)-set(local_tree))
+              mismatched=sorted(k for k in set(local_tree)&set(remote_tree) if local_tree[k]!=remote_tree[k])
+              raise SystemExit(f"remote candidate mismatch missing={missing} extra={extra} mismatched={mismatched}")
+
+          manifest=local/"HF8_WEIGHT_CANDIDATE_MANIFEST.json"
+          manifest_doc=json.loads(manifest.read_text())
+          receipt={
+              "gate":"HF8_V0_2_REMOTE_CANDIDATE",
+              "status":"PASS",
+              "repo_id":repo,
+              "repo_type":"model",
+              "pr_number":pr,
+              "pr_url":pr_url,
+              "verified_revision":revision,
+              "candidate_path":os.environ["CANDIDATE_PATH"],
+              "manifest_sha256":sha256_file(manifest),
+              "payload_sha256":manifest_doc["payload_sha256"],
+              "payload_bytes":manifest_doc["payload_bytes"],
+              "verified_file_count":len(local_tree),
+              "classification":"GALIA_CURRENT_BOUND",
+              "authority_binding":"CURRENT_BOUND",
+              "quality_gate":manifest_doc["quality"]["promotion_quality_gate"],
+              "random_init_baseline_bpc":manifest_doc["quality"]["random_init_baseline_bpc"],
+              "trained_bpc":manifest_doc["quality"]["trained_bpc"],
+              "promotion_scope":"HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY",
+              "canonical_authority_transferred":False,
+              "source_of_truth":"github",
+              "human_promotion_required":True,
+              "promoted":False,
+          }
+          Path("hf8-v02-remote-candidate-receipt.json").write_text(
+              json.dumps(receipt,indent=2,sort_keys=True)+"\n"
+          )
+
+          print("HF8_V02_REMOTE_PR_PUBLISH=PASS")
+          print("HF8_V02_REMOTE_PR_VERIFY=PASS")
+          print("HF8_V02_REMOTE_PR_NUMBER="+str(pr))
+          print("HF8_V02_REMOTE_PR_URL="+pr_url)
+          print("HF8_V02_REMOTE_MANIFEST_SHA256="+receipt["manifest_sha256"])
+          print("HF8_V02_REMOTE_VERIFIED_FILES="+str(receipt["verified_file_count"]))
+          print("HF8_V02_PROMOTED=false")
+          PY
+
+      - name: Upload v0.2 remote candidate receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF8_V0_2_REAL_WEIGHT_CANDIDATE
+          path: |
+            .hf8-v02-candidate/HF8_WEIGHT_CANDIDATE_MANIFEST.json
+            hf8-v02-remote-candidate-receipt.json
+          if-no-files-found: error
+          retention-days: 90
