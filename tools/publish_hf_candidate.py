@@ -8,9 +8,6 @@ from pathlib import Path
 import re
 import tempfile
 
-from huggingface_hub import HfApi, snapshot_download
-
-
 PR_URL_RE = re.compile(r"/discussions/(\d+)(?:$|[/?#])")
 
 
@@ -83,6 +80,14 @@ def publish_and_verify(
         raise ValueError("repo_id must be owner-or-org/repo-name")
     if not token:
         raise ValueError("HF_TOKEN is required")
+
+    try:
+        from huggingface_hub import HfApi, snapshot_download
+    except ImportError as exc:
+        raise RuntimeError(
+            "huggingface_hub is required only for the remote publish gate; "
+            "install requirements-hf.txt before publishing"
+        ) from exc
 
     api = HfApi(token=token)
     api.create_repo(
