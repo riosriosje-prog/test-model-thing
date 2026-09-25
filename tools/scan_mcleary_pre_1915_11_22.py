@@ -8,7 +8,12 @@ import re
 import subprocess
 
 
-TOKENS = ("mcleary", "mc leary", "mc. leary", "mac leary", "macleary", "leary")
+NAME_PATTERNS = (
+    r"m[aá]?c\s*\.?\s*leary",
+    r"m[eé]\s*\.?\s*leary",
+    r"leary\s+ave\b",
+    r"avenida\s+[^ ]{0,4}leary\b",
+)
 
 
 def normalize(text: str) -> str:
@@ -31,20 +36,30 @@ def inspect(pdf: Path, *, date: str, folder: int, url: str) -> dict:
         pages = pages[:-1]
 
     hits = []
+    leary_diagnostics = []
     for page_number, page in enumerate(pages, 1):
         n = normalize(page)
+
+        for m in re.finditer(r"leary", n):
+            pos = m.start()
+            leary_diagnostics.append(
+                {
+                    "page_number": page_number,
+                    "context": n[max(0, pos-180):min(len(n), pos+360)],
+                }
+            )
+
         positions = []
-        for token in TOKENS:
-            for m in re.finditer(re.escape(token), n):
-                positions.append((m.start(), token))
-        if not positions:
-            continue
+        for pattern in NAME_PATTERNS:
+            for m in re.finditer(pattern, n):
+                positions.append((m.start(), m.group(0), pattern))
         positions.sort()
-        for pos, token in positions[:6]:
+        for pos, token, pattern in positions[:8]:
             hits.append(
                 {
                     "page_number": page_number,
                     "token": token,
+                    "pattern": pattern,
                     "context": n[max(0, pos-260):min(len(n), pos+620)],
                 }
             )
@@ -57,6 +72,7 @@ def inspect(pdf: Path, *, date: str, folder: int, url: str) -> dict:
         "raw_pdf_size_bytes": len(raw),
         "page_count": len(pages),
         "hits": hits,
+        "leary_diagnostics": leary_diagnostics[:20],
         "claim_promoted": False,
     }
 
