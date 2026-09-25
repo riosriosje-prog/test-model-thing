@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "policy_id": "GALIA_CONTROL_ARTIFACT_PLANE_V1",
+  "status": "ACTIVE_CANDIDATE",
+  "control_plane": "github",
+  "ml_artifact_plane": "huggingface",
+  "source_of_truth": "github",
+  "canonical_authority_transferred": false,
+  "principles": {
+    "code_authority_equals_model_artifact_authority": false,
+    "source_merge_implies_artifact_promotion": false,
+    "artifact_promotion_implies_source_merge": false,
+    "artifact_presence_implies_canonical_authority": false,
+    "human_promotion_required": true
+  },
+  "github_responsibilities": [
+    "source_code",
+    "architecture",
+    "tests",
+    "ci",
+    "workflow_definitions",
+    "governance_policy",
+    "receipts",
+    "promotion_decision_records",
+    "rollback_and_lineage"
+  ],
+  "huggingface_responsibilities": [
+    "model_weight_distribution",
+    "model_cards",
+    "dataset_surfaces",
+    "spaces_and_demos",
+    "artifact_pull_requests",
+    "remote_artifact_storage",
+    "remote_byte_reread_verification"
+  ],
+  "cross_plane_contract": {
+    "required_bindings": [
+      "github_source_sha",
+      "artifact_manifest_sha256",
+      "artifact_payload_sha256",
+      "artifact_byte_size",
+      "promotion_scope"
+    ],
+    "github_to_huggingface": {
+      "automatic_promotion_allowed": false,
+      "human_promotion_required": true,
+      "remote_reread_required": true
+    },
+    "huggingface_to_github": {
+      "automatic_source_merge_allowed": false,
+      "canonical_authority_transfer_allowed": false,
+      "legacy_mutation_allowed": false
+    }
+  },
+  "current_promoted_weight": {
+    "repo_id": "Junitos/galia-2",
+    "revision": "main",
+    "candidate_path": "weights/hf8-retrain-v0.2-4k",
+    "payload_sha256": "3bc46a281bdb6a031f7399d46e50612b622527bcc2528fd2f0e6220694971b3c",
+    "payload_bytes": 70716981,
+    "manifest_sha256": "a41110548ced010da6d1462d4c0822dd527ac7411421540bdaf817d7d3b4cbb2",
+    "promotion_scope": "HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY"
+  },
+  "control_plane_ref": "main",
+  "control_plane_repository": "riosriosje-prog/test-model-thing",
+  "promotion_receipt_must_bind_merge_commit": true
+}

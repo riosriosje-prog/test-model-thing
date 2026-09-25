@@ -1,30 +1,37 @@
 # HF8 — Real Weight Artifact Intake Gate
 
-Status: **HOLD / INTAKE TOOLING READY / NO SYNTHETIC WEIGHTS**
+Status: **ACTIVE TOOLING / REAL WEIGHT PROMOTED / NO SYNTHETIC WEIGHTS**
 
-## Discovery result
+## Historical discovery result
 
-The current GALIA GitHub `main` contains no real model weight/checkpoint artifact.
-No GitHub releases exist in the user fork, and audited `main` workflow runs retain
-no downloadable weight artifacts.
+HF8 originally entered HOLD because no compatible real checkpoint bytes were available in the user fork, releases, audited CI artifacts, upstream releases, compatible forks or public Hugging Face search.
 
-The upstream TMT README states that a 4.5M-parameter model was trained for about
-12 hours using the Simple English Wikipedia 2026-08-01 dump, with `dim=512` and
-`layers=16`. The README also explicitly states that model weights are not provided
-in GitHub.
+The upstream TMT README documented a 4.5M-parameter model trained for about 12 hours using the Simple English Wikipedia 2026-08-01 dump, with `dim=512` and `layers=16`, but did not publish the corresponding `.safetensors` bytes.
 
-The filename `smaller-4.5m.safetensors` appears in upstream discussion as the
-expected checkpoint path. It is not, by itself, evidence that the bytes were
-published.
+The filename `smaller-4.5m.safetensors` appeared only as an expected checkpoint path, not as a downloadable artifact.
 
-Audited compatible/near-compatible forks did not expose a downloadable checkpoint.
-A real 129 MB training release was located in a CUDA rewrite, but that architecture
-and checkpoint format differ materially from the current MLX/GALIA checkpoint
-contract and therefore cannot satisfy HF8.
+That historical acquisition HOLD was later resolved through reproducible GALIA retraining rather than by fabricating or substituting weights.
 
-## Why legacy weights cannot be auto-promoted
+## Current promoted HF8 weight
 
-There are now three relevant classes:
+```text
+repo_id           = Junitos/galia-2
+revision          = main
+candidate_path    = weights/hf8-retrain-v0.2-4k
+training_steps    = 4000
+payload_sha256    = 3bc46a281bdb6a031f7399d46e50612b622527bcc2528fd2f0e6220694971b3c
+payload_bytes     = 70716981
+manifest_sha256   = a41110548ced010da6d1462d4c0822dd527ac7411421540bdaf817d7d3b4cbb2
+classification    = GALIA_CURRENT_BOUND
+authority_binding = CURRENT_BOUND
+quality_gate      = PASS
+promotion_scope   = HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY
+```
+
+Durable promotion receipt:
+`receipts/huggingface/hf8-v0-2-weight-promotion-receipt.json`
+
+## Intake classifications
 
 1. **GALIA_CURRENT_BOUND**
    - authoritative generation + manifest + HEAD;
@@ -36,7 +43,7 @@ There are now three relevant classes:
    - structurally compatible single-file checkpoint;
    - no current manifest/HEAD authority binding;
    - inspection allowed only under explicit legacy-unbound policy;
-   - authoritative persistence/upload remains HOLD.
+   - authoritative persistence/upload remains HOLD until separately reviewed.
 
 3. **TMT_UPSTREAM_LEGACY**
    - original/upstream schema using `m.blocks.*`;
@@ -46,7 +53,7 @@ There are now three relevant classes:
 
 ## Intake tool
 
-`tools/hf8_weight_intake.py` performs read-only inspection.
+`tools/hf8_weight_intake.py` remains the canonical read-only intake validator for future weight candidates.
 
 It records:
 
@@ -62,44 +69,26 @@ It records:
 
 It performs **no upload** and **no promotion**.
 
-Example when a real file is available:
+## Future candidate exit rule
 
-```bash
-python tools/hf8_weight_intake.py \
-  --target /path/to/smaller-4.5m.safetensors \
-  --provenance /path/to/provenance.json \
-  --output hf8-weight-intake-receipt.json
+Every future HF8 weight candidate must still satisfy:
+
+- actual checkpoint bytes present;
+- exact size and SHA-256 recorded;
+- checkpoint parse succeeds;
+- schema/config compatibility known;
+- provenance complete;
+- authority binding explicit;
+- any legacy transformation separately reviewed and receipt-bound;
+- remote Hugging Face bytes re-read and hash-verified after upload;
+- separate human promotion decision recorded.
+
+No test fixture, randomly initialized model, synthetic checkpoint or incompatible third-party architecture may satisfy HF8.
+
+## Authority boundary
+
+```text
+source_of_truth                 = github
+canonical_authority_transferred = false
+legacy_mutation_authorized      = false
 ```
-
-Required provenance fields:
-
-```json
-{
-  "origin_type": "upstream_author",
-  "obtained_from": "exact handoff or URL",
-  "training_dataset": "simplewiki-20260801-pages-articles.xml.bz2",
-  "training_description": "what run produced these bytes",
-  "trainer_or_custodian": "identified custodian",
-  "claimed_not_synthetic": true
-}
-```
-
-The attestation is provenance metadata, not cryptographic proof of training.
-Human review remains required.
-
-## Exit rule
-
-HF8 may leave HOLD only when all of the following are satisfied:
-
-- actual checkpoint bytes are present;
-- exact size and SHA-256 are recorded;
-- the checkpoint can be parsed;
-- schema/config compatibility is known;
-- provenance is complete;
-- authority binding is explicit;
-- any legacy transformation is separately reviewed and receipt-bound;
-- remote Hugging Face bytes are re-read and hash-verified after upload;
-- a separate human promotion decision is recorded.
-
-No test fixture, randomly initialized model, synthetic checkpoint, or incompatible
-third-party architecture may satisfy HF8.
