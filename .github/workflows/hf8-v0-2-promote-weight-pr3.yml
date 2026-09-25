@@ -1,0 +1,312 @@
+name: hf8-v0-2-promote-weight-pr3
+
+on:
+  push:
+    branches:
+      - galia2/hf8-retrain-v0.1
+    paths:
+      - .github/workflows/hf8-v0-2-promote-weight-pr3.yml
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_REPO_ID: Junitos/galia-2
+      HF_PR_NUMBER: "3"
+      CANDIDATE_PATH: weights/hf8-retrain-v0.2-4k
+      EXPECTED_MANIFEST_SHA256: a41110548ced010da6d1462d4c0822dd527ac7411421540bdaf817d7d3b4cbb2
+      EXPECTED_PAYLOAD_SHA256: 3bc46a281bdb6a031f7399d46e50612b622527bcc2528fd2f0e6220694971b3c
+      EXPECTED_PAYLOAD_BYTES: "70716981"
+      EXPECTED_VERIFIED_FILE_COUNT: "10"
+      EXPECTED_TRAINING_STEPS: "4000"
+      EXPECTED_BASELINE_BPC: "8.67977507595193"
+      EXPECTED_TRAINED_BPC: "5.675106937451537"
+      EXPECTED_SCOPE: HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade "huggingface_hub>=1.19,<2"
+
+      - name: Verify secret gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF8_V02_PROMOTION_SECRET_GATE=PASS"
+
+      - name: Preflight exact HF PR #3 candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, pathlib, tempfile
+          from huggingface_hub import HfApi, snapshot_download
+
+          repo=os.environ["HF_REPO_ID"]
+          pr=int(os.environ["HF_PR_NUMBER"])
+          token=os.environ["HF_TOKEN"]
+          path=os.environ["CANDIDATE_PATH"]
+          expected_manifest=os.environ["EXPECTED_MANIFEST_SHA256"]
+          expected_payload=os.environ["EXPECTED_PAYLOAD_SHA256"]
+          expected_bytes=int(os.environ["EXPECTED_PAYLOAD_BYTES"])
+          expected_count=int(os.environ["EXPECTED_VERIFIED_FILE_COUNT"])
+          expected_steps=int(os.environ["EXPECTED_TRAINING_STEPS"])
+          expected_scope=os.environ["EXPECTED_SCOPE"]
+          expected_baseline=float(os.environ["EXPECTED_BASELINE_BPC"])
+          expected_trained=float(os.environ["EXPECTED_TRAINED_BPC"])
+
+          api=HfApi(token=token)
+          details=api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="model",
+          )
+          if not details.is_pull_request:
+              raise SystemExit("discussion #3 is not a pull request")
+          if details.status not in ("open","draft"):
+              raise SystemExit(f"unexpected PR status before merge: {details.status}")
+
+          with tempfile.TemporaryDirectory() as td:
+              root=pathlib.Path(snapshot_download(
+                  repo_id=repo,
+                  repo_type="model",
+                  revision=f"refs/pr/{pr}",
+                  token=token,
+                  local_dir=td,
+                  allow_patterns=[path+"/**"],
+              ))
+              croot=root/path
+              mp=croot/"HF8_WEIGHT_CANDIDATE_MANIFEST.json"
+              raw=mp.read_bytes()
+              digest=hashlib.sha256(raw).hexdigest()
+              if digest != expected_manifest:
+                  raise SystemExit(f"manifest hash mismatch: {digest}")
+
+              manifest=json.loads(raw)
+              assert manifest["candidate"] == "HF8_REAL_WEIGHT_CANDIDATE_v0.2_4k"
+              assert manifest["artifact_kind"] == "REAL_TRAINED_CHECKPOINT"
+              assert manifest["candidate_path"] == path
+              assert int(manifest["training_steps"]) == expected_steps
+              assert manifest["payload_sha256"] == expected_payload
+              assert int(manifest["payload_bytes"]) == expected_bytes
+              assert manifest["classification"] == "GALIA_CURRENT_BOUND"
+              assert manifest["authority_binding"] == "CURRENT_BOUND"
+              assert manifest["quality"]["promotion_quality_gate"] == "PASS"
+              assert abs(float(manifest["quality"]["random_init_baseline_bpc"])-expected_baseline) < 1e-12
+              assert abs(float(manifest["quality"]["trained_bpc"])-expected_trained) < 1e-12
+              assert float(manifest["quality"]["trained_bpc"]) < float(manifest["quality"]["random_init_baseline_bpc"])
+              assert manifest["promotion_scope"] == expected_scope
+              assert manifest["canonical_authority_transferred"] is False
+              assert manifest["source_of_truth"] == "github"
+              assert manifest["human_promotion_required"] is True
+              assert manifest["promoted"] is False
+
+              rows=manifest["files"]
+              if len(rows)+1 != expected_count:
+                  raise SystemExit(f"candidate file count mismatch: {len(rows)+1}")
+
+              payload_seen=False
+              for row in rows:
+                  p=croot/row["path"]
+                  if not p.is_file():
+                      raise SystemExit(f"missing candidate file: {row['path']}")
+                  if p.stat().st_size != int(row["bytes"]):
+                      raise SystemExit(f"size mismatch: {row['path']}")
+                  h=hashlib.sha256(p.read_bytes()).hexdigest()
+                  if h != row["sha256"]:
+                      raise SystemExit(f"hash mismatch: {row['path']}")
+                  if row["path"].endswith(".safetensors"):
+                      if h != expected_payload or p.stat().st_size != expected_bytes:
+                          raise SystemExit("payload identity mismatch")
+                      payload_seen=True
+              if not payload_seen:
+                  raise SystemExit("candidate has no expected safetensors payload")
+
+          print("HF8_V02_PROMOTION_PREFLIGHT=PASS")
+          print("HF8_V02_PROMOTION_PR=3")
+          print("HF8_V02_PROMOTION_MANIFEST_SHA256="+expected_manifest)
+          print("HF8_V02_PROMOTION_PAYLOAD_SHA256="+expected_payload)
+          print("HF8_V02_PROMOTION_QUALITY_GATE=PASS")
+          PY
+
+      - name: Publish draft and merge exact HF PR #3
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+
+          repo=os.environ["HF_REPO_ID"]
+          pr=int(os.environ["HF_PR_NUMBER"])
+          api=HfApi(token=os.environ["HF_TOKEN"])
+
+          details=api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="model",
+          )
+          if details.status == "draft":
+              change=api.change_discussion_status(
+                  repo_id=repo,
+                  discussion_num=pr,
+                  new_status="open",
+                  repo_type="model",
+                  comment=(
+                      "Human promotion authorized for exact GALIA HF8 v0.2 4k "
+                      "quality-gated real-weight candidate. GitHub remains canonical."
+                  ),
+              )
+              print("HF8_V02_PROMOTION_DRAFT_PUBLISH=PASS")
+              print("HF8_V02_PROMOTION_READY_STATUS="+str(change.new_status))
+
+          details=api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="model",
+          )
+          if details.status != "open":
+              raise SystemExit(f"PR is not open before merge: {details.status}")
+
+          result=api.merge_pull_request(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="model",
+              comment=(
+                  "Human promotion authorized for exact HF8 v0.2 4k candidate. "
+                  "Scope is HF8_REAL_WEIGHT_V0_2_4K_BOOTSTRAP_ONLY. "
+                  "GitHub remains canonical; no authority transfer; no Legacy mutation."
+              ),
+          )
+          print("HF8_V02_PROMOTION_MERGE=PASS")
+          print("HF8_V02_PROMOTION_STATUS="+str(getattr(result,"new_status","merged")))
+          PY
+
+      - name: Verify exact promoted main bytes and authority invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import datetime, hashlib, json, os, pathlib, tempfile
+          from huggingface_hub import HfApi, snapshot_download
+
+          repo=os.environ["HF_REPO_ID"]
+          pr=int(os.environ["HF_PR_NUMBER"])
+          token=os.environ["HF_TOKEN"]
+          path=os.environ["CANDIDATE_PATH"]
+          expected_manifest=os.environ["EXPECTED_MANIFEST_SHA256"]
+          expected_payload=os.environ["EXPECTED_PAYLOAD_SHA256"]
+          expected_bytes=int(os.environ["EXPECTED_PAYLOAD_BYTES"])
+          expected_count=int(os.environ["EXPECTED_VERIFIED_FILE_COUNT"])
+          expected_scope=os.environ["EXPECTED_SCOPE"]
+
+          api=HfApi(token=token)
+          details=api.get_discussion_details(
+              repo_id=repo,
+              discussion_num=pr,
+              repo_type="model",
+          )
+          if details.status != "merged":
+              raise SystemExit(f"PR status is not merged: {details.status}")
+
+          with tempfile.TemporaryDirectory() as td:
+              root=pathlib.Path(snapshot_download(
+                  repo_id=repo,
+                  repo_type="model",
+                  revision="main",
+                  token=token,
+                  local_dir=td,
+                  allow_patterns=[path+"/**"],
+              ))
+              croot=root/path
+              mp=croot/"HF8_WEIGHT_CANDIDATE_MANIFEST.json"
+              raw=mp.read_bytes()
+              digest=hashlib.sha256(raw).hexdigest()
+              if digest != expected_manifest:
+                  raise SystemExit(f"promoted manifest mismatch: {digest}")
+              manifest=json.loads(raw)
+
+              assert manifest["payload_sha256"] == expected_payload
+              assert int(manifest["payload_bytes"]) == expected_bytes
+              assert manifest["classification"] == "GALIA_CURRENT_BOUND"
+              assert manifest["authority_binding"] == "CURRENT_BOUND"
+              assert manifest["quality"]["promotion_quality_gate"] == "PASS"
+              assert manifest["promotion_scope"] == expected_scope
+              assert manifest["canonical_authority_transferred"] is False
+              assert manifest["source_of_truth"] == "github"
+
+              rows=manifest["files"]
+              if len(rows)+1 != expected_count:
+                  raise SystemExit("promoted file count mismatch")
+              payload_seen=False
+              for row in rows:
+                  p=croot/row["path"]
+                  if not p.is_file():
+                      raise SystemExit(f"promoted file missing: {row['path']}")
+                  if p.stat().st_size != int(row["bytes"]):
+                      raise SystemExit(f"promoted size mismatch: {row['path']}")
+                  h=hashlib.sha256(p.read_bytes()).hexdigest()
+                  if h != row["sha256"]:
+                      raise SystemExit(f"promoted hash mismatch: {row['path']}")
+                  if row["path"].endswith(".safetensors"):
+                      if h != expected_payload or p.stat().st_size != expected_bytes:
+                          raise SystemExit("promoted payload identity mismatch")
+                      payload_seen=True
+              if not payload_seen:
+                  raise SystemExit("promoted payload missing")
+
+          receipt={
+              "gate":"HF8_V0_2_WEIGHT_PROMOTION",
+              "status":"PASS",
+              "repo_id":repo,
+              "repo_type":"model",
+              "pr_number":pr,
+              "pr_status":"merged",
+              "promoted_revision":"main",
+              "candidate_path":path,
+              "manifest_sha256":expected_manifest,
+              "payload_sha256":expected_payload,
+              "payload_bytes":expected_bytes,
+              "verified_file_count":expected_count,
+              "classification":"GALIA_CURRENT_BOUND",
+              "authority_binding":"CURRENT_BOUND",
+              "quality_gate":"PASS",
+              "promotion_scope":expected_scope,
+              "source_of_truth":"github",
+              "canonical_authority_transferred":False,
+              "legacy_mutation_authorized":False,
+              "github_pr_22_merged":False,
+              "human_promotion_authorized":True,
+              "promoted":True,
+              "verified_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          }
+          pathlib.Path("hf8-v02-weight-promotion-receipt.json").write_text(
+              json.dumps(receipt,indent=2,sort_keys=True)+"\n",
+              encoding="utf-8",
+          )
+          print("HF8_V02_PROMOTION_POSTVERIFY=PASS")
+          print("HF8_V02_PROMOTED_MANIFEST_SHA256="+expected_manifest)
+          print("HF8_V02_PROMOTED_PAYLOAD_SHA256="+expected_payload)
+          print("HF8_V02_CANONICAL_AUTHORITY_TRANSFERRED=false")
+          print("HF8_V02_GITHUB_PR22_MERGED=false")
+          PY
+
+      - name: Upload exact promotion receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF8_V0_2_WEIGHT_PROMOTION_RECEIPT
+          path: hf8-v02-weight-promotion-receipt.json
+          if-no-files-found: error
+          retention-days: 90
