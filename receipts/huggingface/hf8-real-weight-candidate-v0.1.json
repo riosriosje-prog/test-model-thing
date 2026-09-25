@@ -1,6 +1,6 @@
 {
   "candidate": "HF8_REAL_WEIGHT_CANDIDATE_v0.1",
-  "status": "READY_FOR_HUMAN_PROMOTION",
+  "status": "READY_FOR_HUMAN_PROMOTION_BOOTSTRAP_SCOPE_ONLY",
   "artifact_kind": "REAL_TRAINED_CHECKPOINT",
   "training": {
     "source_branch": "galia2/hf8-retrain-v0.1",
@@ -58,5 +58,23 @@
   "canonical_authority_transferred": false,
   "source_of_truth": "github",
   "human_promotion_required": true,
-  "promoted": false
+  "promoted": false,
+  "validation": {
+    "source_sha": "18fd9a760476465a1867b6a2a4b9c6e0f3f28a18",
+    "run_id": 36182388574,
+    "status": "PASS",
+    "artifact_id": 10884668601,
+    "artifact_digest": "sha256:85af29011000e8a4515ef1fefb4f3b2ed44ab17bd2402c6cb9788d9f631434b1",
+    "staged_manifest_verify": "PASS",
+    "staged_current_generation_load": "PASS",
+    "resume_precondition": "PASS",
+    "frozen_trainable_parameter_identity": "PASS",
+    "frozen_checkpoint_file_identity": "PASS",
+    "heldout_bytes": 4096,
+    "heldout_bits_per_byte": 8.54508362,
+    "uniform_256_symbol_reference_bits_per_byte": 8,
+    "delta_vs_uniform_bits_per_byte": 0.54508362,
+    "quality_gate": "OBSERVATION_ONLY"
+  },
+  "quality_observation": "After 4,000 optimizer steps, held-out BPC is 8.54508362 on the independently rebuilt corpus tail. This is recorded as an observation only; no broader quality baseline claim is authorized."
 }
