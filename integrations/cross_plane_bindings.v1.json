@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "integration_set_id": "GALIA-CROSS-PLANE-2026-09-26-001",
+  "status": "CANDIDATE_NOT_PROMOTED",
+  "authority_invariants": {
+    "source_of_truth": "GITHUB",
+    "canonical_authority_provider": "GITHUB",
+    "canonical_authority_transferred": false,
+    "legacy_mutation_authorized": false
+  },
+  "github": {
+    "role": "CONTROL_PLANE",
+    "repository": "riosriosje-prog/test-model-thing",
+    "ref": "main",
+    "candidate_base_commit": "384a1b1b2c804b6d7838cd301d61232dd6313895",
+    "promotion_binding": {
+      "merge_commit_resolution": "REQUIRED_AT_PROMOTION",
+      "template_token": "__PROMOTED_MAIN_COMMIT__",
+      "required_format": "40_lower_hex",
+      "promotion_receipt_must_bind_merge_commit": true
+    },
+    "release_authority_module_blob": "50e76bc36a5a77e71eb11ed70724973c5ffc62f2",
+    "release_authority_test_blob": "9b73e0497f58f45e04668fc5650db0fd34642628"
+  },
+  "hugging_face": {
+    "authenticated_account": "Junitos",
+    "model": {
+      "role": "ML_ARTIFACT_PLANE",
+      "repo_id": "Junitos/galia-2",
+      "revision": "main",
+      "path": "weights/hf8-retrain-v0.2-4k",
+      "payload_sha256": "3bc46a281bdb6a031f7399d46e50612b622527bcc2528fd2f0e6220694971b3c",
+      "payload_bytes": 70716981,
+      "manifest_sha256": "a41110548ced010da6d1462d4c0822dd527ac7411421540bdaf817d7d3b4cbb2",
+      "live_repo_verified": true
+    },
+    "evidence_dataset": {
+      "role": "EVIDENCE_ARTIFACT_PLANE",
+      "repo_id": "Junitos/galia-2-evidence",
+      "revision": "main",
+      "manifest_sha256": "1a2545f83a3e6fc0c7f59fad11d7237c67781216123fd985fd56088cdfdc001e",
+      "source_sha": "4a6b5862ae7b86f9db0d469e1a52b5a751de9a58",
+      "evidence_records": 0,
+      "raw_evidence_bytes": 0,
+      "live_repo_verified": true
+    }
+  },
+  "supabase": {
+    "role": "DATA_PLANE",
+    "project_id": "nzoviwitcqmsacwiizhh",
+    "project_name": "galia-cangrejos",
+    "region": "us-east-1",
+    "status": "ACTIVE_HEALTHY",
+    "postgres_version": "17.6.1.166",
+    "current_schema_version": "1.3.2",
+    "target_schema_version": "1.4.0",
+    "pre_fix_migration_set_sha256": "eb9fd47b916a228150f56b380f8b997ab307513a7a6abac645726f8011666fb3",
+    "historical_external_anchors_preserved": true,
+    "pre_fix_migration_set_hash_contract": {
+      "algorithm": "SHA-256",
+      "encoding": "UTF-8",
+      "serialization": "ascending migration version; one line per migration as <version>:<name> followed by newline",
+      "migration_count": 9
+    }
+  },
+  "trust_root": {
+    "active_pointer_sha256": "ceb60f75e5fdf38dbe743d0d6560f58bb359ebbeaa322d501460e5eb579a02b9",
+    "trust_root_v8_sha256": "7aa0d35cdd6b3746c43f0cfd379fdb78e50347b32ff8fa0092fd7ded6956e778",
+    "global_master_release": "RC-GALIA-2026-09-13-004",
+    "global_master_sqlite_sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354"
+  },
+  "expected_edges": [
+    [
+      "github-control-plane-main",
+      "hf8-model-artifact",
+      "BINDS_ARTIFACT"
+    ],
+    [
+      "github-control-plane-main",
+      "hf9-evidence-schema",
+      "BINDS_ARTIFACT"
+    ],
+    [
+      "github-control-plane-main",
+      "supabase-data-plane",
+      "BINDS_DATA_PLANE"
+    ],
+    [
+      "supabase-data-plane",
+      "hf9-evidence-schema",
+      "DISTRIBUTES_SCHEMA_TO"
+    ]
+  ],
+  "non_effects": [
+    "NO_HF_AUTHORITY_TRANSFER",
+    "NO_SUPABASE_AUTHORITY_TRANSFER",
+    "NO_LEGACY_MUTATION",
+    "NO_EVIDENCE_RECORD_MIGRATION",
+    "NO_G28_CLOSURE",
+    "NO_SAFE_DELETE_LIFT"
+  ]
+}
