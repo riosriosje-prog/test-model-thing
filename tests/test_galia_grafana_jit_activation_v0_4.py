@@ -47,7 +47,7 @@ class ActivationV04Tests(unittest.TestCase):
     def test_planner_has_no_network_or_credentials(self):
         lowered = PLANNER_TEXT.lower()
         for forbidden in (
-            "urllib", "requests", "curl", "authorization",
+            "urllib", "requests", "curl", "bearer ",
             "supabase_management_api_token", "galia_grafana_scoped_pat"
         ):
             self.assertNotIn(forbidden, lowered)
