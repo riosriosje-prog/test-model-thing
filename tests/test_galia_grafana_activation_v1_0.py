@@ -64,7 +64,7 @@ class GaliaGrafanaActivationV10Tests(unittest.TestCase):
         )
 
     def test_only_password_token_is_used_for_password_clause(self):
-        self.assertIn("password '__GRAFANA_PASSWORD__';", SQL.lower())
+        self.assertIn("password '__grafana_password__';", SQL.lower())
         self.assertEqual(SQL.count(PASSWORD_TOKEN), 3)
 
     def test_receipt_contains_no_password_token_or_secret_hash(self):
