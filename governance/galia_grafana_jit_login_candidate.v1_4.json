@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-JIT-LOGIN-CANDIDATE-v1.4",
+  "object_ref": "GALIA-GRAFANA-JIT-LOGIN-PREP-2026-09-27-001",
+  "status": "CANDIDATE_NOT_PROMOTED",
+  "repository": "riosriosje-prog/test-model-thing",
+  "base_ref": "main",
+  "base_commit": "da889048edb339b8e9995a7c27edafb53e0221ee",
+  "target_schema_version": "1.5.0",
+  "project": {
+    "ref": "nzoviwitcqmsacwiizhh",
+    "postgres_version": "17.6.1.166",
+    "temporary_access_minimum_postgres_version": "17.6.1.081"
+  },
+  "promotion_binding": {
+    "promoted_main_commit_token": "__PROMOTED_MAIN_COMMIT__",
+    "candidate_head_token": "__CANDIDATE_HEAD__",
+    "candidate_set_sha256_token": "__CANDIDATE_SET_SHA256__",
+    "promotion_receipt_must_bind_merge_commit": true,
+    "promotion_receipt_must_bind_candidate_head": true,
+    "promotion_receipt_must_bind_candidate_set_sha256": true
+  },
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_jit_login_candidate.v1_4.json",
+      "supabase/bindings/galia_grafana_jit_login_prep_v1_4.sql",
+      "tests/test_galia_grafana_jit_login_v1_4.py",
+      "tools/render_galia_grafana_jit_login_v1_4.py"
+    ],
+    "self_hash_embedded": false,
+    "expected_hash_supplied_at_promotion": true
+  },
+  "database_change": {
+    "role": "galia_grafana_ro",
+    "login_before": false,
+    "login_after": true,
+    "password_before": null,
+    "password_after": null,
+    "password_clause_allowed": false,
+    "privilege_changes": false,
+    "membership_changes": false,
+    "role_setting_changes": false,
+    "connection_limit": 5,
+    "default_transaction_read_only": "on",
+    "effective_schema_usage_contract": {
+      "allowed_non_system_schemas": [
+        "monitor",
+        "public"
+      ],
+      "unexpected_usable_schema_count": 0,
+      "public_selectable_relation_count": 0,
+      "monitor_selectable_relation_count": 5
+    }
+  },
+  "temporary_access_plan": {
+    "configured_by_this_candidate": false,
+    "required_for_service_activation": true,
+    "management_api": {
+      "global_config": {
+        "canonical_get": "GET /v1/projects/{ref}/jit-access",
+        "canonical_put": "PUT /v1/projects/{ref}/jit-access",
+        "guide_path_quarantined": "/v1/projects/{ref}/database/jit-access",
+        "scoped_pat_permission_read": "Project Settings: Read",
+        "scoped_pat_permission_write": "Project Settings: Read-write"
+      },
+      "mapping": {
+        "authorize": "POST /v1/projects/{ref}/database/jit",
+        "get": "GET /v1/projects/{ref}/database/jit",
+        "update": "PUT /v1/projects/{ref}/database/jit",
+        "list": "GET /v1/projects/{ref}/database/jit/list",
+        "revoke": "DELETE /v1/projects/{ref}/database/jit/{user_id}",
+        "scoped_pat_permission_read": "Database JIT: Read",
+        "scoped_pat_permission_write": "Database JIT: Read-write"
+      }
+    },
+    "mapped_postgres_role": "galia_grafana_ro",
+    "service_credential": "SCOPED_PAT_PREFERRED",
+    "service_identity_user_id": "OUT_OF_BAND",
+    "token_material_in_repository": false,
+    "token_material_in_receipt": false,
+    "mapping_state_after_candidate": "REQUIRED_EXTERNAL",
+    "connection": {
+      "mode": "DIRECT",
+      "host": "db.nzoviwitcqmsacwiizhh.supabase.co",
+      "port": 5432,
+      "database": "postgres",
+      "username": "galia_grafana_ro",
+      "credential": "SCOPED_PAT_AS_PASSWORD",
+      "tls_minimum": "require",
+      "ssl_enforcement_server_gate": "REQUIRED_EXTERNAL_BEFORE_JIT_MAPPING",
+      "ssl_enforcement_source": "Supabase Management API or Dashboard",
+      "ssl_enforcement_verified_by_candidate": false,
+      "network_gate": "DIRECT_HOST_REACHABILITY_REQUIRED",
+      "ip_behavior": "IPv6 by default; IPv4 only when Supabase IPv4 add-on is enabled",
+      "ipv4_fallback": "SUPABASE_IPV4_ADDON",
+      "shared_pooler_for_stock_grafana": "UNSUPPORTED_FOR_JIT",
+      "shared_pooler_reason": "Supabase requires connection option jit=true; stock Grafana PostgreSQL datasource does not expose arbitrary PostgreSQL connection options"
+    }
+  },
+  "control_plane_refresh": {
+    "binding_key": "github-control-plane-main",
+    "expected_previous_revision": "da889048edb339b8e9995a7c27edafb53e0221ee",
+    "target_revision": "__PROMOTED_MAIN_COMMIT__",
+    "credential_activation_state_after_candidate": "JIT_MAPPING_REQUIRED",
+    "authority_transfer": false
+  },
+  "receipt_semantics": {
+    "object_type": "EXTERNAL_SERVICE_JIT_LOGIN_PREPARATION",
+    "activation_complete": false,
+    "grafana_datasource_configured": false,
+    "password_persisted": false,
+    "jit_mapping_configured": false
+  },
+  "non_effects": [
+    "NO_POSTGRES_PASSWORD",
+    "NO_PAT_IN_GIT",
+    "NO_PAT_IN_RECEIPT",
+    "NO_JIT_MANAGEMENT_API_MUTATION",
+    "NO_GRAFANA_DATASOURCE_CREATION",
+    "NO_SCHEMA_VERSION_BUMP",
+    "NO_CANONICAL_DATA_MUTATION",
+    "NO_STAGING_DATA_MUTATION",
+    "NO_HF_BINDING_MUTATION",
+    "NO_EDGE_GRAPH_MUTATION",
+    "NO_AUTHORITY_TRANSFER"
+  ],
+  "documentation_discrepancies": [
+    {
+      "topic": "Temporary Access global config endpoint",
+      "api_reference": "/v1/projects/{ref}/jit-access",
+      "platform_guide_example": "/v1/projects/{ref}/database/jit-access",
+      "policy": "USE_API_REFERENCE_QUARANTINE_GUIDE_PATH_UNTIL_RECONCILIATION"
+    }
+  ],
+  "documentation_confirmations": [
+    {
+      "topic": "Temporary Access direct connection",
+      "current_documentation": "Direct connections support Temporary Access without the Supavisor jit=true connection option; the user's API token is used as the role password.",
+      "policy": "USE_DIRECT_FOR_GRAFANA"
+    },
+    {
+      "topic": "Grafana PostgreSQL datasource connection surface",
+      "current_documentation": "Host, database, username, password and TLS/SSL are supported; arbitrary PostgreSQL connection options are not exposed in the standard datasource configuration.",
+      "policy": "DO_NOT_USE_SHARED_POOLER_JIT_WITH_STOCK_GRAFANA"
+    },
+    {
+      "topic": "Temporary Access SSL prerequisite",
+      "current_documentation": "Enforce SSL on incoming connections must be enabled before temporary access can be used",
+      "policy": "EXTERNAL_GATE_REQUIRED_BEFORE_JIT_MAPPING"
+    }
+  ]
+}
