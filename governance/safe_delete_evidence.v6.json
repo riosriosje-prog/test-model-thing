@@ -1,0 +1,27 @@
+{
+  "schema_version": 6,
+  "snapshot_id": "GALIA-SAFE-DELETE-EVIDENCE-2026-09-26-v12-EXECUTED",
+  "decision": "EXECUTED",
+  "authorization": {
+    "decision_id": "HUMAN-DELETE-2026-09-26-001",
+    "state": "EXPLICIT_HUMAN_APPROVAL_BOUND",
+    "deletion_manifest_sha256": "6cf056219fa1e036d64e21b3f571bba0f68835a23a134dc47d3982a30d8a1708",
+    "final_vault_manifest_sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+    "target_count": 27,
+    "scope": "EXACT_27_TARGETS_IN_PROMOTED_DELETION_MANIFEST_ONLY"
+  },
+  "execution": {
+    "batch_1": "SUCCESS_20_OF_20",
+    "batch_2": "SUCCESS_7_OF_7",
+    "active_targets_remaining": 0,
+    "library_semantics": "MOVED_TO_TRASH"
+  },
+  "preservation": {
+    "sealed_vault_controls": "PASS_17_OF_17",
+    "corrupt_partial_zip": "PRESERVED",
+    "reconstruction_chunks": "PRESERVED_15",
+    "chunk_manifest": "PRESERVED",
+    "recovery_folder": "PRESERVED"
+  },
+  "final_status": "SAFE_DELETE_EXECUTED_AND_VERIFIED"
+}
