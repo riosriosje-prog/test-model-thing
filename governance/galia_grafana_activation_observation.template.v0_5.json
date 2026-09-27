@@ -40,5 +40,6 @@
     "available": "__TRUE_OR_FALSE_REQUIRED__",
     "expected_prefix": "sbp_fc",
     "classic_fallback_allowed": false
-  }
+  },
+  "project_status": "ACTIVE_HEALTHY"
 }
