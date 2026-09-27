@@ -1,0 +1,154 @@
+{
+  "schema_version": 3,
+  "snapshot_id": "GALIA-SAFE-DELETE-EVIDENCE-2026-09-26-v4",
+  "decision": "HOLD",
+  "required_objects": {
+    "global_master_1_0_1": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354",
+      "package_sha256": "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87"
+    },
+    "santurce_research_15_003": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "22865209ebb914543ce90ad933758d37f2f0abf760084c37380838bd121745f8",
+      "package_sha256": "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee"
+    },
+    "v1_30_14_003": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "85e616800a65f5349d61277c7b5cce97863406b995e7560e3102b02a4bb63de6",
+      "package_sha256": "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f"
+    },
+    "cleanup_948d41": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad",
+      "package_sha256": "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d"
+    },
+    "cleanup_upstream_5ed030": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+      "package_sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+      "size_bytes": 481763328,
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0,
+      "recovery_class": "DETERMINISTIC_REPLAY_BYTE_EXACT_HASH_VERIFIED",
+      "recovery_receipt": "governance/5ed030_byte_exact_recovery.v1.json"
+    },
+    "ow02_checkpoint": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "455f67ab608714af9cb2687fb567b600ed7730d386f6d2238bc62a68dde07948",
+      "package_sha256": "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0
+    },
+    "ow10_checkpoint": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "709099a1d695f0cb53983dfef6a7983b75aa5c1992a9d5c32061c611471d36b2",
+      "package_sha256": "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0
+    },
+    "ow21_checkpoint": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "7dbc8feca01a4f6623101c25b6aa1e07b09dda7c0370997b164f8fef70f63866",
+      "package_sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0,
+      "supplementary_consolidated_package_sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0"
+    }
+  },
+  "controls": {
+    "ow21_discovery_audit": {
+      "state": "DISCOVERY_AUDIT_COMPLETE",
+      "result": "RESEARCH_CHECKPOINT_AND_SUPPLEMENTARY_CONSOLIDATED_PACKAGE_RECOVERED_AND_VERIFIED"
+    },
+    "irrecoverable_transient_acceptance": {
+      "state": "NOT_REQUIRED_RAW_BYTES_RECOVERED",
+      "object_id": "cleanup_upstream_5ed030"
+    },
+    "final_vault": {
+      "state": "VAULT_BUILT_VERIFIED",
+      "sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+      "receipt_sha256": "211e44cd3ae5951db8be9e75ee3bede17014ccc251db6faf83e96109189836bb",
+      "library_path": "/GALIA_FINAL_VAULT_SEALED_2026-09-26"
+    },
+    "clean_room_restore": {
+      "state": "PASS",
+      "package_hashes": "PASS",
+      "canonical_member_hashes": "PASS",
+      "sqlite_integrity": "PASS_ALL",
+      "foreign_key_check": "0_ALL",
+      "sealed_readback_sha256": "2886e9f0e01b687755936d6795e89f90dfe4febd5c06874d97216b2856acb28c"
+    },
+    "deletion_manifest": {
+      "state": "ABSENT",
+      "sha256": null,
+      "targets": []
+    },
+    "human_authorization": {
+      "state": "ABSENT",
+      "decision_id": null,
+      "deletion_manifest_sha256": null,
+      "final_vault_sha256": null
+    }
+  },
+  "vault_objects": {
+    "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "global_master_1_0_1"
+    },
+    "22865209ebb914543ce90ad933758d37f2f0abf760084c37380838bd121745f8": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "santurce_research_15_003"
+    },
+    "85e616800a65f5349d61277c7b5cce97863406b995e7560e3102b02a4bb63de6": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "v1_30_14_003"
+    },
+    "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "cleanup_948d41"
+    },
+    "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "cleanup_upstream_5ed030"
+    },
+    "455f67ab608714af9cb2687fb567b600ed7730d386f6d2238bc62a68dde07948": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow02_checkpoint"
+    },
+    "709099a1d695f0cb53983dfef6a7983b75aa5c1992a9d5c32061c611471d36b2": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow10_checkpoint"
+    },
+    "7dbc8feca01a4f6623101c25b6aa1e07b09dda7c0370997b164f8fef70f63866": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow21_research_checkpoint"
+    },
+    "9b4634df16377f006c92b09fca936296aaeb58e5620696181f24c5efbe8a14ab": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow21_consolidated_supplementary"
+    },
+    "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "historical_v1_29_parent"
+    }
+  },
+  "should_preserve": {
+    "historical_v1_29_binary": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6",
+      "package_sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61"
+    }
+  },
+  "forensic_only": {
+    "g28_14_003_to_15_003": {
+      "state": "OPEN_UNPROVEN"
+    },
+    "sqlite_3_46_1_same_writer_replay": {
+      "state": "NOT_RUN"
+    },
+    "sqlite_3_46_1_v1_30_byte_recovery_replay": {
+      "state": "PASS"
+    }
+  }
+}
