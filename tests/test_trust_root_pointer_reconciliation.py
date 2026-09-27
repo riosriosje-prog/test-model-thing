@@ -4,15 +4,15 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-POINTER_PATH = ROOT / "integrations/trust_root_active_pointer_v2.json"
-SQL_PATH = ROOT / "supabase/bindings/galia_trust_root_pointer_reconciliation_v2.sql"
+POINTER_PATH = ROOT / "integrations/trust_root_active_pointer_v3.json"
+SQL_PATH = ROOT / "supabase/bindings/galia_trust_root_pointer_reconciliation_v3.sql"
 POINTER_BYTES = POINTER_PATH.read_bytes()
 POINTER = json.loads(POINTER_BYTES)
 SQL = SQL_PATH.read_text()
 
-EXPECTED_POINTER_SHA = "eac0b7af19823a588f8d9a188592f0667af6d73c442aaff4d4096bc16030647c"
+EXPECTED_POINTER_SHA = "ed6a18b96871209593f910afd9d3879eabb5fcc7c5af7c844e623e241281dbb6"
 OLD_POINTER_SHA = "ceb60f75e5fdf38dbe743d0d6560f58bb359ebbeaa322d501460e5eb579a02b9"
-CURRENT_MAIN = "25db17fa583d1561d746ee7d33407d3684ee561d"
+AUTHORITY_ANCHOR = "25db17fa583d1561d746ee7d33407d3684ee561d"
 MASTER_SHA = "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354"
 TRUST_ROOT_V8_SHA = "7aa0d35cdd6b3746c43f0cfd379fdb78e50347b32ff8fa0092fd7ded6956e778"
 
@@ -21,9 +21,17 @@ class TrustRootPointerReconciliationTests(unittest.TestCase):
     def test_pointer_bytes_have_exact_sha(self):
         self.assertEqual(hashlib.sha256(POINTER_BYTES).hexdigest(), EXPECTED_POINTER_SHA)
 
-    def test_control_plane_matches_current_main(self):
-        self.assertEqual(POINTER["control_plane"]["main_commit"], CURRENT_MAIN)
-        self.assertEqual(POINTER["data_plane"]["github_binding_revision"], CURRENT_MAIN)
+    def test_control_plane_uses_stable_anchor_not_moving_head(self):
+        control = POINTER["control_plane"]
+        self.assertEqual(control["tracked_ref"], "main")
+        self.assertEqual(control["authority_anchor_commit"], AUTHORITY_ANCHOR)
+        self.assertFalse(control["authority_anchor_is_moving_head"])
+        self.assertNotIn("main_commit", control)
+
+    def test_data_plane_uses_same_authority_anchor(self):
+        data = POINTER["data_plane"]
+        self.assertEqual(data["github_tracked_ref"], "main")
+        self.assertEqual(data["github_authority_anchor_revision"], AUTHORITY_ANCHOR)
 
     def test_global_master_is_unchanged(self):
         root = POINTER["effective_current_trust_root"]
@@ -56,8 +64,8 @@ class TrustRootPointerReconciliationTests(unittest.TestCase):
         )
         self.assertTrue(POINTER["authority"]["this_reconciliation"]["promotion_required"])
 
-    def test_supabase_update_is_fail_closed_on_revision_and_pointer(self):
-        self.assertIn(CURRENT_MAIN, SQL)
+    def test_supabase_update_is_fail_closed_on_anchor_and_pointer(self):
+        self.assertIn(AUTHORITY_ANCHOR, SQL)
         self.assertIn(OLD_POINTER_SHA, SQL)
         self.assertIn("raise exception", SQL.lower())
 
@@ -71,6 +79,11 @@ class TrustRootPointerReconciliationTests(unittest.TestCase):
     def test_no_master_or_hf_mutation(self):
         self.assertIn("NO_MASTER_SQLITE_CHANGE", POINTER["non_effects"])
         self.assertIn("NO_HF_MUTATION", POINTER["non_effects"])
+
+    def test_later_main_commits_do_not_require_pointer_rewrite(self):
+        self.assertIn("NO_REQUIREMENT_TO_REWRITE_POINTER_ON_EVERY_MAIN_COMMIT", POINTER["non_effects"])
+        self.assertFalse(POINTER["authority"]["this_reconciliation"]["tracks_moving_main_head"])
+        self.assertIn("Later commits on main do not make this pointer stale", POINTER["precedence_rule"])
 
 
 if __name__ == "__main__":
