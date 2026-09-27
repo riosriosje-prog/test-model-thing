@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-HF-FINAL-RELEASE-CANDIDATE-v13",
+  "state": "READY_FOR_WRITE_CHANNEL",
+  "source_control_plane": {
+    "repository": "riosriosje-prog/test-model-thing",
+    "source_main_sha": "c65835209fc66e4fbbe34768497bc6d0c8680981",
+    "source_of_truth": "github",
+    "canonical_authority_transferred": false
+  },
+  "target": {
+    "repo_id": "Junitos/galia-2",
+    "repo_type": "model",
+    "visibility": "private",
+    "promotion_scope": "DISTRIBUTION_MIRROR_ONLY"
+  },
+  "artifacts": [
+    {
+      "path": "release/1.0.1/GALIA_CANONICAL_KERNEL_1_0_1_MASTER_PROMOTED.sqlite",
+      "sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354",
+      "bytes": 488689664,
+      "role": "canonical_binary_snapshot"
+    },
+    {
+      "path": "release/1.0.1/README.md",
+      "sha256": "d3baee4988bd1e94498ced84e75a1e5c12f184680d4848149248558935ce8f19",
+      "role": "release_readme"
+    },
+    {
+      "path": "release/1.0.1/RELEASE_MANIFEST.json",
+      "role": "release_manifest"
+    },
+    {
+      "path": "release/1.0.1/SHA256SUMS.txt",
+      "role": "checksums"
+    }
+  ],
+  "bundle": {
+    "filename": "GALIA_1_0_1_CANONICAL_RELEASE_BUNDLE.zip",
+    "sha256": "4d6560384e4112880a4cea537f1d1e540b4a0290081850904492e7f57a79f025",
+    "bytes": 90294405
+  },
+  "gates": {
+    "hf_identity": "Junitos",
+    "hf_write_scope_required": true,
+    "exact_binary_sha_required": true,
+    "exact_binary_size_required": true,
+    "remote_postupload_sha_required": true,
+    "human_promotion_required": true,
+    "auto_authority_transfer": false
+  },
+  "current_blocker": "HF_WRITE_CHANNEL_NOT_AVAILABLE_TO_CURRENT_ASSISTANT_SESSION"
+}
