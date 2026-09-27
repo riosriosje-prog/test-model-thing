@@ -1,6 +1,16 @@
 -- GALIA 2.0 cross-plane bindings v1
 -- DML is intentionally separate from schema migration.
 -- No generated UUID is hard-coded; IDs are resolved by binding_key.
+-- IMPORTANT: promotion tooling MUST replace __PROMOTED_MAIN_COMMIT__
+-- with the exact 40-hex GitHub merge commit before execution.
+
+do $$
+begin
+    if '__PROMOTED_MAIN_COMMIT__' !~ '^[0-9a-f]{40}$' then
+        raise exception 'GALIA cross-plane binding template must be rendered with the exact promoted GitHub main commit';
+    end if;
+end
+$$;
 
 insert into audit.human_decisions (
     decision_type,
@@ -15,11 +25,11 @@ values (
     'human:user',
     'CROSS_PLANE_INTEGRATION',
     'GALIA-CROSS-PLANE-2026-09-26-001',
-    'User instructed GALIA to fix GitHub/Hugging Face/Supabase integration. This decision authorizes the integration fix only and does not transfer canonical authority.',
+    'Human promotion authorizes the GitHub/Hugging Face/Supabase integration fix only and does not transfer canonical authority.',
     jsonb_build_object(
         'canonical_authority_provider', 'GITHUB',
         'github_repository', 'riosriosje-prog/test-model-thing',
-        'github_main_commit', '384a1b1b2c804b6d7838cd301d61232dd6313895',
+        'github_main_commit', '__PROMOTED_MAIN_COMMIT__',
         'trust_root_pointer_sha256', 'ceb60f75e5fdf38dbe743d0d6560f58bb359ebbeaa322d501460e5eb579a02b9'
     )
 );
@@ -46,13 +56,14 @@ values
     'GITHUB',
     'CONTROL_PLANE',
     'riosriosje-prog/test-model-thing',
-    '384a1b1b2c804b6d7838cd301d61232dd6313895',
+    '__PROMOTED_MAIN_COMMIT__',
     'main',
     null,
     true,
     true,
     'ACTIVE',
     jsonb_build_object(
+        'promotion_receipt_must_bind_merge_commit', true,
         'release_authority_module_blob', '50e76bc36a5a77e71eb11ed70724973c5ffc62f2',
         'release_authority_test_blob', '9b73e0497f58f45e04668fc5650db0fd34642628',
         'trust_root_pointer_sha256', 'ceb60f75e5fdf38dbe743d0d6560f58bb359ebbeaa322d501460e5eb579a02b9',
