@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-PDC-OFFICIAL-BINDING-CONTRACT-CANDIDATE-v0.11",
+  "status": "EXTERNAL_FACTS_BLOCKED_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-pdc-official-binding-v0-11-candidate",
+  "predecessor": {
+    "candidate_id": "GALIA-GRAFANA-PDC-BINDING-DISCOVERY-CANDIDATE-v0.10",
+    "github_pr": 59,
+    "head": "08701d111029fc1e909b698f553057b7c9bfeaac",
+    "candidate_set_sha256": "81bf348bd1822575e98a95a7fec2b97e73524428c4d2191acc40f1a8ca88e4a7"
+  },
+  "authority_dependency": {
+    "candidate_id": "GALIA-GRAFANA-AUTHORITY-RATIFICATION-CANDIDATE-v0.3",
+    "github_pr": 57,
+    "expected_head": "3b84af0b114a416eec7dd73bdba21ee51627bd4c",
+    "expected_candidate_set_sha256": "087baf751ddaf49e58d00ff4bd7a3df1ee7e3f7ed44da79798d771fb773dbab1",
+    "required_state_before_live_execution": "PROMOTED",
+    "current_state": "PROMOTED",
+    "promotion_merge_commit": "82e5b8e6642d1475ebcee9183b401b1fd010e63b",
+    "promotion_scope": "PREPARATION_BASELINE_AUTHORITY_RATIFICATION_ONLY",
+    "satisfied": true
+  },
+  "purpose": "Replace the v0.10 unknown-field discovery assumption with an official Grafana-supported PDC datasource binding contract while retaining fail-closed live-execution gates.",
+  "official_binding_contract": {
+    "terraform_datasource_argument": "private_data_source_connect_network_id",
+    "applicability": "GRAFANA_CLOUD_DATASOURCES",
+    "semantic_value": "PDC_NETWORK_ID",
+    "grafana_json_mapping": {
+      "enableSecureSocksProxy": true,
+      "secureSocksProxyUsername": "<PDC_NETWORK_ID>"
+    },
+    "standard_datasource_transport": {
+      "create": "Grafana Datasources AddDataSource",
+      "update": "Grafana Datasources UpdateDataSourceByUID",
+      "payload_field": "JSONData"
+    },
+    "direct_http_api_equivalent_allowed_after_authorization": true,
+    "ui_bootstrap_required": false,
+    "undocumented_field_invention_required": false
+  },
+  "pdc_network_identity_contract": {
+    "provider_datasource": "grafana_cloud_private_data_source_connect_networks",
+    "required_scope_for_discovery": "accesspolicies:read",
+    "returned_fields": [
+      "id",
+      "region",
+      "name",
+      "display_name",
+      "status"
+    ],
+    "network_id_semantics": "ACCESS_POLICY_ID",
+    "modern_identification_scope": "set:pdc-signing",
+    "legacy_identification_scope": "pdc-signing:write",
+    "create_new_network_not_required_for_existing_network_binding": true,
+    "accesspolicies_write_not_required_for_reading_existing_networks": true,
+    "accesspolicies_delete_not_required_for_reading_existing_networks": true
+  },
+  "credential_domains": {
+    "grafana_cloud_access_policy_token": {
+      "purpose": "DISCOVER_EXISTING_PDC_NETWORK_ID_VIA_CLOUD_API_OR_TERRAFORM_DATA_SOURCE",
+      "minimum_scope": "accesspolicies:read",
+      "distinct_from_grafana_stack_service_account_token": true,
+      "distinct_from_pdc_agent_signing_token": true,
+      "distinct_from_supabase_pat": true,
+      "persist_in_repository": false,
+      "persist_in_receipt": false
+    },
+    "grafana_stack_service_account_token": {
+      "purpose": "CREATE_UPDATE_READ_HEALTH_DATASOURCE_ON_GRAFANA_STACK",
+      "minimum_permissions": [
+        "datasources:read",
+        "datasources:write"
+      ],
+      "scope_to_target_datasource_where_supported": true,
+      "distinct_from_cloud_access_policy_token": true,
+      "distinct_from_pdc_agent_signing_token": true,
+      "distinct_from_supabase_pat": true,
+      "persist_in_repository": false,
+      "persist_in_receipt": false
+    },
+    "pdc_agent_signing_token": {
+      "purpose": "AUTHENTICATE_PDC_AGENT_TO_GRAFANA_CLOUD",
+      "modern_scope": "set:pdc-signing",
+      "legacy_scope": "pdc-signing:write",
+      "distinct_from_cloud_access_policy_token": true,
+      "distinct_from_grafana_stack_service_account_token": true,
+      "distinct_from_supabase_pat": true,
+      "persist_in_repository": false,
+      "persist_in_receipt": false
+    },
+    "supabase_pat": {
+      "purpose": "POSTGRES_PASSWORD_UNDER_TEMPORARY_ACCESS",
+      "distinct_from_all_grafana_credentials": true,
+      "persist_in_repository": false,
+      "persist_in_receipt": false
+    }
+  },
+  "binding_preconditions": [
+    "AUTHORITY_RATIFICATION_v0_3_PROMOTED",
+    "EXACT_GRAFANA_STACK_IDENTIFIED",
+    "EXACT_EXISTING_PDC_NETWORK_ID_RESOLVED_FROM_OFFICIAL_GRAFANA_CLOUD_SURFACE",
+    "PDC_NETWORK_STATUS_ACCEPTABLE",
+    "CONNECTED_AGENT_COUNT_GT_ZERO_FOR_EXACT_NETWORK",
+    "PDC_AGENT_IPV6_ROUTE_TO_SUPABASE_5432_VERIFIED",
+    "SUPABASE_SSL_ENFORCEMENT_ENABLED",
+    "SUPABASE_TEMPORARY_ACCESS_ENABLED",
+    "JIT_MAPPING_VERIFIED_AND_UNEXPIRED",
+    "SERVER_ROOT_CA_SHA256_VERIFIED",
+    "NO_SECRET_PERSISTENCE"
+  ],
+  "binding_payload_contract": {
+    "jsonData": {
+      "enableSecureSocksProxy": true,
+      "secureSocksProxyUsername": "<PDC_NETWORK_ID>",
+      "database": "postgres",
+      "sslmode": "verify-full",
+      "tlsConfigurationMethod": "file-content",
+      "maxOpenConns": 2,
+      "maxIdleConns": 1,
+      "maxIdleConnsAuto": false,
+      "connMaxLifetime": 240,
+      "postgresVersion": 1700,
+      "timescaledb": false
+    },
+    "secureJsonData_required_out_of_band": [
+      "password",
+      "tlsCACert"
+    ],
+    "host": "db.nzoviwitcqmsacwiizhh.supabase.co:5432",
+    "user": "galia_grafana_ro",
+    "datasource_uid": "galia-cangrejos-postgres"
+  },
+  "post_binding_acceptance": [
+    "GET_DATASOURCE_BY_UID_AND_CONFIRM_enableSecureSocksProxy_TRUE",
+    "GET_DATASOURCE_BY_UID_AND_CONFIRM_secureSocksProxyUsername_EQUALS_EXPECTED_PDC_NETWORK_ID",
+    "GET_DATASOURCE_HEALTH_PASS",
+    "VERIFY_FULL_CONNECTION_PASS",
+    "FIVE_MONITOR_VIEWS_PASS",
+    "NEGATIVE_PERMISSION_TESTS_PASS",
+    "NO_SECRET_VALUES_RETURNED_OR_PERSISTED"
+  ],
+  "v0_10_disposition": {
+    "exact_datasource_pdc_binding_api_field_unknown": "SUPERSEDED_BY_OFFICIAL_GRAFANA_PROVIDER_EVIDENCE",
+    "sanitized_before_after_diff": "OPTIONAL_DIAGNOSTIC_NOT_REQUIRED_FOR_CONTRACT_DISCOVERY",
+    "repeated_ui_bootstrap": "NOT_REQUIRED_FOR_BINDING_FIELD_IDENTIFICATION"
+  },
+  "current_gates": {
+    "authority_ratification_v0_3_promoted": true,
+    "exact_grafana_stack_verified": false,
+    "exact_pdc_network_id_verified": false,
+    "pdc_network_status_verified": false,
+    "exact_network_connected_agents_verified": false,
+    "pdc_agent_ipv6_route_verified": false,
+    "supabase_external_prerequisites_complete": false,
+    "live_execution_candidate_eligible": false
+  },
+  "source_evidence": [
+    {
+      "repository": "grafana/terraform-provider-grafana",
+      "commit": "38354ae57d5cdbfe068ba6b2662f8fede34b52a3",
+      "path": "internal/resources/grafana/resource_data_source.go",
+      "assertion": "private_data_source_connect_network_id is a Grafana Cloud datasource field; when set, provider injects enableSecureSocksProxy=true and secureSocksProxyUsername=pdcNetworkID into JSONData, then uses AddDataSource or UpdateDataSourceByUID."
+    },
+    {
+      "repository": "grafana/terraform-provider-grafana",
+      "commit": "38354ae57d5cdbfe068ba6b2662f8fede34b52a3",
+      "path": "docs/data-sources/cloud_private_data_source_connect_networks.md",
+      "assertion": "Existing PDC networks can be listed with accesspolicies:read and yield id, region, name, display_name, status."
+    },
+    {
+      "repository": "grafana/terraform-provider-grafana",
+      "commit": "38354ae57d5cdbfe068ba6b2662f8fede34b52a3",
+      "path": "internal/resources/cloud/resource_private_data_source_connect_network.go",
+      "assertion": "PDC network pdc_network_id is the underlying access policy ID; modern PDC network creation uses set:pdc-signing while pdc-signing:write is accepted as legacy."
+    },
+    {
+      "repository": "grafana/grafana",
+      "commit": "3bd23d9455efd3fabd2979e65315aa6e64bb0f52",
+      "path": "pkg/services/datasources/service/datasource.go",
+      "assertion": "secureSocksProxyUsername is consumed as SOCKS proxy auth username when secure proxy routing is enabled."
+    }
+  ],
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_pdc_official_binding_candidate.v0_11.json",
+      "governance/galia_grafana_pdc_binding_contract.schema.v0_11.json",
+      "docs/galia_grafana_pdc_official_binding_runbook.v0_11.md",
+      "tests/test_galia_grafana_pdc_official_binding_v0_11.py"
+    ],
+    "self_hash_embedded": false
+  },
+  "non_effects": [
+    "NO_MAIN_MUTATION",
+    "NO_AUTHORITY_RATIFICATION",
+    "NO_GRAFANA_CLOUD_API_CALL",
+    "NO_GRAFANA_STACK_API_WRITE",
+    "NO_SUPABASE_MUTATION",
+    "NO_DATASOURCE_CREATE_OR_UPDATE",
+    "NO_PDC_NETWORK_CREATE_OR_UPDATE",
+    "NO_TOKEN_CREATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_LIVE_EXECUTION_AUTHORIZATION"
+  ],
+  "base_main_commit": "82e5b8e6642d1475ebcee9183b401b1fd010e63b",
+  "authority_hold_reconciliation": {
+    "preparation_baseline_authority_hold_released": true,
+    "released_by_candidate": "GALIA-GRAFANA-AUTHORITY-RATIFICATION-CANDIDATE-v0.3",
+    "released_by_pr": 57,
+    "released_by_merge_commit": "82e5b8e6642d1475ebcee9183b401b1fd010e63b",
+    "live_execution_hold_released": false
+  },
+  "hardening_changes": [
+    "REBASED_ON_SCOPE_CORRECT_AUTHORITY_RATIFICATION_MAIN",
+    "AUTHORITY_DEPENDENCY_SATISFIED",
+    "LIVE_EXECUTION_REMAINS_BLOCKED_BY_EXTERNAL_FACTS"
+  ]
+}
