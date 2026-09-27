@@ -1,0 +1,23 @@
+apiVersion: 1
+
+datasources:
+  - name: GALIA Cangrejos
+    uid: galia-cangrejos-postgres
+    type: postgres
+    version: 1
+    url: $__env{GALIA_GRAFANA_DB_HOST}:$__env{GALIA_GRAFANA_DB_PORT}
+    user: $__env{GALIA_GRAFANA_DB_USER}
+    editable: false
+    isDefault: false
+    secureJsonData:
+      password: $__env{GALIA_GRAFANA_SCOPED_PAT}
+    jsonData:
+      database: $__env{GALIA_GRAFANA_DB_NAME}
+      sslmode: require
+      maxOpenConns: 2
+      maxIdleConns: 1
+      maxIdleConnsAuto: false
+      connMaxLifetime: 900
+      postgresVersion: 1700
+      timescaledb: false
+      enableSecureSocksProxy: $__env{GALIA_GRAFANA_PDC_ENABLED}
