@@ -134,7 +134,8 @@ values
         'region', 'us-east-1',
         'postgres_version', '17.6.1.166',
         'pre_fix_schema_version', '1.3.2',
-        'pre_fix_migration_set_sha256', 'dfb2dbc9edd5881c2d4956ea5694a7629e1e7b68ebff57df3888974d3a7bd374'
+        'pre_fix_migration_set_sha256', 'eb9fd47b916a228150f56b380f8b997ab307513a7a6abac645726f8011666fb3',
+        'pre_fix_migration_set_hash_contract', 'SHA-256 over UTF-8 lines <version>:<name>\\n in ascending migration version order'
     ),
     'galia-integration-fix'
 )
