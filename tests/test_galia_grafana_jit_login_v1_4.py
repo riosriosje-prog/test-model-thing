@@ -177,20 +177,28 @@ class GaliaGrafanaJitLoginV14Tests(unittest.TestCase):
             "/v1/projects/{ref}/database/jit-access",
         )
 
-    def test_jit_true_and_ssl_prerequisite_are_current_contract(self):
+    def test_direct_jit_and_ssl_prerequisite_are_current_contract(self):
         connection = MANIFEST["temporary_access_plan"]["connection"]
-        self.assertEqual(connection["jit_option"], "true")
-        self.assertNotIn("jit_option_quarantined", connection)
+        self.assertEqual(connection["mode"], "DIRECT")
         self.assertEqual(connection["ssl_enforcement_server_gate"], "REQUIRED_EXTERNAL_BEFORE_JIT_MAPPING")
         self.assertFalse(connection["ssl_enforcement_verified_by_candidate"])
         confirmations = {item["topic"]: item for item in MANIFEST["documentation_confirmations"]}
-        self.assertEqual(confirmations["Supavisor JIT option"]["current_documentation"], "jit=true")
+        self.assertEqual(
+            confirmations["Temporary Access direct connection"]["policy"],
+            "USE_DIRECT_FOR_GRAFANA",
+        )
+        self.assertEqual(
+            confirmations["Grafana PostgreSQL datasource connection surface"]["policy"],
+            "DO_NOT_USE_SHARED_POOLER_JIT_WITH_STOCK_GRAFANA",
+        )
         self.assertEqual(
             confirmations["Temporary Access SSL prerequisite"]["policy"],
             "EXTERNAL_GATE_REQUIRED_BEFORE_JIT_MAPPING",
         )
         self.assertIn("'ssl_enforcement_verified',false", SQL)
         self.assertIn("'ssl_enforcement_required_before_jit_mapping',true", SQL)
+        self.assertIn("'connection_mode','DIRECT'", SQL)
+        self.assertNotIn("'jit_option','true'", SQL)
 
     def test_direct_grafana_connection_contract_is_explicit(self):
         connection = MANIFEST["temporary_access_plan"]["connection"]
