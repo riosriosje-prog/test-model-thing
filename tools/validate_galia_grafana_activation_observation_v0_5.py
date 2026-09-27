@@ -13,7 +13,7 @@ CANONICAL_TEMP_ENDPOINT = "/v1/projects/{ref}/jit-access"
 QUARANTINED_GUIDE_ALIAS = "/v1/projects/{ref}/database/jit-access"
 ALLOWED_IDENTITY_SOURCES = {
     "DASHBOARD_TEMPORARY_ACCESS_UI",
-    "MANAGEMENT_API_VERIFIED",
+    "ORGANIZATION_MEMBER_GOTRUE_ID_VERIFIED",
 }
 ALLOWED_PROFILES = {
     "SELF_HOSTED_IPV6",
@@ -166,11 +166,11 @@ def validate(observation: dict) -> dict:
     if not isinstance(jit, dict):
         fail("jit object required")
     require_bool(jit.get("target_exists"), "jit.target_exists")
-    expires = jit.get("expires_at_ms")
+    expires = jit.get("expires_at")
     if not isinstance(expires, int):
-        fail("jit.expires_at_ms must be integer")
-    if expires <= int(time.time() * 1000):
-        fail("jit.expires_at_ms must be in the future")
+        fail("jit.expires_at must be integer")
+    if expires <= int(time.time()):
+        fail("jit.expires_at must be in the future")
 
     scoped = observation.get("scoped_pat")
     if not isinstance(scoped, dict):
