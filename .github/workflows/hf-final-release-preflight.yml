@@ -1,0 +1,107 @@
+name: hf-final-release-preflight
+
+on:
+  push:
+    branches:
+      - galia-hf-final-release-preflight
+    paths:
+      - .github/workflows/hf-final-release-preflight.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_REPO_ID: Junitos/galia-2
+      EXPECTED_MASTER_SQLITE_SHA256: 9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354
+      EXPECTED_MASTER_ZIP_SHA256: ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face client
+        run: python -m pip install --upgrade "huggingface_hub>=1.19,<2"
+
+      - name: Verify secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF_SECRET_GATE=PASS"
+
+      - name: Inventory and inspect candidate binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, pathlib, tempfile, zipfile
+          from huggingface_hub import HfApi, hf_hub_download
+
+          repo=os.environ["HF_REPO_ID"]
+          token=os.environ["HF_TOKEN"]
+          expected_sqlite=os.environ["EXPECTED_MASTER_SQLITE_SHA256"]
+          expected_zip=os.environ["EXPECTED_MASTER_ZIP_SHA256"]
+
+          api=HfApi(token=token)
+          files=api.list_repo_files(repo_id=repo, repo_type="model")
+          result={"repo_id":repo,"file_count":len(files),"files":files,"matches":[]}
+
+          interesting=[
+              p for p in files
+              if p.lower().endswith((".sqlite",".db",".zip"))
+              or "master" in p.lower()
+              or "canonical" in p.lower()
+          ]
+          for p in interesting:
+              try:
+                  local=hf_hub_download(repo_id=repo, filename=p, repo_type="model", token=token)
+                  h=hashlib.sha256(pathlib.Path(local).read_bytes()).hexdigest()
+                  row={"path":p,"sha256":h,"bytes":pathlib.Path(local).stat().st_size}
+                  if h==expected_sqlite:
+                      row["identity"]="EXACT_MASTER_SQLITE"
+                  elif h==expected_zip:
+                      row["identity"]="EXACT_MASTER_ZIP"
+                      try:
+                          with zipfile.ZipFile(local) as z:
+                              for n in z.namelist():
+                                  if n.endswith(".sqlite"):
+                                      data=z.read(n)
+                                      sh=hashlib.sha256(data).hexdigest()
+                                      if sh==expected_sqlite:
+                                          row["contains_exact_master_sqlite"]=n
+                                          row["contained_sqlite_sha256"]=sh
+                                          row["contained_sqlite_bytes"]=len(data)
+                                          break
+                      except Exception as e:
+                          row["zip_error"]=repr(e)
+                  result["matches"].append(row)
+              except Exception as e:
+                  result["matches"].append({"path":p,"error":repr(e)})
+
+          pathlib.Path("hf-final-preflight.json").write_text(
+              json.dumps(result, indent=2, sort_keys=True)+"\n",
+              encoding="utf-8"
+          )
+          exact=any(
+              r.get("identity")=="EXACT_MASTER_SQLITE"
+              or r.get("contains_exact_master_sqlite")
+              for r in result["matches"]
+          )
+          print("HF_FINAL_PREFLIGHT_EXACT_BINARY_PRESENT=" + ("YES" if exact else "NO"))
+          print("HF_FINAL_PREFLIGHT_FILE_COUNT=" + str(len(files)))
+          for row in result["matches"]:
+              print(json.dumps(row, sort_keys=True))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF_FINAL_RELEASE_PREFLIGHT
+          path: hf-final-preflight.json
+          if-no-files-found: error
+          retention-days: 30
