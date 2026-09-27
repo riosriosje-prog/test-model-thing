@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.6",
+  "object_ref": "GALIA-GRAFANA-JIT-ACTIVATION-2026-09-27-002",
+  "status": "PREPARATION_ONLY_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-jit-activation-v0-6-candidate",
+  "project_ref": "nzoviwitcqmsacwiizhh",
+  "predecessor": {
+    "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.5",
+    "github_pr": 52,
+    "head": "96c468c7f37750620a05e62532f36121569b9877",
+    "candidate_set_sha256": "20feda3c06beb0464d06067680ee340bda921e7a2a12226c1af6f337500f2f3d",
+    "status": "PREPARATION_ONLY_NOT_PROMOTABLE"
+  },
+  "hardening_changes": [
+    "PROFILE_AWARE_NETWORK_EVIDENCE",
+    "TEMPLATE_CIDR_EVIDENCE_PLACEHOLDER_ALIGNED_WITH_VALIDATOR",
+    "PDC_DOES_NOT_REQUIRE_OR_ASSERT_GRAFANA_CLOUD_DIRECT_IPV6",
+    "SELF_HOSTED_AND_PDC_ROUTE_PROOFS_ARE_MUTUALLY_EXCLUSIVE",
+    "CURRENT_STUDIO_SOURCE_CONFIRMS_REQUEST_ROLES_RESPONSE_USER_ROLES_UNIX_SECONDS"
+  ],
+  "evidence": {
+    "supabase_studio_commit": "36371de15127206280d2d40786e8578dfe1b681a",
+    "request_field": "roles",
+    "response_field": "user_roles",
+    "expires_at_unit": "unix_seconds",
+    "ipv4_field": "allowed_cidrs",
+    "ipv6_field": "allowed_cidrs_v6"
+  },
+  "network_contract": {
+    "SELF_HOSTED_IPV6": {
+      "cidr_evidence": "GRAFANA_HOST_EGRESS_TOWARD_SUPABASE",
+      "self_hosted_direct_ipv6_reachability_verified": true,
+      "pdc_agent_ipv6_reachability_verified": false
+    },
+    "GRAFANA_CLOUD_PDC_IPV6": {
+      "cidr_evidence": "PDC_AGENT_EGRESS_TOWARD_SUPABASE",
+      "self_hosted_direct_ipv6_reachability_verified": false,
+      "pdc_agent_ipv6_reachability_verified": true
+    }
+  },
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_activation_observation.template.v0_6.json",
+      "governance/galia_grafana_jit_activation_candidate.v0_6.json",
+      "tests/test_galia_grafana_jit_activation_v0_6.py",
+      "tools/plan_galia_grafana_jit_activation_v0_6.py",
+      "tools/render_galia_grafana_jit_mapping_v0_6.py",
+      "tools/validate_galia_grafana_activation_observation_v0_6.py"
+    ],
+    "self_hash_embedded": false
+  },
+  "promotion_gates": {
+    "ssl_enforcement_verified": false,
+    "server_root_ca_sha256_verified": false,
+    "project_healthy_after_ssl_reboot": false,
+    "temporary_access_enabled": false,
+    "gotrue_user_id_resolved": false,
+    "grafana_service_pat_belongs_to_gotrue_id_verified": false,
+    "scoped_pat_available": "UNKNOWN",
+    "profile_network_route_verified": false,
+    "expiry_resolved": false,
+    "jit_mapping_applied": false,
+    "jit_mapping_verified": false,
+    "profile_verify_full_connection_passed": false
+  },
+  "non_effects": [
+    "NO_NETWORK_IO",
+    "NO_MANAGEMENT_API_WRITE",
+    "NO_SSL_ENFORCEMENT_CHANGE",
+    "NO_TEMPORARY_ACCESS_CHANGE",
+    "NO_JIT_MAPPING_CHANGE",
+    "NO_PAT_CREATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_GRAFANA_DATASOURCE_CHANGE",
+    "NO_DATABASE_SCHEMA_CHANGE",
+    "NO_AUTHORITY_TRANSFER"
+  ]
+}
