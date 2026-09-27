@@ -151,8 +151,13 @@ class GaliaGrafanaJitActivationV02Tests(unittest.TestCase):
         self.assertIn("TEMP_GUIDE_ALIAS", EXECUTOR)
 
     def test_executor_has_no_token_logging(self):
-        self.assertNotIn("print(token", EXECUTOR.lower())
-        self.assertNotIn("authorization\": f", EXECUTOR.lower())
+        lowered = EXECUTOR.lower()
+        self.assertNotIn("print(token", lowered)
+        self.assertNotIn("print(headers", lowered)
+        self.assertNotIn("json.dumps(headers", lowered)
+        self.assertNotIn('"authorization": receipt', lowered)
+        self.assertNotIn('"token": token', lowered)
+        self.assertIn('"authorization": f"bearer {token}"', lowered)
 
 if __name__ == "__main__":
     unittest.main()
