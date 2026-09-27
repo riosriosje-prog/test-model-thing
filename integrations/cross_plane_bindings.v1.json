@@ -54,8 +54,14 @@
     "postgres_version": "17.6.1.166",
     "current_schema_version": "1.3.2",
     "target_schema_version": "1.4.0",
-    "pre_fix_migration_set_sha256": "dfb2dbc9edd5881c2d4956ea5694a7629e1e7b68ebff57df3888974d3a7bd374",
-    "historical_external_anchors_preserved": true
+    "pre_fix_migration_set_sha256": "eb9fd47b916a228150f56b380f8b997ab307513a7a6abac645726f8011666fb3",
+    "historical_external_anchors_preserved": true,
+    "pre_fix_migration_set_hash_contract": {
+      "algorithm": "SHA-256",
+      "encoding": "UTF-8",
+      "serialization": "ascending migration version; one line per migration as <version>:<name> followed by newline",
+      "migration_count": 9
+    }
   },
   "trust_root": {
     "active_pointer_sha256": "ceb60f75e5fdf38dbe743d0d6560f58bb359ebbeaa322d501460e5eb579a02b9",
