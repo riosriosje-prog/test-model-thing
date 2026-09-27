@@ -1,0 +1,134 @@
+{
+  "schema_version": 2,
+  "snapshot_id": "GALIA-SAFE-DELETE-EVIDENCE-2026-09-26-v3",
+  "decision": "HOLD",
+  "required_objects": {
+    "global_master_1_0_1": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354",
+      "package_sha256": "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87",
+      "source": "GALIA_MASTER_1_0_1_BYTE_REACQUISITION_RECEIPT_2026-09-26"
+    },
+    "santurce_research_15_003": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "22865209ebb914543ce90ad933758d37f2f0abf760084c37380838bd121745f8",
+      "package_sha256": "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee",
+      "source": "GALIA_15_003_BYTE_RECOVERY_RECEIPT_2026-09-26"
+    },
+    "v1_30_14_003": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "85e616800a65f5349d61277c7b5cce97863406b995e7560e3102b02a4bb63de6",
+      "package_sha256": "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f",
+      "source": "reacquired and verified from Library"
+    },
+    "cleanup_948d41": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad",
+      "package_sha256": "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d",
+      "source": "GALIA_WORKING_v1_31_TASK_LIFECYCLE_CLEANUP_PACKAGE.zip"
+    },
+    "cleanup_upstream_5ed030": {
+      "state": "IRRECOVERABLE_TRANSIENT_DOCUMENTED",
+      "expected_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+      "classification": "WORKING_TRANSIENT_NOT_CANONICAL",
+      "master_modified": false,
+      "authority_mutations": 0,
+      "knowledge_mutations": {
+        "sources": 0,
+        "evidence": 0,
+        "statements": 0
+      },
+      "recovery_search_state": "EXHAUSTIVE_NEGATIVE",
+      "reverse_reconstruction_accepted": false,
+      "successor_object_id": "cleanup_948d41",
+      "successor_sha256": "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad",
+      "evidence_record_sha256": "e2a6359902848e3531071ade022b445acadaabc7396598771f504530179d809c",
+      "source": "governance/irrecoverable_transient_5ed030.v1.json"
+    },
+    "ow02_checkpoint": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "455f67ab608714af9cb2687fb567b600ed7730d386f6d2238bc62a68dde07948",
+      "package_sha256": "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0,
+      "source": "/GALIA_RECOVERY/GALIA_OW02_REACQUIRED.zip"
+    },
+    "ow10_checkpoint": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda",
+      "sqlite_sha256": "709099a1d695f0cb53983dfef6a7983b75aa5c1992a9d5c32061c611471d36b2",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0,
+      "source": "/GALIA_RECOVERY/GALIA_OW10_REACQUIRED.zip"
+    },
+    "ow21_checkpoint": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a",
+      "sqlite_sha256": "7dbc8feca01a4f6623101c25b6aa1e07b09dda7c0370997b164f8fef70f63866",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0,
+      "source": "/GALIA_RECOVERY/GALIA_OW21_RESEARCH_CHECKPOINT_REACQUIRED.zip",
+      "supplementary_consolidated_package_sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0"
+    }
+  },
+  "controls": {
+    "ow21_discovery_audit": {
+      "state": "DISCOVERY_AUDIT_COMPLETE",
+      "result": "RESEARCH_CHECKPOINT_AND_SUPPLEMENTARY_CONSOLIDATED_PACKAGE_RECOVERED_AND_VERIFIED",
+      "package_sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a"
+    },
+    "irrecoverable_transient_acceptance": {
+      "state": "ABSENT",
+      "decision_id": null,
+      "object_id": "cleanup_upstream_5ed030",
+      "expected_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+      "evidence_record_sha256": "e2a6359902848e3531071ade022b445acadaabc7396598771f504530179d809c"
+    },
+    "final_vault": {
+      "state": "STAGING_VAULT_BUILT_VERIFIED_WITH_DOCUMENTED_TRANSIENT_LOSS",
+      "sha256": null,
+      "staging_manifest_sha256": "22a32473f13028491c96f4e665e2a009e602b9bd15e06010dd73bd44c4d3e1e6",
+      "library_path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26",
+      "pending_control": "irrecoverable_transient_acceptance"
+    },
+    "clean_room_restore": {
+      "state": "PARTIAL_PASS_AVAILABLE_OBJECTS_ONLY",
+      "sqlite_integrity": "PASS_ALL_AVAILABLE",
+      "foreign_key_check": "0_ALL_AVAILABLE",
+      "final_restore_eligible": false
+    },
+    "deletion_manifest": {
+      "state": "ABSENT",
+      "sha256": null,
+      "targets": []
+    },
+    "human_authorization": {
+      "state": "ABSENT",
+      "decision_id": null,
+      "deletion_manifest_sha256": null,
+      "final_vault_sha256": null
+    }
+  },
+  "vault_objects": {
+    "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87": {"state": "VERIFIED_IN_STAGING_VAULT", "object_id": "global_master_1_0_1"},
+    "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee": {"state": "VERIFIED_IN_STAGING_VAULT", "object_id": "santurce_research_15_003"},
+    "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f": {"state": "VERIFIED_IN_STAGING_VAULT", "object_id": "v1_30_14_003"},
+    "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d": {"state": "VERIFIED_IN_STAGING_VAULT", "object_id": "cleanup_948d41"},
+    "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907": {"state": "VERIFIED_IN_STAGING_VAULT", "object_id": "ow02_checkpoint"},
+    "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda": {"state": "VERIFIED_IN_STAGING_VAULT", "object_id": "ow10_checkpoint"},
+    "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a": {"state": "VERIFIED_IN_STAGING_VAULT", "object_id": "ow21_research_checkpoint"},
+    "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0": {"state": "VERIFIED_IN_STAGING_VAULT", "object_id": "ow21_consolidated_supplementary"},
+    "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb": {"state": "VERIFIED_IN_STAGING_VAULT", "object_id": "recovery_vault_r6"}
+  },
+  "should_preserve": {
+    "historical_v1_29_binary": {
+      "state": "RAW_BYTES_NOT_RECOVERED",
+      "expected_sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6",
+      "sidecar_verified": true
+    }
+  },
+  "forensic_only": {
+    "g28_14_003_to_15_003": {"state": "OPEN_UNPROVEN"},
+    "sqlite_3_46_1_same_writer_replay": {"state": "NOT_RUN"}
+  }
+}

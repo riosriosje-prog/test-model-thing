@@ -1,0 +1,45 @@
+{
+  "schema_version": 3,
+  "vault_id": "GALIA-FINAL-VAULT-STAGING-2026-09-26-v3",
+  "state": "STAGING_VAULT_BUILT_VERIFIED_WITH_DOCUMENTED_TRANSIENT_LOSS",
+  "library_path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26",
+  "clean_room_state": "PARTIAL_PASS_AVAILABLE_OBJECTS_ONLY",
+  "final_vault_eligible": false,
+  "reason": "The only absent raw object is classified as a documented noncanonical transient loss; separate human loss acceptance is still absent, and the vault is not final.",
+  "pending_controls": [
+    "irrecoverable_transient_acceptance",
+    "final_vault_completion",
+    "final_clean_room_restore",
+    "deletion_manifest",
+    "deletion_specific_human_authorization"
+  ],
+  "irrecoverable_transients": [
+    {
+      "id": "cleanup_upstream_5ed030",
+      "expected_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+      "classification": "WORKING_TRANSIENT_NOT_CANONICAL",
+      "state": "IRRECOVERABLE_TRANSIENT_DOCUMENTED",
+      "successor_object_id": "cleanup_948d41",
+      "successor_sha256": "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad",
+      "evidence_record_sha256": "e2a6359902848e3531071ade022b445acadaabc7396598771f504530179d809c",
+      "human_loss_acceptance": "ABSENT"
+    }
+  ],
+  "verification": {
+    "server_side_copy_readback": "PASS",
+    "sqlite_integrity": "PASS_ALL_AVAILABLE_SQLITE_MEMBERS",
+    "foreign_key_check": "0_ALL_AVAILABLE_SQLITE_MEMBERS",
+    "missing_bytes_fabricated": false
+  },
+  "verified_object_ids": [
+    "global_master_1_0_1",
+    "santurce_research_15_003",
+    "v1_30_14_003",
+    "cleanup_948d41",
+    "ow02_checkpoint",
+    "ow10_checkpoint",
+    "ow21_research_checkpoint",
+    "ow21_consolidated_supplementary",
+    "recovery_vault_r6"
+  ]
+}
