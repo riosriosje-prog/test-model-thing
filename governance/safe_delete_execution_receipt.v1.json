@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "execution_receipt_id": "GALIA-SAFE-DELETE-EXECUTION-2026-09-26-001",
+  "authorization_decision_id": "HUMAN-DELETE-2026-09-26-001",
+  "authorization_text": "Delete",
+  "authorization_state": "EXPLICIT_HUMAN_APPROVAL_BOUND",
+  "deletion_manifest_sha256": "6cf056219fa1e036d64e21b3f571bba0f68835a23a134dc47d3982a30d8a1708",
+  "final_vault_manifest_sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+  "authorized_scope": "EXACT_27_TARGETS_IN_PROMOTED_DELETION_MANIFEST_ONLY",
+  "target_count": 27,
+  "execution": {
+    "adapter": "personal Library delete by library_file_id",
+    "semantic_result": "MOVED_TO_TRASH",
+    "batch_count": 2,
+    "batches": [
+      {
+        "batch_id": "BATCH-01",
+        "target_count": 20,
+        "status": "SUCCESS_20_OF_20"
+      },
+      {
+        "batch_id": "BATCH-02",
+        "target_count": 7,
+        "status": "SUCCESS_7_OF_7"
+      }
+    ],
+    "real_library_delete_executed": true,
+    "destructive_action_executed": true
+  },
+  "post_delete_verification": {
+    "deleted_targets_absent_from_active_library": "PASS_27_OF_27",
+    "sealed_vault_controls_present": "PASS_17_OF_17",
+    "corrupt_partial_zip_preserved": true,
+    "reconstruction_chunks_preserved": 15,
+    "chunk_manifest_preserved": true,
+    "recovery_folder_preserved": true,
+    "status": "PASS"
+  },
+  "final_state": {
+    "safe_delete": "EXECUTED",
+    "delete_authorized": true,
+    "active_library_targets_remaining": 0,
+    "sealed_vault_intact": true
+  },
+  "notes": [
+    "Library delete operation reported each target as 'File moved to trash.'",
+    "No folder, recursive, path-only, sealed-vault, reconstruction-chunk, corrupt-partial-ZIP, or /GALIA_RECOVERY deletion was performed."
+  ]
+}
