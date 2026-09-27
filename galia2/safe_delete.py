@@ -18,6 +18,7 @@ REQUIRED_RAW_OBJECTS = (
     "cleanup_upstream_5ed030",
     "ow02_checkpoint",
     "ow10_checkpoint",
+    "ow21_checkpoint",
 )
 
 REQUIRED_CONTROL_STATES = {
@@ -56,11 +57,12 @@ def evaluate_safe_delete(snapshot: Mapping[str, Any]) -> SafeDeleteEvaluation:
 
     Fail-closed rules:
     - every mandatory raw object must be byte-verified with exact SHA-256;
-    - OW21 discovery must be explicitly completed even if it finds nothing;
+    - every directly recoverable OW checkpoint required by policy is preserved;
+    - OW21 discovery must be explicitly completed;
     - an immutable final vault must exist and have an exact SHA-256;
-    - clean-room restore must pass from that vault alone;
+    - clean-room restore must pass from that final vault alone;
     - deletion scope must be explicit and hashed;
-    - every deletion target must be covered by the verified vault index;
+    - every deletion target must be covered by the verified final-vault index;
     - explicit human approval must bind the exact deletion-manifest and vault hashes.
 
     G28, same-writer replay, and the historical v1.29 binary are advisory/forensic
@@ -156,7 +158,6 @@ def evaluate_safe_delete(snapshot: Mapping[str, Any]) -> SafeDeleteEvaluation:
         if isinstance(replay, Mapping) and replay.get("state") != "PASS":
             advisories.append("SQLITE_3_46_1_REPLAY_NOT_REQUIRED_FOR_SAFE_DELETE")
 
-    # Stable order and no duplicate messages.
     blockers = list(dict.fromkeys(blockers))
     advisories = list(dict.fromkeys(advisories))
 
