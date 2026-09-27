@@ -1,0 +1,77 @@
+{
+  "schema_version": 2,
+  "candidate_id": "GALIA-GRAFANA-PROMOTION-RECONCILIATION-CANDIDATE-v0.2",
+  "status": "AUTHORITY_HOLD_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-promotion-trace-v0-1-candidate",
+  "base_main_commit": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892",
+  "finding": "The v0.6 and v0.8 GitHub merges were executed after explicit human promotion instructions, but each source manifest still declared PREPARATION_ONLY_NOT_PROMOTABLE rather than the constitutionally required READY_FOR_HUMAN_PROMOTION.",
+  "scope_of_impact": "GITHUB_CONTROL_PLANE_ONLY",
+  "external_activation_state": "NOT_EXECUTED",
+  "authority_hold": {
+    "active": true,
+    "reason": "PROMOTION_ELIGIBILITY_STATE_MISMATCH",
+    "affected_merge_commits": [
+      "dd717c61d50240251044040b61956768a3325d14",
+      "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892"
+    ],
+    "current_main_contains_artifacts": true,
+    "current_main_must_not_be_interpreted_as_VALIDATED_CANONICAL_PROMOTION_FOR_GRAFANA_FRONT": true
+  },
+  "semantic_correction_required": {
+    "separate_dimensions": [
+      "CANDIDATE_LIFECYCLE_STATUS",
+      "PREPARATION_BASELINE_PROMOTION_ELIGIBILITY",
+      "LIVE_EXECUTION_ELIGIBILITY",
+      "PROMOTION_SCOPE"
+    ],
+    "required_rule": "READY_FOR_HUMAN_PROMOTION must refer to the exact scope being promoted; live execution may remain blocked by external gates.",
+    "no_retroactive_silent_relabel": true
+  },
+  "admissible_human_reconciliation_paths": [
+    {
+      "id": "RATIFY_AFTER_SCOPE_CORRECTION",
+      "description": "Prepare scope-corrected successor metadata that becomes READY_FOR_HUMAN_PROMOTION for PREPARATION_BASELINE_ONLY while LIVE_EXECUTION remains blocked, then obtain a new exact human promotion decision."
+    },
+    {
+      "id": "REVERT_CONTROL_PLANE_MERGES",
+      "description": "Prepare exact revert candidate(s) for the two merge commits and obtain a human decision before changing main."
+    }
+  ],
+  "predecessor_disposition": {
+    "activation_v0_5": "ANCESTOR_INCLUDED_BY_SUCCESSOR_NOT_SEPARATELY_PROMOTED",
+    "datasource_v0_7": "SUPERSEDED_CLOSED_NOT_MERGED_NOT_PROMOTED"
+  },
+  "current_external_blockers": [
+    "SERVER_ROOT_CA_AND_SHA256",
+    "DEDICATED_IDENTITY_GOTRUE_ID",
+    "SCOPED_PAT_AVAILABILITY_AND_BINDING",
+    "FINAL_NETWORK_PROFILE_AND_VERIFIED_IPV6_EGRESS",
+    "CURRENT_SSL_ENFORCEMENT_STATE",
+    "CURRENT_TEMPORARY_ACCESS_STATE",
+    "JIT_MAPPING_APPLICATION_AND_VERIFICATION",
+    "GRAFANA_DATASOURCE_CONFIGURATION_AND_HEALTH_CHECK"
+  ],
+  "non_effects": [
+    "NO_MAIN_MUTATION",
+    "NO_SUPABASE_MUTATION",
+    "NO_GRAFANA_MUTATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_JIT_ACTIVATION",
+    "NO_SSL_CHANGE",
+    "NO_TEMPORARY_ACCESS_CHANGE",
+    "NO_AUTHORITY_TRANSFER"
+  ],
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_promotion_reconciliation_candidate.v0_2.json",
+      "receipts/grafana/galia_grafana_activation_v0_6_merge_event.v0_2.json",
+      "receipts/grafana/galia_grafana_datasource_v0_8_merge_event.v0_2.json",
+      "tests/test_galia_grafana_promotion_reconciliation_v0_2.py"
+    ],
+    "self_hash_embedded": false
+  }
+}
