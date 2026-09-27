@@ -1,0 +1,10 @@
+{
+  "record_id": "GALIA-5ED030-IRRECOVERABLE-CANDIDATE-SUPERSESSION-2026-09-26",
+  "supersedes_candidate": "GALIA-IRRECOVERABLE-TRANSIENT-5ED030-2026-09-26-v1",
+  "reason": "The raw object was subsequently recovered byte-exactly.",
+  "raw_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+  "recovery_receipt": "GALIA-5ED030-BYTE-EXACT-RECOVERY-2026-09-26-v1",
+  "historical_record_preserved": true,
+  "authority_effect": "NONE",
+  "delete_authorized": false
+}
