@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "execution_request_id": "GALIA-SAFE-DELETE-EXECUTION-REQUEST-2026-09-26-v1",
+  "state": "AWAITING_EXPLICIT_HUMAN_DELETE_AUTHORIZATION",
+  "deletion_manifest_sha256": "6cf056219fa1e036d64e21b3f571bba0f68835a23a134dc47d3982a30d8a1708",
+  "final_vault_manifest_sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+  "target_count": 27,
+  "execution_scope": "EXACT_27_TARGETS_IN_PROMOTED_DELETION_MANIFEST_ONLY",
+  "adapter_contract": {
+    "tool_family": "personal Library",
+    "operation": "delete",
+    "target_kind": "file",
+    "stable_identifier": "library_file_id",
+    "max_batch_size": 20,
+    "implementation_note": "Actual connector invocation occurs outside repository code and only after an exact human authorization receipt."
+  },
+  "execution_controls": {
+    "authorization_receipt_required": true,
+    "execution_eligible_plan_required": true,
+    "explicit_commit_flag_required": true,
+    "post_delete_receipt_required": true,
+    "sealed_vault_recheck_required": true
+  },
+  "current_state": {
+    "safe_delete": "HOLD",
+    "delete_authorized": false,
+    "execution_performed": false
+  }
+}
