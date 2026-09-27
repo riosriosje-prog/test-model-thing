@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "plan_id": "GALIA-SAFE-DELETE-LIBRARY-BATCH-PLAN-2026-09-26-v1",
+  "state": "CANDIDATE_NOT_AUTHORIZED",
+  "based_on_main": "0f43f6861f126555c029a48feee16485dc5edf1a",
+  "deletion_manifest_sha256": "6cf056219fa1e036d64e21b3f571bba0f68835a23a134dc47d3982a30d8a1708",
+  "final_vault_manifest_sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+  "total_targets": 27,
+  "library_operation_limit": 20,
+  "batch_count": 2,
+  "batches": [
+    {
+      "batch_id": "BATCH-01",
+      "ordinal": 1,
+      "target_count": 20,
+      "library_file_ids": [
+        "libfile_f1457dc4efa88191bcf1d301905d8011",
+        "libfile_956de5e985e88191ad31f56cf91d34ed",
+        "libfile_b79e4867382881918c9100723c5f4653",
+        "libfile_383b9857dab88191a00704bb8174abee",
+        "libfile_377be59cf3ec8191a14f4e2a97268509",
+        "libfile_455b7d53c8f48191bbf77bbe0a5a4529",
+        "libfile_6ae3fb2e51d4819198bddfe825baf047",
+        "libfile_de0792651eac8191b5ee7d31dcd48077",
+        "libfile_2f30b83384648191892437c4087bc8b7",
+        "libfile_b25aa226852c8191b94749dfd33468a0",
+        "libfile_8a8323fe1c908191b118ccbcfc058ad5",
+        "libfile_88475651bd1c8191a5adc6a22f252c46",
+        "libfile_fcaac08616988191abe8a2595067c5dc",
+        "libfile_02972e51844c8191b61eb3b1400739cc",
+        "libfile_40a13f55f5408191875180b9748ef6fd",
+        "libfile_1c76e4a877b48191b04ba37f279b5d9d",
+        "libfile_a24224be1f2481919979c318de0818df",
+        "libfile_79eb1172efac81919d8ffb642a98b229",
+        "libfile_0eeb9a17af4081918cef7b9398b6f49f",
+        "libfile_af7a9ffbe46481919e6af52736558bdc"
+      ],
+      "paths": [
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/MASTER_1_0_1_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/OW02_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/OW10_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/OW21_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/OW21_RESEARCH_CHECKPOINT_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/RECOVERY_VAULT_R6_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/SANTURCE_14_003_RECOVERY_PROMOTED.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/SANTURCE_15_003_PROMOTED.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/TASK_LIFECYCLE_CLEANUP_948D41.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/5ED030_BYTE_EXACT_RECOVERY.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/V1_29_PROMOTED_PARENT_RECOVERED.zip",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_RECEIPT_2026-09-26.json",
+        "/GALIA_FINAL_VAULT_STAGING_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_REPORT_2026-09-26.md",
+        "/GALIA_FINAL_VAULT_2026-09-26/MASTER_1_0_1_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/SANTURCE_15_003_PROMOTED.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/SANTURCE_14_003_RECOVERY_PROMOTED.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/TASK_LIFECYCLE_CLEANUP_948D41.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/UPSTREAM_5ED030_BYTE_EXACT_RECOVERY.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/OW02_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/OW10_REACQUIRED.zip"
+      ]
+    },
+    {
+      "batch_id": "BATCH-02",
+      "ordinal": 2,
+      "target_count": 7,
+      "library_file_ids": [
+        "libfile_cc9ab95fc784819198fe482d5aafc64d",
+        "libfile_dab920873d248191b7286ebdf8e3703c",
+        "libfile_f865ad6e6c14819180b5a4fb7fa95880",
+        "libfile_f4931c6696d88191bebe7406e1d81a81",
+        "libfile_414739e165948191829f0966459f280f",
+        "libfile_d2bac614326c81918da3dba364a2875d",
+        "libfile_9eea9da715d481919053b670de1d2d77"
+      ],
+      "paths": [
+        "/GALIA_FINAL_VAULT_2026-09-26/OW21_RESEARCH_CHECKPOINT_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/OW21_CONSOLIDATED_SUPPLEMENTARY_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/RECOVERY_VAULT_R6_REACQUIRED.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/HISTORICAL_V1_29_PARENT_RC_2026_09_13_002.zip",
+        "/GALIA_FINAL_VAULT_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_RECEIPT_2026-09-26.json",
+        "/GALIA_FINAL_VAULT_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_REPORT_2026-09-26.md",
+        "/GALIA_RECOVERY_WORK_2026-09-26/MASTER_RC_GALIA_2026_09_13_002.zip"
+      ]
+    }
+  ],
+  "execution_policy": {
+    "fresh_live_revalidation_before_each_batch": true,
+    "fail_stop_between_batches": true,
+    "batch_2_requires_batch_1_full_success": true,
+    "exact_human_authorization_required": true,
+    "sealed_vault_recheck_before_each_batch": true,
+    "no_folder_delete": true,
+    "no_path_only_delete": true,
+    "stable_identifier": "library_file_id"
+  },
+  "delete_authorized": false,
+  "destructive_action_executed": false
+}
