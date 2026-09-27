@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "receipt_type": "GALIA_GRAFANA_AUTHORITY_HOLD_SNAPSHOT",
+  "snapshot_basis": {
+    "current_main": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892",
+    "reconciliation_pr": 56,
+    "reconciliation_head": "f64ccd1ea24531b7e822df77b25bd26e8f220579",
+    "reconciliation_set_sha256": "7f9faeab341e2b19e6f21908c661519b6e4193a3c5173bf47c8ed59fbcc83f31"
+  },
+  "hold": {
+    "active": true,
+    "reason": "PROMOTION_ELIGIBILITY_STATE_MISMATCH",
+    "scope": "GRAFANA_PREPARATION_BASELINE_AUTHORITY",
+    "external_activation_blocked": true
+  },
+  "external_state": {
+    "ssl_enforcement_change_executed": false,
+    "temporary_access_change_executed": false,
+    "jit_mapping_change_executed": false,
+    "grafana_datasource_change_executed": false,
+    "pat_created_by_galia": false,
+    "secret_material_persisted_by_galia": false
+  },
+  "blockers": [
+    "SERVER_ROOT_CA_AND_SHA256",
+    "DEDICATED_IDENTITY_GOTRUE_ID",
+    "SCOPED_PAT_AVAILABILITY_AND_BINDING",
+    "FINAL_NETWORK_PROFILE_AND_VERIFIED_IPV6_EGRESS",
+    "CURRENT_SSL_ENFORCEMENT_STATE",
+    "CURRENT_TEMPORARY_ACCESS_STATE",
+    "JIT_MAPPING_APPLICATION_AND_VERIFICATION",
+    "GRAFANA_DATASOURCE_CONFIGURATION_AND_HEALTH_CHECK"
+  ],
+  "hold_release_condition": "EXPLICIT_HUMAN_PROMOTION_OF_GALIA-GRAFANA-AUTHORITY-RATIFICATION-CANDIDATE-v0.3"
+}

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-AUTHORITY-RATIFICATION-CANDIDATE-v0.3",
+  "status": "READY_FOR_HUMAN_PROMOTION",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-authority-ratification-v0-3-candidate",
+  "base_main_commit": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892",
+  "predecessor_reconciliation": {
+    "candidate_id": "GALIA-GRAFANA-PROMOTION-RECONCILIATION-CANDIDATE-v0.2",
+    "github_pr": 56,
+    "head": "f64ccd1ea24531b7e822df77b25bd26e8f220579",
+    "candidate_set_sha256": "7f9faeab341e2b19e6f21908c661519b6e4193a3c5173bf47c8ed59fbcc83f31",
+    "status": "AUTHORITY_HOLD_NOT_PROMOTABLE"
+  },
+  "purpose": "Resolve the Grafana preparation-baseline authority hold through a new, explicit, scope-correct human ratification event without claiming the original v0.6/v0.8 candidates were eligible when merged.",
+  "promotion_scope": "PREPARATION_BASELINE_AUTHORITY_RATIFICATION_ONLY",
+  "promotion_effect_if_authorized": {
+    "activation_v0_6_authority": "PROMOTED_PREPARATION_BASELINE",
+    "datasource_v0_8_authority": "PROMOTED_PREPARATION_BASELINE",
+    "authority_hold": "RELEASED_FOR_PREPARATION_BASELINE_SCOPE_ONLY",
+    "effective_from": "RATIFICATION_PROMOTION_EVENT",
+    "retroactive_eligibility_claim": false,
+    "live_execution_authorized": false,
+    "external_activation_authorized": false,
+    "canonical_data_authority_transferred": false
+  },
+  "live_execution": {
+    "status": "BLOCKED_EXTERNAL_FACTS",
+    "eligible_for_human_activation_authorization": false,
+    "requires_separate_candidate": true,
+    "requires_separate_human_decision": true
+  },
+  "promotion_gate": {
+    "identity": "PASS",
+    "provenance": "PASS",
+    "hash": "PASS",
+    "source": "PASS",
+    "date": "PASS",
+    "scope": "PASS",
+    "quality": "PASS",
+    "conflicts": "REVIEWED",
+    "authority": "HUMAN_PENDING"
+  },
+  "evidence_bindings": {
+    "activation_pr": 54,
+    "datasource_pr": 55,
+    "activation_audit_comment_id": 5859278146,
+    "datasource_audit_comment_id": 5859278397,
+    "reconciliation_pr": 56,
+    "current_main": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892"
+  },
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_authority_ratification_candidate.v0_3.json",
+      "governance/galia_grafana_authority_ratification_targets.v0_3.json",
+      "receipts/grafana/galia_grafana_authority_hold_snapshot.v0_3.json",
+      "tests/test_galia_grafana_authority_ratification_v0_3.py"
+    ],
+    "self_hash_embedded": false
+  },
+  "non_effects": [
+    "NO_MAIN_MUTATION_UNTIL_HUMAN_PROMOTION",
+    "NO_SUPABASE_MUTATION",
+    "NO_GRAFANA_MUTATION",
+    "NO_SSL_CHANGE",
+    "NO_TEMPORARY_ACCESS_CHANGE",
+    "NO_JIT_MAPPING_CHANGE",
+    "NO_PAT_CREATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_LIVE_EXECUTION_AUTHORIZATION",
+    "NO_RETROACTIVE_ELIGIBILITY_REWRITE",
+    "NO_CANONICAL_DATA_AUTHORITY_TRANSFER"
+  ]
+}
