@@ -1,0 +1,102 @@
+{
+  "activation_state": "NOT_EFFECTIVE_UNTIL_EXTERNAL_PROMOTION_RECEIPT",
+  "artifact_plane": {
+    "account": "Junitos",
+    "evidence_repo": "Junitos/galia-2-evidence",
+    "model_repo": "Junitos/galia-2",
+    "provider": "HUGGING_FACE"
+  },
+  "authority": {
+    "this_reconciliation": {
+      "changes_gates": false,
+      "changes_global_master": false,
+      "changes_master_bytes": false,
+      "changes_scope_bindings": false,
+      "effect_if_promoted": "CONTROL_PLANE_METADATA_RECONCILIATION_ONLY",
+      "promotion_required": true
+    },
+    "trust_root_human_authority": {
+      "candidate_id": "GALIA-TRUST-ROOT-LIFT-CANDIDATE-021",
+      "candidate_sha256": "73eb28b7d45d722aa3ba42424025c8bcc9da6e995cf148273fc8aed0ca2a424e",
+      "decision": "PROM",
+      "scope": "GLOBAL_MASTER_TRUST_ROOT_ONLY"
+    }
+  },
+  "constructed_at_utc": "2026-09-27T00:28:39.723703+00:00",
+  "control_plane": {
+    "cross_plane_integration_state": "PROMOTED_ACTIVE",
+    "cross_plane_policy_blob": "5b1917b9447b63b4ded5ecadf7de721098696f84",
+    "main_commit": "25db17fa583d1561d746ee7d33407d3684ee561d",
+    "release_authority_module_blob": "50e76bc36a5a77e71eb11ed70724973c5ffc62f2",
+    "release_authority_state": "PROMOTED_TO_MAIN",
+    "repository": "riosriosje-prog/test-model-thing"
+  },
+  "data_plane": {
+    "cross_plane_binding_count": 4,
+    "cross_plane_edge_count": 4,
+    "github_binding_revision": "25db17fa583d1561d746ee7d33407d3684ee561d",
+    "project_id": "nzoviwitcqmsacwiizhh",
+    "project_name": "galia-cangrejos",
+    "provider": "SUPABASE",
+    "schema_version": "1.4.0"
+  },
+  "effective_current_trust_root": {
+    "file_id": "file_0000000060a481f5a55ed1dcf0777e53",
+    "library_file_id": "libfile_396fd59174e0819191d0c484fd277df3",
+    "library_path": "/Cangrejos/GALIA_TRUST_ROOT_v8_PROMOTED_STAGED.json",
+    "master_sqlite_sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354",
+    "release_id": "RC-GALIA-2026-09-13-004",
+    "semantic_version": "1.0.1",
+    "sha256": "7aa0d35cdd6b3746c43f0cfd379fdb78e50347b32ff8fa0092fd7ded6956e778",
+    "size_bytes": 4853,
+    "status": "ACTIVE_GLOBAL_MASTER_TRUST_ROOT"
+  },
+  "effective_scope": "GLOBAL_MASTER",
+  "gates_after_activation": {
+    "AUTHORITY_HOLD_GLOBAL_MASTER_SCOPE": "LIFTED",
+    "G20": "PASS",
+    "G22": "PASS_SINGLE_BYTE_AUTHORITATIVE_INTEGRATION_BASE",
+    "G27": "PASS",
+    "G28": "OPEN_UNPROVEN_FORENSIC_ONLY",
+    "SAFE_DELETE": "HOLD"
+  },
+  "immutable_predecessor_snapshot": {
+    "file_id": "file_00000000540c822f8975570a2accb921",
+    "library_file_id": "libfile_9ed041febfc48191ae3fd0e14cacbb51",
+    "mutated": false,
+    "role": "IMMUTABLE_HISTORICAL_PREDECESSOR_SNAPSHOT",
+    "sha256": "cbfb0b2a43bed2e82ac0558ff1eee5af9d8726a649bdcb1d8750a89710c75f53",
+    "status": "AUTHORITY_HOLD",
+    "version_id": "7"
+  },
+  "non_effects": [
+    "NO_GLOBAL_MASTER_CHANGE",
+    "NO_MASTER_SQLITE_CHANGE",
+    "NO_LEGACY_MUTATION",
+    "NO_G28_CLOSURE",
+    "NO_SAFE_DELETE_LIFT",
+    "NO_HF_MUTATION",
+    "NO_CROSS_SCOPE_AUTHORITY_TRANSFER"
+  ],
+  "pointer_id": "GALIA-TRUST-ROOT-ACTIVATION-RECONCILIATION-2026-09-26-022",
+  "precedence_rule": "This successor becomes the effective GLOBAL_MASTER trust-root pointer only when an explicit promotion receipt identifies this exact SHA-256. Until then the predecessor pointer remains effective.",
+  "predecessor_active_pointer": {
+    "control_plane_main_commit": "384a1b1b2c804b6d7838cd301d61232dd6313895",
+    "file_id": "file_00000000ae9c81f5b78b1f05f00b6af5",
+    "library_file_id": "libfile_a1d1893726208191b4e24f1a7dd0ed9c",
+    "pointer_id": "GALIA-TRUST-ROOT-ACTIVATION-2026-09-26-021",
+    "role_after_promotion": "HISTORICAL_ACTIVE_POINTER_PREDECESSOR",
+    "sha256": "ceb60f75e5fdf38dbe743d0d6560f58bb359ebbeaa322d501460e5eb579a02b9"
+  },
+  "schema_version": 2,
+  "scope_bindings": {
+    "RC-GALIA-2026-09-13-004": "GLOBAL_MASTER",
+    "RC-GALIA-2026-09-15-003": "SANTURCE_RESEARCH_CANONICAL_STATE"
+  },
+  "status": "ACTIVE",
+  "supabase_reconciliation_if_promoted": {
+    "authority_transfer": false,
+    "binding_key": "github-control-plane-main",
+    "expected_current_revision": "25db17fa583d1561d746ee7d33407d3684ee561d"
+  }
+}
