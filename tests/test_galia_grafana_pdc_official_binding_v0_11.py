@@ -45,6 +45,20 @@ class GrafanaPdcOfficialBindingV011Tests(unittest.TestCase):
             self.assertFalse(v["persist_in_repository"])
             self.assertFalse(v["persist_in_receipt"])
 
+    def test_legacy_shared_pooler_recommendation_is_superseded(self):
+        c = M["connection_mode_contract"]
+        self.assertEqual(c["temporary_access_mode"], "DIRECT")
+        self.assertFalse(c["stock_grafana_shared_pooler_jit_supported"])
+        self.assertEqual(
+            c["policy"],
+            "DO_NOT_USE_SHARED_POOLER_SESSION_FOR_TEMPORARY_ACCESS_JIT_WITH_STOCK_GRAFANA",
+        )
+        legacy = M["legacy_path_disposition"]
+        self.assertEqual(legacy["artifact_status"], "CANDIDATE_NOT_PROMOTED")
+        self.assertEqual(legacy["superseded_recommendation"], "SHARED_POOLER_SESSION")
+        self.assertEqual(legacy["authoritative_connection_mode_for_temporary_access"], "DIRECT")
+        self.assertIn("shared pooler", R.lower())
+
     def test_post_binding_evidence_is_fail_closed(self):
         p=S["properties"]
         for k in (
