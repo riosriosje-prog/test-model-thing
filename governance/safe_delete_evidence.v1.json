@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "snapshot_id": "GALIA-SAFE-DELETE-EVIDENCE-2026-09-26-v1",
+  "decision": "HOLD",
+  "required_objects": {
+    "global_master_1_0_1": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354",
+      "source": "GALIA_MASTER_1_0_1_BYTE_REACQUISITION_RECEIPT_2026-09-26"
+    },
+    "santurce_research_15_003": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "22865209ebb914543ce90ad933758d37f2f0abf760084c37380838bd121745f8",
+      "source": "GALIA_15_003_BYTE_RECOVERY_RECEIPT_2026-09-26"
+    },
+    "v1_30_14_003": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "85e616800a65f5349d61277c7b5cce97863406b995e7560e3102b02a4bb63de6",
+      "source": "GALIA_14_003_15_003_LINEAGE_RECONCILIATION_2026-09-26"
+    },
+    "cleanup_948d41": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad",
+      "source": "GALIA_CANDIDATE_AND_CLEANUP_RECOVERY_2026-09-26"
+    },
+    "cleanup_upstream_5ed030": {
+      "state": "RAW_BYTES_NOT_RECOVERED",
+      "expected_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+      "source": "GALIA_CANDIDATE_AND_CLEANUP_RECOVERY_2026-09-26"
+    },
+    "ow02_checkpoint": {
+      "state": "REPORT_ONLY_RAW_BYTES_NOT_LOCATED",
+      "expected_sha256": "455f67ab608714af9cb2687fb567b600ed7730d386f6d2238bc62a68dde07948",
+      "source": "OW02_RESEARCH_REPORT.md"
+    },
+    "ow10_checkpoint": {
+      "state": "REPORT_ONLY_RAW_BYTES_NOT_LOCATED",
+      "expected_sha256_prefix": "bbd1188",
+      "source": "SAFE_DELETE_CRITERIA.md + OW10_RESEARCH_REPORT.md"
+    }
+  },
+  "controls": {
+    "ow21_discovery_audit": {
+      "state": "NOT_COMPLETE",
+      "observation": "Library discovery found references to OW21 but no raw OW21 checkpoint object."
+    },
+    "final_vault": {
+      "state": "NOT_BUILT",
+      "sha256": null
+    },
+    "clean_room_restore": {
+      "state": "NOT_RUN"
+    },
+    "deletion_manifest": {
+      "state": "ABSENT",
+      "sha256": null,
+      "targets": []
+    },
+    "human_authorization": {
+      "state": "ABSENT",
+      "decision_id": null,
+      "deletion_manifest_sha256": null,
+      "final_vault_sha256": null
+    }
+  },
+  "vault_objects": {},
+  "should_preserve": {
+    "historical_v1_29_binary": {
+      "state": "RAW_BYTES_NOT_RECOVERED",
+      "expected_sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6"
+    }
+  },
+  "forensic_only": {
+    "g28_14_003_to_15_003": {
+      "state": "OPEN_UNPROVEN"
+    },
+    "sqlite_3_46_1_same_writer_replay": {
+      "state": "NOT_RUN"
+    }
+  }
+}
