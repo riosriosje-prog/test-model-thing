@@ -98,6 +98,21 @@ Purpose:
 
 It is not a Grafana API token and not a PDC token.
 
+## Legacy connection-path disposition
+
+A historical artifact on `main`, `governance/galia_grafana_activation_candidate.v1_0.json`, is explicitly `CANDIDATE_NOT_PROMOTED` but recommends `SHARED_POOLER_SESSION`.
+
+That recommendation is **superseded for Temporary Access/JIT**. The current contract is:
+
+```text
+Temporary Access / JIT + stock Grafana PostgreSQL datasource
+    -> DIRECT
+    -> db.nzoviwitcqmsacwiizhh.supabase.co:5432
+    -> PDC for Grafana Cloud IPv6 reachability
+```
+
+Do not use the shared pooler for this flow. The JIT preparation v1.4 records that the shared pooler requires the Supavisor `jit=true` connection option, which the stock Grafana PostgreSQL datasource does not expose as an arbitrary PostgreSQL connection option.
+
 ## Binding contract
 
 For the Cloud PDC profile, the datasource must contain:
