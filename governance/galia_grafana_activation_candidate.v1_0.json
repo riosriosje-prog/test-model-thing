@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-ACTIVATION-CANDIDATE-v1.0",
+  "activation_id": "GALIA-GRAFANA-LOGIN-ACTIVATION-2026-09-27-001",
+  "status": "CANDIDATE_NOT_PROMOTED",
+  "repository": "riosriosje-prog/test-model-thing",
+  "base_ref": "main",
+  "base_commit": "b072f20362ad753375f3f4291c7b8607fe451a12",
+  "target_schema_version": "1.5.0",
+  "predecessor_identity": {
+    "candidate_id": "GALIA-GRAFANA-READER-CANDIDATE-v1.3",
+    "object_ref": "GALIA-GRAFANA-READER-IDENTITY-2026-09-27-001",
+    "promoted_main_commit": "b072f20362ad753375f3f4291c7b8607fe451a12",
+    "database_role": "galia_grafana_ro",
+    "required_login_state": false
+  },
+  "promotion_binding": {
+    "promoted_main_commit_token": "__PROMOTED_MAIN_COMMIT__",
+    "candidate_head_token": "__CANDIDATE_HEAD__",
+    "candidate_set_sha256_token": "__CANDIDATE_SET_SHA256__",
+    "grafana_password_token": "__GRAFANA_PASSWORD__",
+    "promotion_receipt_must_bind_merge_commit": true,
+    "promotion_receipt_must_bind_candidate_head": true,
+    "promotion_receipt_must_bind_candidate_set_sha256": true,
+    "secret_must_not_enter_receipt": true
+  },
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_activation_candidate.v1_0.json",
+      "supabase/bindings/galia_grafana_login_activation_v1_0.sql",
+      "tests/test_galia_grafana_activation_v1_0.py",
+      "tools/render_galia_grafana_activation_v1_0.py"
+    ],
+    "self_hash_embedded": false,
+    "expected_hash_supplied_at_promotion": true
+  },
+  "secret_contract": {
+    "source": "RUNTIME_ONLY",
+    "environment_variable": "GALIA_GRAFANA_DB_PASSWORD",
+    "allowed_pattern": "^[A-Za-z0-9_-]{32,64}$",
+    "plaintext_in_repository": false,
+    "plaintext_in_receipt": false,
+    "secret_derived_hash_in_receipt": false,
+    "generated_or_supplied_only_at_promotion": true
+  },
+  "database_activation": {
+    "role": "galia_grafana_ro",
+    "login_before": false,
+    "login_after": true,
+    "privilege_changes": false,
+    "membership_changes": false,
+    "role_setting_changes": false,
+    "connection_limit": 5,
+    "default_transaction_read_only": "on"
+  },
+  "control_plane_refresh": {
+    "binding_key": "github-control-plane-main",
+    "expected_previous_revision": "b072f20362ad753375f3f4291c7b8607fe451a12",
+    "target_revision": "__PROMOTED_MAIN_COMMIT__",
+    "authority_transfer": false
+  },
+  "grafana_connection": {
+    "configured_by_this_candidate": false,
+    "reason": "No Grafana connector is available in the current execution environment.",
+    "recommended_supabase_mode": "SHARED_POOLER_SESSION",
+    "port": 5432,
+    "tls_required": true,
+    "username_template": "galia_grafana_ro.nzoviwitcqmsacwiizhh",
+    "host_source": "Supabase Dashboard Connect -> Session pooler"
+  },
+  "non_effects": [
+    "NO_SCHEMA_VERSION_BUMP",
+    "NO_CANONICAL_DATA_MUTATION",
+    "NO_STAGING_DATA_MUTATION",
+    "NO_HF_BINDING_MUTATION",
+    "NO_EDGE_GRAPH_MUTATION",
+    "NO_AUTHORITY_TRANSFER",
+    "NO_GRAFANA_DATASOURCE_CREATION",
+    "NO_SECRET_PERSISTENCE_IN_GIT",
+    "NO_SECRET_PERSISTENCE_IN_RECEIPTS"
+  ]
+}
