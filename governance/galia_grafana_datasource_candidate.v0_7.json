@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-DATASOURCE-CANDIDATE-v0.7",
+  "object_ref": "GALIA-GRAFANA-DATASOURCE-PREP-2026-09-27-001",
+  "status": "PREPARATION_ONLY_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-datasource-v0-5-candidate",
+  "predecessor": {
+    "candidate_id": "GALIA-GRAFANA-JIT-LOGIN-CANDIDATE-v1.4",
+    "candidate_head": "14c538d18400da493ab1c354505bd5d75f67c3f3",
+    "candidate_set_sha256": "9f3b7172a8b31debafec30aec1c8be2ff37e2e100398a8b27803a7d57291b6c9",
+    "promoted_main_commit": "a6f3aae4340da9079bdba63df9bdbe46a596cce5",
+    "github_pr": 46,
+    "promoted": true,
+    "live_login_verified": true,
+    "live_persistent_password_null_verified": true,
+    "must_be_promoted_first": false,
+    "must_rebase_onto_exact_promoted_main_before_promotion": false
+  },
+  "promotion_gates": {
+    "v1_4_promoted": true,
+    "galia_grafana_ro_login": true,
+    "persistent_postgres_password_null": true,
+    "temporary_access_enabled": false,
+    "ssl_enforcement_enabled": false,
+    "jit_mapping_configured": false,
+    "network_route_verified": false,
+    "scoped_pat_available": "UNKNOWN",
+    "datasource_health_check_passed": false,
+    "acceptance_queries_passed": false,
+    "tls_ca_provisioned": false,
+    "activation_receipt_verified": false,
+    "activation_e_applied_and_verified": false
+  },
+  "datasource": {
+    "name": "GALIA Cangrejos",
+    "uid": "galia-cangrejos-postgres",
+    "type": "postgres",
+    "database": "postgres",
+    "role": "galia_grafana_ro",
+    "host": "db.nzoviwitcqmsacwiizhh.supabase.co",
+    "port": 5432,
+    "tls_mode": "verify-full",
+    "editable": false,
+    "is_default": false,
+    "pool": {
+      "max_open_connections": 2,
+      "max_idle_connections": 1,
+      "max_idle_connections_auto": false,
+      "connection_max_lifetime_seconds": 900
+    },
+    "pdc_support_contract": {
+      "json_data_key": "enableSecureSocksProxy",
+      "postgres_plugin_type": "boolean",
+      "backend_behavior": "settings.ProxyClient(ctx) -> NewSecureSocksProxyContextDialer() -> pgx DialFunc",
+      "hostname_preservation": true
+    },
+    "postgres_version": 1700,
+    "postgres_version_source": "project engine PostgreSQL 17; Grafana plugin supports dynamic version values and auto-detection",
+    "provisioning_version": 1,
+    "provisioning_version_policy": "MONOTONIC_INCREMENT_ON_EACH_PROMOTED_DATASOURCE_CHANGE",
+    "provisioning_version_reason": "Prevent older Grafana instances/configuration from overwriting newer provisioned datasource state",
+    "tls_configuration_method": "file-content",
+    "tls_ca_source": "GALIA_GRAFANA_TLS_CA_CERT",
+    "tls_ca_material_classification": "PUBLIC_CA_CERT_OUT_OF_BAND"
+  },
+  "credential_contract": {
+    "source": "ENVIRONMENT_ONLY",
+    "environment_variable": "GALIA_GRAFANA_SCOPED_PAT",
+    "literal_pat_in_repository": false,
+    "literal_pat_in_receipt": false,
+    "classic_pat_automatic_fallback": false,
+    "classic_pat_fallback_state": "HOLD",
+    "scoped_pat_expected_prefix": "sbp_fc"
+  },
+  "network_profiles": {
+    "SELF_HOSTED_IPV6": {
+      "supported": true,
+      "enable_secure_socks_proxy": false,
+      "require_direct_ipv6_reachability": true
+    },
+    "GRAFANA_CLOUD_PDC_IPV6": {
+      "supported": true,
+      "enable_secure_socks_proxy": true,
+      "require_pdc_agent_ipv6_reachability": true,
+      "permit_remote_open": "db.nzoviwitcqmsacwiizhh.supabase.co:5432"
+    },
+    "GRAFANA_CLOUD_DIRECT_IPV6": {
+      "supported": false,
+      "reason": "Grafana Cloud external datasource connectivity does not provide direct IPv6 reachability"
+    },
+    "GRAFANA_CLOUD_DIRECT_IPV4": {
+      "supported": "CONDITIONAL",
+      "condition": "Supabase Pro+ with IPv4 add-on"
+    }
+  },
+  "template_environment": {
+    "GALIA_GRAFANA_DB_HOST": "db.nzoviwitcqmsacwiizhh.supabase.co",
+    "GALIA_GRAFANA_DB_PORT": "5432",
+    "GALIA_GRAFANA_DB_USER": "galia_grafana_ro",
+    "GALIA_GRAFANA_DB_NAME": "postgres",
+    "GALIA_GRAFANA_PDC_ENABLED": "false|true",
+    "GALIA_GRAFANA_SCOPED_PAT": "SECRET_OUT_OF_BAND",
+    "GALIA_GRAFANA_TLS_CA_CERT": "SUPABASE_CA_CERT_PEM_OUT_OF_BAND",
+    "GALIA_GRAFANA_ACTIVATION_RECEIPT_PATH": "OUT_OF_REPOSITORY_JSON_PATH"
+  },
+  "acceptance_contract": {
+    "must_select_monitor_views": [
+      "monitor.galia_overview_v1",
+      "monitor.ingest_health_v1",
+      "monitor.authority_chain_v1",
+      "monitor.research_pipeline_v1",
+      "monitor.control_plane_topology_v1"
+    ],
+    "must_fail_schema_usage": [
+      "audit",
+      "staging",
+      "canonical",
+      "derived"
+    ],
+    "must_fail_writes": true,
+    "public_selectable_relations": 0,
+    "runtime_probe": {
+      "positive_sql": "grafana/acceptance/galia_cangrejos_postgres_acceptance.v0_6.sql",
+      "runtime_script": "tools/run_galia_grafana_runtime_acceptance_v0_6.sh",
+      "secret_source": "PGPASSWORD_FROM_GALIA_GRAFANA_SCOPED_PAT",
+      "expected_source_plane_select_failure": true,
+      "expected_permanent_write_failure": true,
+      "mutation_persistence": "NONE_TRANSACTION_ROLLED_BACK",
+      "tls_mode": "verify-full",
+      "ca_source": "GALIA_GRAFANA_TLS_CA_CERT",
+      "activation_receipt_path_environment_variable": "GALIA_GRAFANA_ACTIVATION_RECEIPT_PATH",
+      "activation_receipt_validator": "tools/validate_galia_grafana_activation_receipt_v0_7.py"
+    }
+  },
+  "non_effects": [
+    "NO_GRAFANA_API_WRITE",
+    "NO_TEMPORARY_ACCESS_MUTATION",
+    "NO_JIT_MAPPING_MUTATION",
+    "NO_PAT_CREATION",
+    "NO_PAT_PERSISTENCE",
+    "NO_DATABASE_MUTATION",
+    "NO_CONTROL_PLANE_BINDING_MUTATION",
+    "NO_AUTHORITY_TRANSFER"
+  ],
+  "activation_dependency": {
+    "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.5",
+    "github_pr": 52,
+    "candidate_head": "96c468c7f37750620a05e62532f36121569b9877",
+    "candidate_set_sha256": "20feda3c06beb0464d06067680ee340bda921e7a2a12226c1af6f337500f2f3d",
+    "status_required": "APPLIED_AND_VERIFIED",
+    "receipt_required": true,
+    "receipt_storage": "OUT_OF_REPOSITORY",
+    "receipt_path_environment_variable": "GALIA_GRAFANA_ACTIVATION_RECEIPT_PATH"
+  },
+  "activation_receipt_contract": {
+    "schema_version": 1,
+    "project_ref": "nzoviwitcqmsacwiizhh",
+    "required_candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.5",
+    "required_candidate_head": "96c468c7f37750620a05e62532f36121569b9877",
+    "required_candidate_set_sha256": "20feda3c06beb0464d06067680ee340bda921e7a2a12226c1af6f337500f2f3d",
+    "required_fields": [
+      "ssl_enforcement_verified",
+      "server_root_ca_sha256",
+      "project_status",
+      "temporary_access_enabled",
+      "gotrue_id",
+      "service_pat_identity_binding_verified",
+      "network_profile",
+      "verified_egress_cidrs",
+      "jit_mapping_method",
+      "jit_mapping_verified",
+      "expires_at",
+      "direct_verify_full_connection_passed"
+    ],
+    "secret_material_forbidden": true,
+    "primary_email_forbidden": true,
+    "token_hash_forbidden": true,
+    "expires_at_unit": "unix_seconds"
+  }
+}
