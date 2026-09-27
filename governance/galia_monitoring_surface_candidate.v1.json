@@ -1,0 +1,66 @@
+{
+  "authority_invariants": {
+    "automatic_canonical_promotion": false,
+    "canonical_authority_transferred": false,
+    "grafana_write_authority": false,
+    "human_promotion_required": true,
+    "source_of_truth": "GITHUB"
+  },
+  "base_commit": "13cde4ff516df154b0a12c33a799e0197505df6c",
+  "base_ref": "main",
+  "candidate_id": "GALIA-MONITORING-CANDIDATE-v1.6",
+  "change_class": {
+    "additive": true,
+    "destructive": false
+  },
+  "data_effects": {
+    "audit_data_mutation": "SCHEMA_VERSION_REGISTRY_ONLY",
+    "canonical_authorization_metadata_touched": true,
+    "canonical_data_mutation": false,
+    "staging_data_mutation": false
+  },
+  "files": {
+    "migration": {
+      "path": "supabase/migrations/20260927150000_galia_monitoring_surface_v1.sql",
+      "sha256": "e01329a997a63f859896b2919dcff9fb923903e04b8a26247ab2540e8c7d377c"
+    },
+    "test": {
+      "path": "tests/test_galia_monitoring_surface_policy.py",
+      "sha256": "68a118b1b21c25fee70929038c3041d9a64011984977182eaa361eb9730d3d4c"
+    }
+  },
+  "hold_semantics": {
+    "cross_plane_hold_source": "audit.cross_plane_bindings.status",
+    "global_authority_hold_modeled": false,
+    "safe_delete_source": "GITHUB_GOVERNANCE"
+  },
+  "migration_name": "galia_monitoring_surface_v1",
+  "monitor_surface": {
+    "private_schema": true,
+    "roles": [
+      "galia_monitor_owner",
+      "galia_monitor_ro"
+    ],
+    "schema": "monitor",
+    "security_barrier_views": true,
+    "views": [
+      "monitor.galia_overview_v1",
+      "monitor.ingest_health_v1",
+      "monitor.authority_chain_v1",
+      "monitor.research_pipeline_v1",
+      "monitor.control_plane_topology_v1"
+    ]
+  },
+  "parent_schema_version": "1.4.0",
+  "preflight": {
+    "base_branch_protected": false,
+    "candidate_paths_free_on_base_commit": true,
+    "production_mutation": false,
+    "required_status_checks_configured": false,
+    "supabase_transactional_dry_run": "PASS"
+  },
+  "repository": "riosriosje-prog/test-model-thing",
+  "schema_version": 1,
+  "status": "CANDIDATE_NOT_PROMOTED",
+  "target_schema_version": "1.5.0"
+}
