@@ -10,12 +10,20 @@ This candidate closes the identity graph between GALIA's three operational plane
 - Hugging Face: ML/evidence artifact plane.
 - Supabase: structured canonical/staging/audit data plane.
 
-## Exact current bindings
+## GitHub merge-stable binding
 
-GitHub control plane:
+Candidate base:
 - repo: `riosriosje-prog/test-model-thing`
 - ref: `main`
-- commit: `384a1b1b2c804b6d7838cd301d61232dd6313895`
+- pre-merge base: `384a1b1b2c804b6d7838cd301d61232dd6313895`
+
+The candidate **does not** hard-code that base as the post-promotion authority identity.
+
+At promotion time the exact resulting merge commit must replace:
+
+`__PROMOTED_MAIN_COMMIT__`
+
+in the Supabase binding template. The template fails closed unless the replacement is a lowercase 40-hex Git commit. The promotion receipt must bind that exact merge commit.
 
 HF8 model:
 - repo: `Junitos/galia-2`
@@ -40,7 +48,6 @@ Supabase:
 The historical `audit.external_anchors` table remains unchanged. It is GitHub-specific and preserves its existing two historical anchors.
 
 The candidate adds:
-
 - `audit.cross_plane_bindings`
 - `audit.cross_plane_binding_edges`
 
