@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "policy_id": "GALIA-SAFE-DELETE-POLICY-v1",
+  "status": "CANDIDATE_HUMAN_PROMOTION_REQUIRED",
+  "semantics": {
+    "safe_delete_is_target_scoped": true,
+    "global_implicit_safe_delete": false,
+    "evaluator_never_deletes": true,
+    "automatic_safe_delete_promotion": false,
+    "human_authorization_required": true,
+    "certificate_must_bind_exact_deletion_manifest_sha256": true,
+    "certificate_must_bind_exact_final_vault_sha256": true
+  },
+  "must": [
+    "Exact raw bytes and SHA-256 for GLOBAL_MASTER 1.0.1.",
+    "Exact raw bytes and SHA-256 for current Santurce research canonical state 15-003.",
+    "Exact raw bytes and SHA-256 for v1.30-era object 85e616...",
+    "Exact raw bytes and SHA-256 for cleanup object 948d41...",
+    "Exact raw bytes and SHA-256 for cleanup upstream object 5ed030...",
+    "Exact raw bytes and SHA-256 for OW02 checkpoint 455f67...",
+    "Exact raw bytes and SHA-256 for OW10 checkpoint/package.",
+    "Completed OW21 discovery audit; every directly recoverable checkpoint must be preserved.",
+    "Immutable final vault with exact SHA-256 and verified object index.",
+    "Clean-room restore PASS using only the final vault.",
+    "Exact non-empty deletion manifest with each target identified by SHA-256.",
+    "Every deletion target verified inside the final vault.",
+    "Explicit human approval bound to deletion-manifest SHA-256 and final-vault SHA-256."
+  ],
+  "should": [
+    "Preserve historical v1.29 promoted binary 3ed9a658... if recoverable."
+  ],
+  "forensic_only_nonblocking": [
+    "G28 direct 14-003 -> 15-003 lineage may remain OPEN_UNPROVEN if all required bytes/provenance are preserved.",
+    "SQLite 3.46.1 same-writer replay is not a SAFE_DELETE prerequisite.",
+    "Forensic lineage questions remain preserved as evidence and cannot be silently rewritten."
+  ],
+  "output_states": [
+    "HOLD",
+    "SAFE_TO_DELETE_CANDIDATE"
+  ],
+  "promotion_rule": "SAFE_TO_DELETE can become effective only through a separate explicit human decision for the exact certificate."
+}
