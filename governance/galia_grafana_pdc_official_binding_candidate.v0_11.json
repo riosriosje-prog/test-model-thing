@@ -216,6 +216,25 @@
   "hardening_changes": [
     "REBASED_ON_SCOPE_CORRECT_AUTHORITY_RATIFICATION_MAIN",
     "AUTHORITY_DEPENDENCY_SATISFIED",
-    "LIVE_EXECUTION_REMAINS_BLOCKED_BY_EXTERNAL_FACTS"
-  ]
+    "LIVE_EXECUTION_REMAINS_BLOCKED_BY_EXTERNAL_FACTS",
+    "SUPERSEDE_NONPROMOTED_V1_0_SHARED_POOLER_SESSION_RECOMMENDATION"
+  ],
+  "connection_mode_contract": {
+    "temporary_access_mode": "DIRECT",
+    "host": "db.nzoviwitcqmsacwiizhh.supabase.co",
+    "port": 5432,
+    "stock_grafana_shared_pooler_jit_supported": false,
+    "policy": "DO_NOT_USE_SHARED_POOLER_SESSION_FOR_TEMPORARY_ACCESS_JIT_WITH_STOCK_GRAFANA"
+  },
+  "legacy_path_disposition": {
+    "artifact": "governance/galia_grafana_activation_candidate.v1_0.json",
+    "artifact_status": "CANDIDATE_NOT_PROMOTED",
+    "superseded_recommendation": "SHARED_POOLER_SESSION",
+    "superseded_by": [
+      "governance/galia_grafana_jit_login_candidate.v1_4.json",
+      "GALIA-GRAFANA-PDC-OFFICIAL-BINDING-CONTRACT-CANDIDATE-v0.11"
+    ],
+    "authoritative_connection_mode_for_temporary_access": "DIRECT",
+    "reason": "Temporary Access direct connections use the authorized user's API token as the PostgreSQL password; the stock Grafana PostgreSQL datasource does not expose the Supavisor jit=true connection option required by the shared pooler JIT path."
+  }
 }
