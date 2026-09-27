@@ -1,0 +1,63 @@
+name: hf-final-release-1-0-1
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: verify or publish
+        required: true
+        default: verify
+        type: choice
+        options:
+          - verify
+          - publish
+
+permissions:
+  contents: read
+
+jobs:
+  final-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face client
+        run: python -m pip install --upgrade "huggingface_hub>=1.19,<2"
+
+      - name: Verify write-channel prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${HF_TOKEN:-}"
+          echo "HF_TOKEN_GATE=PRESENT"
+
+      - name: Verify existing remote release
+        if: ${{ inputs.mode == 'verify' }}
+        run: python tools/verify_hf_final_release.py
+
+      - name: Publish exact release
+        if: ${{ inputs.mode == 'publish' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d "hf-final-release-input" ]; then
+            echo "::error::hf-final-release-input is absent. The exact byte-verified release payload must be staged before publish."
+            exit 4
+          fi
+          python tools/publish_hf_final_release.py             --release-dir hf-final-release-input             --receipt hf-final-release-receipt.json
+
+      - name: Upload receipt
+        if: ${{ inputs.mode == 'publish' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_HF_FINAL_RELEASE_RECEIPT
+          path: hf-final-release-receipt.json
+          if-no-files-found: error
+          retention-days: 90
