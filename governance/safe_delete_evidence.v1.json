@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "snapshot_id": "GALIA-SAFE-DELETE-EVIDENCE-2026-09-26-v2",
+  "snapshot_id": "GALIA-SAFE-DELETE-EVIDENCE-2026-09-26-v4",
   "decision": "HOLD",
   "required_objects": {
     "global_master_1_0_1": {
@@ -28,9 +28,12 @@
       "source": "GALIA_WORKING_v1_31_TASK_LIFECYCLE_CLEANUP_PACKAGE.zip"
     },
     "cleanup_upstream_5ed030": {
-      "state": "RAW_BYTES_NOT_RECOVERED",
-      "expected_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
-      "source": "cleanup manifest; filename unresolved; exact-hash scans negative"
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+      "package_sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0,
+      "source": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/5ED030_BYTE_EXACT_RECOVERY.zip"
     },
     "ow02_checkpoint": {
       "state": "RAW_BYTES_VERIFIED",
@@ -65,16 +68,16 @@
       "package_sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a"
     },
     "final_vault": {
-      "state": "STAGING_VAULT_BUILT_VERIFIED_WITH_DEFICIT",
+      "state": "STAGING_VAULT_BYTE_COMPLETE_AWAITING_FINAL_SEAL",
       "sha256": null,
-      "staging_manifest_sha256": "22a32473f13028491c96f4e665e2a009e602b9bd15e06010dd73bd44c4d3e1e6",
+      "staging_manifest_sha256": "f28ea1ca8b3b49ebca809cda00658cca29151c688568e346740b8f6d3aabe23f",
       "library_path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26",
-      "missing_required_object": "cleanup_upstream_5ed030"
+      "missing_required_objects": []
     },
     "clean_room_restore": {
-      "state": "PARTIAL_PASS_AVAILABLE_OBJECTS_ONLY",
-      "sqlite_integrity": "PASS_ALL_AVAILABLE",
-      "foreign_key_check": "0_ALL_AVAILABLE",
+      "state": "STAGING_READBACK_PASS_FINAL_RESTORE_NOT_RUN",
+      "sqlite_integrity": "PASS_ALL_REQUIRED_RAW_OBJECTS_INSPECTED",
+      "foreign_key_check": "0_ALL_REQUIRED_RAW_OBJECTS_INSPECTED",
       "final_restore_eligible": false
     },
     "deletion_manifest": {
@@ -125,13 +128,24 @@
     "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb": {
       "state": "VERIFIED_IN_STAGING_VAULT",
       "object_id": "recovery_vault_r6"
+    },
+    "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad": {
+      "state": "VERIFIED_IN_STAGING_VAULT",
+      "object_id": "cleanup_upstream_5ed030",
+      "raw_sqlite_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6"
+    },
+    "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61": {
+      "state": "VERIFIED_IN_STAGING_VAULT",
+      "object_id": "historical_v1_29_binary",
+      "raw_sqlite_sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6"
     }
   },
   "should_preserve": {
     "historical_v1_29_binary": {
-      "state": "RAW_BYTES_NOT_RECOVERED",
-      "expected_sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6",
-      "sidecar_verified": true
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6",
+      "package_sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
+      "source": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/MASTER_V1_29_RC_13_002_REACQUIRED.zip"
     }
   },
   "forensic_only": {
