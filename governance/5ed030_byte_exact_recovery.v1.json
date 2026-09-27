@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "receipt_id": "GALIA-5ED030-BYTE-EXACT-RECOVERY-2026-09-26-v1",
+  "status": "RAW_BYTES_RECOVERED_AND_VERIFIED",
+  "target": {
+    "artifact": "GALIA_WORKING_v1_30_POSTPROMOTION.sqlite",
+    "sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+    "size_bytes": 481763328,
+    "integrity_check": "ok",
+    "foreign_key_violations": 0
+  },
+  "parent": {
+    "artifact": "GALIA_CANONICAL_KERNEL_v1_29_MASTER_PROMOTED.sqlite",
+    "sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6"
+  },
+  "successor": {
+    "artifact": "GALIA_WORKING_v1_31_TASK_LIFECYCLE_CLEANUP.sqlite",
+    "sha256": "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad"
+  },
+  "recovery_method": {
+    "recorded_branch_method": "sqlite3.Connection.backup",
+    "sqlite_runtime": "3.46.1",
+    "writer_version_number": 3046001,
+    "independent_reproductions": 2,
+    "byte_cmp": "PASS",
+    "reverse_destructive_rollback_used": false
+  },
+  "package_sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+  "receipt_sha256": "f5f79c5a782881b3be7d60012c272d6ccd5b61818f07cc118864d233acee097a",
+  "final_vault_path": "/GALIA_FINAL_VAULT_SEALED_2026-09-26",
+  "governance": {
+    "authority_transfer": "NONE",
+    "promotion_effect": "NONE",
+    "safe_delete": "HOLD",
+    "delete_authorized": false
+  }
+}
