@@ -1,0 +1,79 @@
+{
+  "clean_room_state": "PARTIAL_PASS_AVAILABLE_OBJECTS_ONLY",
+  "final_vault_eligible": false,
+  "generated_at_utc": "2026-09-27T00:55:01.896862+00:00",
+  "library_path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26",
+  "missing_required_objects": [
+    {
+      "expected_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+      "id": "cleanup_upstream_5ed030",
+      "state": "RAW_BYTES_NOT_RECOVERED"
+    }
+  ],
+  "reason": "Required upstream 5ed030 raw bytes remain absent.",
+  "schema_version": 1,
+  "state": "STAGING_VAULT_BUILT_VERIFIED_WITH_DEFICIT",
+  "vault_id": "GALIA-FINAL-VAULT-STAGING-2026-09-26-v1",
+  "verification": {
+    "foreign_key_check": "0_ALL_SQLITE_MEMBERS_INSPECTED",
+    "server_side_copy_readback": "PASS",
+    "sqlite_integrity": "PASS_ALL_SQLITE_MEMBERS_INSPECTED"
+  },
+  "verified_objects": [
+    {
+      "file_id": "file_000000004878822f8049d9979a977f63",
+      "id": "global_master_1_0_1",
+      "library_file_id": "libfile_f1457dc4efa88191bcf1d301905d8011",
+      "package_sha256": "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87",
+      "sqlite_sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354"
+    },
+    {
+      "file_id": "file_0000000083d0822f9ce3019c090a71fe",
+      "id": "santurce_research_15_003",
+      "library_file_id": "libfile_de0792651eac8191b5ee7d31dcd48077",
+      "package_sha256": "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee",
+      "sqlite_sha256": "22865209ebb914543ce90ad933758d37f2f0abf760084c37380838bd121745f8"
+    },
+    {
+      "file_id": "file_000000005a78822f8d8f0bba49cb4611",
+      "id": "v1_30_14_003",
+      "library_file_id": "libfile_6ae3fb2e51d4819198bddfe825baf047",
+      "package_sha256": "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f",
+      "sqlite_sha256": "85e616800a65f5349d61277c7b5cce97863406b995e7560e3102b02a4bb63de6"
+    },
+    {
+      "file_id": "file_00000000da14822f949392761445ecc8",
+      "id": "cleanup_948d41",
+      "library_file_id": "libfile_2f30b83384648191892437c4087bc8b7",
+      "package_sha256": "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d",
+      "sqlite_sha256": "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad"
+    },
+    {
+      "file_id": "file_000000008e48822fbb8609fddac8e3d5",
+      "id": "ow02_checkpoint",
+      "library_file_id": "libfile_956de5e985e88191ad31f56cf91d34ed",
+      "package_sha256": "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907",
+      "sqlite_sha256": "455f67ab608714af9cb2687fb567b600ed7730d386f6d2238bc62a68dde07948"
+    },
+    {
+      "file_id": "file_000000006d9c822fa0e03007d1b7b4fe",
+      "id": "ow10_checkpoint",
+      "library_file_id": "libfile_b79e4867382881918c9100723c5f4653",
+      "package_sha256": "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda",
+      "sqlite_sha256": "709099a1d695f0cb53983dfef6a7983b75aa5c1992a9d5c32061c611471d36b2"
+    },
+    {
+      "file_id": "file_000000000c9c822fba59798599eb1a29",
+      "id": "ow21_checkpoint",
+      "library_file_id": "libfile_383b9857dab88191a00704bb8174abee",
+      "package_sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0",
+      "sqlite_sha256": "9b4634df16377f006c92b09fca936296aaeb58e5620696181f24c5efbe8a14ab"
+    },
+    {
+      "file_id": "file_000000008b70822faadd5037ca357574",
+      "id": "recovery_vault_r6",
+      "library_file_id": "libfile_455b7d53c8f48191bbf77bbe0a5a4529",
+      "package_sha256": "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb"
+    }
+  ]
+}
