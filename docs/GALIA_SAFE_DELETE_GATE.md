@@ -1,82 +1,52 @@
-# GALIA SAFE_DELETE Gate v1 — Recovery v3 candidate
+# GALIA SAFE_DELETE Gate — Recovery v4 candidate
 
-Status: **CANDIDATE / HUMAN PROMOTION REQUIRED**
+Status: **READY FOR HUMAN PROMOTION / SAFE_DELETE STILL HOLD**
 
-Recovery v3 does not recover or fabricate the missing `5ed030...` bytes. It fixes
-the preservation model so that an irrecoverable **noncanonical transient** can be
-handled explicitly without being silently treated as byte-equivalent.
+Recovery v4 records a material recovery after promoted Recovery v3.
 
-## Evidence result for 5ed030
+## 5ed030 raw-byte recovery
 
-Expected SHA-256:
+The previously missing upstream object was reproduced from preserved evidence using:
+
+1. the preserved promoted parent `RC-GALIA-2026-09-13-002` / v1.29;
+2. SQLite **3.46.1**, matching the historical writer version;
+3. the recorded `sqlite3.Connection.backup` branch method;
+4. the exact v1.30 rows preserved in the v1.31 descendant;
+5. two natural SQLite commits, with no manual header patch in the final replay.
+
+The resulting file is 481,763,328 bytes and hashes exactly to:
 
 `5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6`
 
-The cleanup manifest binds this object as `source_v1_30_sha256` for
-`GALIA_WORKING_v1_31_TASK_LIFECYCLE_CLEANUP.sqlite` (`948d41...`).
+It passes `integrity_check=ok` and `foreign_key_check=0`.
 
-The same manifest/report establishes the bounded cleanup scope:
+Because the bytes now match the historically recorded SHA-256 exactly, the current evidence state is `RAW_BYTES_VERIFIED`. The Recovery v3 irrecoverable-transient path remains available as a fail-closed fallback policy but is **not used** by the current snapshot.
 
-- `master_modified = false`;
-- historical knowledge mutations: sources `0`, evidence `0`, statements `0`;
-- release-authority changes: `0`;
-- only three task lifecycle states were repaired;
-- successor `948d41...` is byte-verified;
-- exhaustive recovery searches did not locate the `5ed030...` raw bytes;
-- reverse reconstruction is **not** accepted as raw-byte substitution.
+## Final vault
 
-The evidence record is:
+Library path:
 
-`governance/irrecoverable_transient_5ed030.v1.json`
+`/GALIA_FINAL_VAULT_2026-09-26`
 
-SHA-256:
+Final vault manifest SHA-256:
 
-`e2a6359902848e3531071ade022b445acadaabc7396598771f504530179d809c`
+`2e964136234ebeccb091998c959ada549af878ea8908414be24889402ad36664`
 
-## New fail-closed path
+Clean-room report SHA-256:
 
-`cleanup_upstream_5ed030` may be classified:
+`fac245174cb9724271afd99fded3a1de6b3d21a377d65f841b8c90550577485a`
 
-`IRRECOVERABLE_TRANSIENT_DOCUMENTED`
+Clean-room restore was performed using readback copies from the final vault only. All package hashes passed; all inspected SQLite members passed integrity and foreign-key checks; the 15 stored v1.30 chunks reassembled to the exact `5ed030...` SHA-256.
 
-only when all policy-bound facts match exactly. This state is **not enough** to
-pass SAFE_DELETE. A separate control is required:
+Historical v1.29 (`3ed9a658...`) is also preserved, so its prior advisory is closed.
 
-`EXPLICIT_HUMAN_IRRECOVERABLE_TRANSIENT_ACCEPTANCE_BOUND`
-
-That decision must bind:
-
-- object id;
-- expected missing SHA-256;
-- exact evidence-record SHA-256;
-- a non-empty human decision id.
-
-If any classification fact changes, the successor is not byte-verified, knowledge
-or authority mutations are nonzero, recovery search is not exhaustive, a reverse
-reconstruction is substituted, or the human acceptance does not bind the exact
-record, the gate fails closed.
-
-## Separation of decisions
-
-Three distinct decisions remain separate:
-
-1. promotion of Recovery v3 code/policy;
-2. human acceptance of the documented irrecoverable transient loss;
-3. deletion-specific authorization bound to the final vault and exact deletion manifest.
-
-None implies another.
-
-## Current state
+## Effective gate state
 
 `SAFE_DELETE = HOLD`
 
-Current blockers after this candidate remains unpromoted include:
+The byte-preservation and final-vault blockers are closed. The remaining mandatory blockers are intentionally separate:
 
-- Recovery v3 itself requires human promotion;
-- irrecoverable-transient human acceptance is absent;
-- final vault is not sealed;
-- final clean-room restore has not passed;
-- deletion manifest is absent;
-- deletion-specific human authorization is absent.
+- exact deletion manifest: **ABSENT**;
+- deletion-specific human authorization bound to that manifest and the final-vault SHA: **ABSENT**.
 
-No deletion operation is added.
+Recovery v4 adds no delete operation and does not authorize deletion.
