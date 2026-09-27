@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import re
+import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,6 +69,9 @@ class GaliaGrafanaDatasourceV03Tests(unittest.TestCase):
     def test_postgres_17_is_explicit(self):
         self.assertEqual(MANIFEST["datasource"]["postgres_version"], 1700)
         self.assertIn("postgresVersion: 1700", YAML)
+
+    def test_runtime_probe_shell_syntax(self):
+        subprocess.run(["bash", "-n", str(RUNTIME_PATH)], check=True)
 
     def test_runtime_acceptance_is_fail_closed_and_secret_safe(self):
         self.assertIn("current_user = 'galia_grafana_ro'", ACCEPTANCE)
