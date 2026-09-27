@@ -44,8 +44,14 @@ class GaliaGrafanaJitLoginV11Tests(unittest.TestCase):
 
     def test_login_only_no_password_clause(self):
         lower = SQL.lower()
-        self.assertIn("alter role galia_grafana_ro login;", lower)
-        self.assertNotRegex(lower, r"alter role galia_grafana_ro[\s\S]*?\bpassword\b")
+        statements = [
+            part.strip()
+            for part in lower.split(";")
+            if part.strip().startswith("alter role galia_grafana_ro")
+        ]
+        self.assertEqual(statements, ["alter role galia_grafana_ro login"])
+        self.assertNotRegex(lower, r"alter role galia_grafana_ro\s+password\b")
+        self.assertNotRegex(lower, r"alter role galia_grafana_ro\s+login\s+password\b")
         self.assertFalse(MANIFEST["database_change"]["password_clause_allowed"])
 
     def test_password_remains_null_before_and_after(self):
