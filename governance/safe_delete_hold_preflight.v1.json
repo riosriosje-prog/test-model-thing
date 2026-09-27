@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "preflight_id": "GALIA-SAFE-DELETE-HOLD-PREFLIGHT-2026-09-26-v1",
+  "status": "READY_FOR_EXPLICIT_HUMAN_DELETE_AUTHORIZATION",
+  "based_on_main": "4bc54552e226231a1ca501bacd302b2a01205f15",
+  "deletion_manifest": {
+    "path": "governance/safe_delete_deletion_manifest.v1.json",
+    "sha256": "6cf056219fa1e036d64e21b3f571bba0f68835a23a134dc47d3982a30d8a1708",
+    "target_count": 27,
+    "state": "PROMOTED_PRESENT_HASHED"
+  },
+  "final_vault": {
+    "library_path": "/GALIA_FINAL_VAULT_SEALED_2026-09-26",
+    "manifest_sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+    "state": "VAULT_BUILT_VERIFIED"
+  },
+  "live_revalidation": {
+    "deletion_targets_present": "PASS_27_OF_27",
+    "deletion_target_identifiers_match": "PASS",
+    "deletion_target_paths_match": "PASS",
+    "deletion_target_sizes_match": "PASS",
+    "sealed_vault_control_objects_present": "PASS_17_OF_17",
+    "sealed_vault_excluded_from_targets": true,
+    "recovery_folder_bulk_delete_excluded": true,
+    "corrupt_partial_zip_excluded": true,
+    "reconstruction_chunks_excluded": true
+  },
+  "safety": {
+    "safe_delete": "HOLD",
+    "delete_authorized": false,
+    "destructive_action_executed": false,
+    "human_delete_authorization_state": "ABSENT",
+    "required_binding": [
+      "deletion_manifest_sha256",
+      "final_vault_manifest_sha256"
+    ]
+  }
+}
