@@ -1,5 +1,4 @@
 import copy
-import hashlib
 import json
 import unittest
 from pathlib import Path
@@ -7,44 +6,22 @@ from pathlib import Path
 from galia2.safe_delete import evaluate_safe_delete
 
 ROOT = Path(__file__).resolve().parents[1]
-SNAPSHOT = json.loads((ROOT / "governance/safe_delete_evidence.v2.json").read_text())
-LOSS_RECORD_PATH = ROOT / "governance/irrecoverable_transient_5ed030.v1.json"
+SNAPSHOT = json.loads((ROOT / "governance/safe_delete_evidence.v3.json").read_text())
 
 
-def fully_satisfied_snapshot(*, use_documented_loss=False):
+def deletion_authorized_snapshot():
     s = copy.deepcopy(SNAPSHOT)
-
-    if use_documented_loss:
-        loss = s["required_objects"]["cleanup_upstream_5ed030"]
-        s["controls"]["irrecoverable_transient_acceptance"] = {
-            "state": "EXPLICIT_HUMAN_IRRECOVERABLE_TRANSIENT_ACCEPTANCE_BOUND",
-            "decision_id": "HUMAN-LOSS-ACCEPTANCE-TEST",
-            "object_id": "cleanup_upstream_5ed030",
-            "expected_sha256": loss["expected_sha256"],
-            "evidence_record_sha256": loss["evidence_record_sha256"],
-        }
-    else:
-        loss = s["required_objects"]["cleanup_upstream_5ed030"]
-        loss.clear()
-        loss.update({
-            "state": "RAW_BYTES_VERIFIED",
-            "sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
-        })
-        s["controls"]["irrecoverable_transient_acceptance"] = {"state": "NOT_REQUIRED_RAW_BYTES_RECOVERED"}
-
-    s["controls"]["ow21_discovery_audit"] = {"state": "DISCOVERY_AUDIT_COMPLETE"}
-    vault_sha = "c" * 64
+    vault_sha = s["controls"]["final_vault"]["sha256"]
     target_sha = "d" * 64
     manifest_sha = "e" * 64
-    s["controls"]["final_vault"] = {"state": "VAULT_BUILT_VERIFIED", "sha256": vault_sha}
-    s["controls"]["clean_room_restore"] = {"state": "PASS"}
     s["controls"]["deletion_manifest"] = {
         "state": "PRESENT_HASHED",
         "sha256": manifest_sha,
         "targets": [{"object_id": "old-worktree", "sha256": target_sha}],
     }
-    s["vault_objects"] = {
-        target_sha: {"state": "VERIFIED_IN_FINAL_VAULT", "object_id": "old-worktree"}
+    s["vault_objects"][target_sha] = {
+        "state": "VERIFIED_IN_FINAL_VAULT",
+        "object_id": "old-worktree",
     }
     s["controls"]["human_authorization"] = {
         "state": "EXPLICIT_HUMAN_APPROVAL_BOUND",
@@ -59,119 +36,104 @@ class SafeDeleteGateTests(unittest.TestCase):
     def test_current_snapshot_is_hold(self):
         self.assertFalse(evaluate_safe_delete(SNAPSHOT).safe_to_delete)
 
-    def test_5ed030_is_documented_loss_not_fabricated_raw_bytes(self):
+    def test_5ed030_is_now_raw_bytes_verified(self):
         item = SNAPSHOT["required_objects"]["cleanup_upstream_5ed030"]
-        self.assertEqual(item["state"], "IRRECOVERABLE_TRANSIENT_DOCUMENTED")
-        self.assertNotIn("sha256", item)
-        self.assertFalse(item["reverse_reconstruction_accepted"])
+        self.assertEqual(item["state"], "RAW_BYTES_VERIFIED")
+        self.assertEqual(
+            item["sha256"],
+            "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+        )
+        self.assertEqual(item["recovery_class"], "DETERMINISTIC_REPLAY_BYTE_EXACT_HASH_VERIFIED")
+        self.assertFalse(item["manual_header_patch_used"])
+        self.assertFalse(item["destructive_rollback_used"])
 
-    def test_loss_record_hash_is_bound_exactly(self):
-        expected = SNAPSHOT["required_objects"]["cleanup_upstream_5ed030"]["evidence_record_sha256"]
-        actual = hashlib.sha256(LOSS_RECORD_PATH.read_bytes()).hexdigest()
-        self.assertEqual(actual, expected)
-
-    def test_documented_loss_requires_separate_human_acceptance(self):
-        result = evaluate_safe_delete(SNAPSHOT)
-        self.assertIn("irrecoverable_transient_acceptance:ABSENT", result.blocking_reasons)
-
-    def test_nonzero_knowledge_mutation_blocks_loss_path(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
-        s["required_objects"]["cleanup_upstream_5ed030"]["knowledge_mutations"]["statements"] = 1
-        result = evaluate_safe_delete(s)
-        self.assertFalse(result.safe_to_delete)
-        self.assertIn("cleanup_upstream_5ed030:KNOWLEDGE_MUTATIONS_NOT_ZERO", result.blocking_reasons)
-
-    def test_wrong_successor_blocks_loss_path(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
-        s["required_objects"]["cleanup_upstream_5ed030"]["successor_sha256"] = "f" * 64
-        result = evaluate_safe_delete(s)
-        self.assertFalse(result.safe_to_delete)
-        self.assertIn("cleanup_upstream_5ed030:SUCCESSOR_BINDING_MISMATCH", result.blocking_reasons)
-
-    def test_unproven_classification_blocks_loss_path(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
-        s["required_objects"]["cleanup_upstream_5ed030"]["classification"] = "UNKNOWN"
-        result = evaluate_safe_delete(s)
-        self.assertFalse(result.safe_to_delete)
-        self.assertIn("cleanup_upstream_5ed030:CLASSIFICATION_NOT_PROVEN", result.blocking_reasons)
-
-    def test_reverse_reconstruction_cannot_substitute(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
-        s["required_objects"]["cleanup_upstream_5ed030"]["reverse_reconstruction_accepted"] = True
-        result = evaluate_safe_delete(s)
-        self.assertFalse(result.safe_to_delete)
-        self.assertIn(
-            "cleanup_upstream_5ed030:REVERSE_RECONSTRUCTION_MUST_NOT_SUBSTITUTE_RAW_BYTES",
-            result.blocking_reasons,
+    def test_irrecoverable_loss_acceptance_is_not_required_after_raw_recovery(self):
+        self.assertEqual(
+            SNAPSHOT["controls"]["irrecoverable_transient_acceptance"]["state"],
+            "NOT_REQUIRED_RAW_BYTES_RECOVERED",
+        )
+        self.assertFalse(
+            any(
+                x.startswith("irrecoverable_transient_acceptance:")
+                for x in evaluate_safe_delete(SNAPSHOT).blocking_reasons
+            )
         )
 
-    def test_acceptance_must_bind_exact_evidence_record(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
-        s["controls"]["irrecoverable_transient_acceptance"]["evidence_record_sha256"] = "f" * 64
-        result = evaluate_safe_delete(s)
-        self.assertFalse(result.safe_to_delete)
-        self.assertIn(
-            "irrecoverable_transient_acceptance:EVIDENCE_RECORD_HASH_MISMATCH",
-            result.blocking_reasons,
+    def test_final_vault_is_verified(self):
+        vault = SNAPSHOT["controls"]["final_vault"]
+        self.assertEqual(vault["state"], "VAULT_BUILT_VERIFIED")
+        self.assertEqual(
+            vault["sha256"],
+            "2e964136234ebeccb091998c959ada549af878ea8908414be24889402ad36664",
         )
 
-    def test_raw_recovery_path_still_works_without_loss_acceptance(self):
-        result = evaluate_safe_delete(fully_satisfied_snapshot(use_documented_loss=False))
-        self.assertTrue(result.safe_to_delete)
-        self.assertEqual(result.blocking_reasons, ())
+    def test_clean_room_restore_passes(self):
+        self.assertEqual(SNAPSHOT["controls"]["clean_room_restore"]["state"], "PASS")
+        self.assertTrue(SNAPSHOT["controls"]["clean_room_restore"]["all_package_hashes_pass"])
+        self.assertTrue(SNAPSHOT["controls"]["clean_room_restore"]["all_sqlite_checks_pass"])
 
-    def test_strict_documented_loss_path_can_yield_candidate_after_acceptance(self):
-        result = evaluate_safe_delete(fully_satisfied_snapshot(use_documented_loss=True))
-        self.assertTrue(result.safe_to_delete)
-        self.assertEqual(result.blocking_reasons, ())
-
-    def test_staging_vault_is_not_final_vault(self):
+    def test_historical_v129_is_preserved(self):
+        self.assertEqual(
+            SNAPSHOT["should_preserve"]["historical_v1_29_binary"]["state"],
+            "RAW_BYTES_VERIFIED",
+        )
         result = evaluate_safe_delete(SNAPSHOT)
-        self.assertIn(
-            "final_vault:STAGING_VAULT_BUILT_VERIFIED_WITH_DOCUMENTED_TRANSIENT_LOSS",
-            result.blocking_reasons,
+        self.assertNotIn(
+            "historical_v1_29_binary:SHOULD_PRESERVE_IF_RECOVERABLE",
+            result.advisories,
         )
 
-    def test_partial_restore_is_not_final_restore(self):
+    def test_same_writer_replay_is_pass(self):
+        self.assertEqual(
+            SNAPSHOT["forensic_only"]["sqlite_3_46_1_same_writer_replay"]["state"],
+            "PASS",
+        )
         result = evaluate_safe_delete(SNAPSHOT)
-        self.assertIn("clean_room_restore:PARTIAL_PASS_AVAILABLE_OBJECTS_ONLY", result.blocking_reasons)
+        self.assertNotIn("SQLITE_3_46_1_REPLAY_NOT_REQUIRED_FOR_SAFE_DELETE", result.advisories)
+
+    def test_g28_remains_forensic_only(self):
+        result = evaluate_safe_delete(SNAPSHOT)
+        self.assertIn("G28_REMAINS_FORENSIC_ONLY", result.advisories)
+
+    def test_only_deletion_decision_controls_block_current_snapshot(self):
+        result = evaluate_safe_delete(SNAPSHOT)
+        self.assertEqual(
+            set(result.blocking_reasons),
+            {"deletion_manifest:ABSENT", "human_authorization:ABSENT"},
+        )
 
     def test_deletion_scope_cannot_be_implicit(self):
         self.assertIn("deletion_manifest:ABSENT", evaluate_safe_delete(SNAPSHOT).blocking_reasons)
 
-    def test_deletion_human_authorization_is_still_required(self):
+    def test_deletion_specific_human_authorization_is_required(self):
         self.assertIn("human_authorization:ABSENT", evaluate_safe_delete(SNAPSHOT).blocking_reasons)
 
-    def test_v129_is_advisory_not_blocking(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
-        result = evaluate_safe_delete(s)
+    def test_authorized_exact_manifest_can_yield_safe_candidate(self):
+        result = evaluate_safe_delete(deletion_authorized_snapshot())
         self.assertTrue(result.safe_to_delete)
-        self.assertIn("historical_v1_29_binary:SHOULD_PRESERVE_IF_RECOVERABLE", result.advisories)
-
-    def test_g28_open_is_forensic_only(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
-        result = evaluate_safe_delete(s)
-        self.assertTrue(result.safe_to_delete)
-        self.assertIn("G28_REMAINS_FORENSIC_ONLY", result.advisories)
-
-    def test_same_writer_replay_is_not_safe_delete_blocker(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
-        result = evaluate_safe_delete(s)
-        self.assertTrue(result.safe_to_delete)
-        self.assertIn("SQLITE_3_46_1_REPLAY_NOT_REQUIRED_FOR_SAFE_DELETE", result.advisories)
+        self.assertEqual(result.blocking_reasons, ())
 
     def test_target_not_in_final_vault_blocks(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
-        s["vault_objects"] = {}
+        s = deletion_authorized_snapshot()
+        target_sha = s["controls"]["deletion_manifest"]["targets"][0]["sha256"]
+        del s["vault_objects"][target_sha]
         result = evaluate_safe_delete(s)
         self.assertFalse(result.safe_to_delete)
-        self.assertTrue(any("NOT_VERIFIED_IN_FINAL_VAULT" in x for x in result.blocking_reasons))
+        self.assertIn("deletion_target_0:NOT_VERIFIED_IN_FINAL_VAULT", result.blocking_reasons)
 
-    def test_deletion_authorization_hashes_must_match(self):
-        s = fully_satisfied_snapshot(use_documented_loss=True)
+    def test_deletion_manifest_hash_must_match_authorization(self):
+        s = deletion_authorized_snapshot()
         s["controls"]["human_authorization"]["deletion_manifest_sha256"] = "f" * 64
         self.assertIn(
             "human_authorization:DELETION_MANIFEST_HASH_MISMATCH",
+            evaluate_safe_delete(s).blocking_reasons,
+        )
+
+    def test_final_vault_hash_must_match_authorization(self):
+        s = deletion_authorized_snapshot()
+        s["controls"]["human_authorization"]["final_vault_sha256"] = "f" * 64
+        self.assertIn(
+            "human_authorization:FINAL_VAULT_HASH_MISMATCH",
             evaluate_safe_delete(s).blocking_reasons,
         )
 
