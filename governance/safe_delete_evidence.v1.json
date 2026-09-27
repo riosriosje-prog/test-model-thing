@@ -33,8 +33,7 @@
       "package_sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
       "sqlite_integrity": "ok",
       "foreign_key_violations": 0,
-      "source": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/5ED030_BYTE_EXACT_RECOVERY.zip",
-      "recovery_receipt": "GALIA-5ED030-BYTE-EXACT-RECOVERY-2026-09-26-v1"
+      "source": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/5ED030_BYTE_EXACT_RECOVERY.zip"
     },
     "ow02_checkpoint": {
       "state": "RAW_BYTES_VERIFIED",
