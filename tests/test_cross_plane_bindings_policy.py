@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -6,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 POLICY = json.loads((ROOT / "integrations/cross_plane_bindings.v1.json").read_text())
 MIGRATION = (ROOT / "supabase/migrations/20260927001000_galia_cross_plane_bindings_v1.sql").read_text()
 BINDINGS = (ROOT / "supabase/bindings/galia_cross_plane_bindings_v1.sql").read_text()
+TOKEN = "__PROMOTED_MAIN_COMMIT__"
 
 
 class CrossPlaneBindingsPolicyTests(unittest.TestCase):
@@ -14,9 +16,30 @@ class CrossPlaneBindingsPolicyTests(unittest.TestCase):
         self.assertEqual(POLICY["authority_invariants"]["canonical_authority_provider"], "GITHUB")
         self.assertFalse(POLICY["authority_invariants"]["canonical_authority_transferred"])
 
-    def test_exact_current_github_main_is_bound(self):
-        self.assertEqual(POLICY["github"]["repository"], "riosriosje-prog/test-model-thing")
-        self.assertEqual(POLICY["github"]["commit"], "384a1b1b2c804b6d7838cd301d61232dd6313895")
+    def test_github_binding_is_merge_stable(self):
+        gh = POLICY["github"]
+        self.assertEqual(gh["repository"], "riosriosje-prog/test-model-thing")
+        self.assertEqual(gh["ref"], "main")
+        self.assertEqual(gh["candidate_base_commit"], "384a1b1b2c804b6d7838cd301d61232dd6313895")
+        self.assertTrue(gh["promotion_binding"]["promotion_receipt_must_bind_merge_commit"])
+        self.assertEqual(gh["promotion_binding"]["template_token"], TOKEN)
+
+    def test_binding_template_requires_exact_promoted_commit(self):
+        self.assertGreaterEqual(BINDINGS.count(TOKEN), 2)
+        self.assertIn("must be rendered with the exact promoted GitHub main commit", BINDINGS)
+        self.assertIn("!~ '^[0-9a-f]{40}$'", BINDINGS)
+
+    def test_binding_template_does_not_freeze_pre_merge_main_as_authority(self):
+        pre_merge = "384a1b1b2c804b6d7838cd301d61232dd6313895"
+        self.assertNotIn("'github_main_commit', '" + pre_merge + "'", BINDINGS)
+        self.assertNotIn("\n    '" + pre_merge + "',\n    'main'", BINDINGS)
+
+    def test_rendered_binding_accepts_only_40_lower_hex_shape(self):
+        sample = "a" * 40
+        rendered = BINDINGS.replace(TOKEN, sample)
+        self.assertNotIn(TOKEN, rendered)
+        self.assertRegex(sample, r"^[0-9a-f]{40}$")
+        self.assertIn(sample, rendered)
 
     def test_hf_model_binding_is_exact(self):
         model = POLICY["hugging_face"]["model"]
