@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.1",
+  "object_ref": "GALIA-GRAFANA-JIT-ACTIVATION-2026-09-27-001",
+  "status": "PREPARATION_ONLY_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-jit-activation-v0-1-candidate",
+  "project_ref": "nzoviwitcqmsacwiizhh",
+  "base_main_commit": "a6f3aae4340da9079bdba63df9bdbe46a596cce5",
+  "predecessor": {
+    "candidate_id": "GALIA-GRAFANA-JIT-LOGIN-CANDIDATE-v1.4",
+    "github_pr": 46,
+    "promoted_main_commit": "a6f3aae4340da9079bdba63df9bdbe46a596cce5",
+    "promoted": true,
+    "live_login_verified": true,
+    "live_persistent_password_null_verified": true,
+    "credential_activation_state": "JIT_MAPPING_REQUIRED",
+    "credential_mode": "TEMPORARY_ACCESS_JIT_DIRECT"
+  },
+  "management_api_contract": {
+    "ssl_enforcement": {
+      "get": "/v1/projects/{ref}/ssl-enforcement",
+      "put": "/v1/projects/{ref}/ssl-enforcement",
+      "enable_payload_path": "supabase/activation/galia_grafana_ssl_enable.v0_1.json",
+      "platform_effect": "BRIEF_DATABASE_REBOOT",
+      "execution_state": "NOT_APPLIED"
+    },
+    "temporary_access": {
+      "get": "/v1/projects/{ref}/database/jit-access",
+      "put": "/v1/projects/{ref}/database/jit-access",
+      "enable_payload_path": "supabase/activation/galia_grafana_temp_access_enable.v0_1.json",
+      "scoped_pat_permission": "Project Settings Read-write",
+      "execution_state": "NOT_APPLIED"
+    },
+    "jit_mapping": {
+      "put": "/v1/projects/{ref}/database/jit",
+      "template_path": "supabase/activation/galia_grafana_jit_mapping.template.v0_1.json",
+      "renderer_path": "tools/render_galia_grafana_jit_mapping_v0_1.py",
+      "scoped_pat_permission": "Database JIT Read-write",
+      "execution_state": "NOT_APPLIED"
+    }
+  },
+  "ssl_authorization": {
+    "guide_requirement": "Owner or Admin permissions",
+    "scoped_pat_permission_exactly_asserted": false,
+    "policy": "Use Dashboard or revalidate Management API token permission immediately before execution"
+  },
+  "identity_contract": {
+    "user_id_type": "gotrue_id",
+    "user_id_source": "Supabase project user identity",
+    "postgres_role": "galia_grafana_ro",
+    "dedicated_service_identity_preferred": true,
+    "user_id_known": false
+  },
+  "restriction_contract": {
+    "allowed_networks_required": true,
+    "cidr_support": ["IPv4", "IPv6"],
+    "expiry_required": true,
+    "expires_at_unit": "unix_epoch_milliseconds",
+    "network_route_must_be_proven_before_render": true
+  },
+  "credential_contract": {
+    "scoped_pat_preferred": true,
+    "scoped_pat_prefix": "sbp_fc",
+    "scoped_pat_rollout": "PUBLIC_ALPHA",
+    "classic_pat_automatic_fallback": false,
+    "classic_pat_fallback_state": "HOLD",
+    "token_in_repository": false,
+    "token_in_receipt": false,
+    "token_in_renderer": false
+  },
+  "activation_order": [
+    "VERIFY_OR_ENABLE_SSL_ENFORCEMENT",
+    "WAIT_FOR_PROJECT_ACTIVE_HEALTHY",
+    "ENABLE_TEMPORARY_ACCESS",
+    "RENDER_JIT_MAPPING_WITH_GOTRUE_ID_CIDRS_EXPIRY",
+    "APPLY_JIT_MAPPING",
+    "VERIFY_MAPPING",
+    "VERIFY_DIRECT_POSTGRES_WITH_VERIFY_FULL",
+    "CONTINUE_TO_GRAFANA_DATASOURCE"
+  ],
+  "promotion_gates": {
+    "ssl_enforcement_verified": false,
+    "project_healthy_after_ssl_reboot": false,
+    "temporary_access_enabled": false,
+    "gotrue_user_id_resolved": false,
+    "scoped_pat_available": "UNKNOWN",
+    "allowed_cidrs_resolved": false,
+    "expiry_resolved": false,
+    "jit_mapping_rendered": false,
+    "jit_mapping_applied": false,
+    "jit_mapping_verified": false,
+    "direct_verify_full_connection_passed": false
+  },
+  "non_effects": [
+    "NO_MANAGEMENT_API_WRITE",
+    "NO_SSL_ENFORCEMENT_CHANGE",
+    "NO_TEMPORARY_ACCESS_CHANGE",
+    "NO_JIT_MAPPING_CHANGE",
+    "NO_PAT_CREATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_GRAFANA_DATASOURCE_CHANGE",
+    "NO_DATABASE_SCHEMA_CHANGE",
+    "NO_AUTHORITY_TRANSFER"
+  ]
+}
