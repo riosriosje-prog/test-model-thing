@@ -35,7 +35,21 @@
       "delete": "/v1/projects/{ref}/database/jit/{user_id}",
       "read_permission": "Database JIT Read",
       "write_permission": "Database JIT Read-write",
-      "operation_selection": "POST_IF_TARGET_USER_ABSENT__PUT_IF_TARGET_USER_PRESENT"
+      "operation_selection": "POST_IF_TARGET_USER_ABSENT__PUT_IF_TARGET_USER_PRESENT",
+      "request_body": {
+        "user_id": "gotrue_id",
+        "roles": "Array<role grant>",
+        "response_field": "user_roles"
+      },
+      "allowed_networks": {
+        "ipv4_field": "allowed_cidrs",
+        "ipv6_field": "allowed_cidrs_v6"
+      },
+      "expires_at_unit": "unix_seconds",
+      "implementation_evidence": [
+        "Supabase Studio jit-db-access-grant-mutation.ts",
+        "Supabase Studio JitDbAccess.utils.ts"
+      ]
     },
     "ssl_enforcement": {
       "get": "/v1/projects/{ref}/ssl-enforcement",
@@ -58,7 +72,12 @@
     "do_not_infer_from_email_or_display_name": true,
     "do_not_assume_org_member_user_id_equals_gotrue_id_without_verification": true,
     "free_plan_project_scoped_roles_available": false,
-    "current_supabase_plan": "Free"
+    "current_supabase_plan": "Free",
+    "gotrue_id_resolution": "Accepted organization member record exposes gotrue_id; do not infer from primary_email",
+    "accepted_resolution_sources": [
+      "ORGANIZATION_MEMBER_GOTRUE_ID_VERIFIED",
+      "DASHBOARD_TEMPORARY_ACCESS_UI"
+    ]
   },
   "network_contract": {
     "allowed_profiles": [
@@ -102,7 +121,8 @@
     "validator_path": "tools/validate_galia_grafana_activation_observation_v0_5.py",
     "actual_observation_must_remain_out_of_repository": true,
     "actual_observation_may_contain_nonsecret_identifiers": true,
-    "actual_observation_must_not_contain_email_or_token": true
+    "actual_observation_must_not_contain_email_or_token": true,
+    "expiry_unit": "unix_seconds"
   },
   "planning_contract": {
     "mode": "PLAN_ONLY",
