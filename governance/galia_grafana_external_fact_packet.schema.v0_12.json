@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "galia-grafana-external-fact-packet-v0.12",
+  "title": "GALIA Grafana External Fact Packet v0.12",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "observed_at_utc",
+    "authority",
+    "profile",
+    "grafana",
+    "credentials",
+    "network",
+    "supabase",
+    "secret_material_persisted"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "receipt_type": {"const": "GALIA_GRAFANA_EXTERNAL_FACT_PACKET"},
+    "observed_at_utc": {"type": "string", "format": "date-time"},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ratification_merge",
+        "pdc_contract_candidate_id",
+        "pdc_contract_head",
+        "pdc_contract_candidate_set_sha256"
+      ],
+      "properties": {
+        "ratification_merge": {"const": "82e5b8e6642d1475ebcee9183b401b1fd010e63b"},
+        "pdc_contract_candidate_id": {"const": "GALIA-GRAFANA-PDC-OFFICIAL-BINDING-CONTRACT-CANDIDATE-v0.11"},
+        "pdc_contract_head": {"const": "ce4d638f11d5e63461ec5a2bd99155146c806ec4"},
+        "pdc_contract_candidate_set_sha256": {"const": "ea5988231b7585dd6124722520483f258b34e39592de535a251c7bbc7d0296fc"}
+      }
+    },
+    "profile": {"const": "GRAFANA_CLOUD_PDC_IPV6"},
+    "grafana": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stack_url", "stack_id", "pdc_network"],
+      "properties": {
+        "stack_url": {"type": "string", "minLength": 1},
+        "stack_id": {"type": ["string", "integer"]},
+        "pdc_network": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "region",
+            "status",
+            "discovery_source",
+            "connected_agents_count"
+          ],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "name": {"type": "string", "minLength": 1},
+            "region": {"type": "string", "minLength": 1},
+            "status": {"type": "string", "minLength": 1},
+            "discovery_source": {"const": "GRAFANA_CLOUD_OFFICIAL_SURFACE"},
+            "connected_agents_count": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "grafana_cloud_access_policy_credential_available",
+        "grafana_stack_service_account_credential_available",
+        "pdc_agent_signing_credential_available",
+        "supabase_service_pat_available",
+        "credential_domains_distinct_verified"
+      ],
+      "properties": {
+        "grafana_cloud_access_policy_credential_available": {"const": true},
+        "grafana_stack_service_account_credential_available": {"const": true},
+        "pdc_agent_signing_credential_available": {"const": true},
+        "supabase_service_pat_available": {"const": true},
+        "credential_domains_distinct_verified": {"const": true}
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pdc_agent_ipv6_egress_cidrs",
+        "supabase_host",
+        "supabase_port",
+        "route_verified",
+        "permit_remote_open"
+      ],
+      "properties": {
+        "pdc_agent_ipv6_egress_cidrs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "supabase_host": {"const": "db.nzoviwitcqmsacwiizhh.supabase.co"},
+        "supabase_port": {"const": 5432},
+        "route_verified": {"const": true},
+        "permit_remote_open": {"const": "db.nzoviwitcqmsacwiizhh.supabase.co:5432"}
+      }
+    },
+    "supabase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ssl_enforcement_enabled",
+        "temporary_access_enabled",
+        "jit_mapping_verified",
+        "jit_expires_at",
+        "role",
+        "gotrue_id",
+        "service_pat_identity_binding_verified",
+        "server_root_ca_sha256"
+      ],
+      "properties": {
+        "ssl_enforcement_enabled": {"const": true},
+        "temporary_access_enabled": {"const": true},
+        "jit_mapping_verified": {"const": true},
+        "jit_expires_at": {"type": "integer"},
+        "role": {"const": "galia_grafana_ro"},
+        "gotrue_id": {"type": "string", "minLength": 1},
+        "service_pat_identity_binding_verified": {"const": true},
+        "server_root_ca_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "secret_material_persisted": {"const": false}
+  }
+}
