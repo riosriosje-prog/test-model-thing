@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-PROMOTION-TRACE-CANDIDATE-v0.1",
+  "status": "PREPARATION_ONLY_NOT_PROMOTED",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-promotion-trace-v0-1-candidate",
+  "base_main_commit": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892",
+  "purpose": "Record human-authorized promotion evidence separately from candidate artifacts and distinguish GitHub ancestry inclusion from human promotion authority.",
+  "current_authoritative_preparation_baselines": {
+    "activation": {
+      "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.6",
+      "github_pr": 54,
+      "candidate_head": "d0c71aaf76333a7f6b8542e2b48b01cfa0ad6654",
+      "candidate_set_sha256": "1b0d25ca98a59182ade20d868f371655c7bd86d625d9c8dbd1961f896d5d73c2",
+      "promoted_main_commit": "dd717c61d50240251044040b61956768a3325d14"
+    },
+    "datasource": {
+      "candidate_id": "GALIA-GRAFANA-DATASOURCE-CANDIDATE-v0.8",
+      "github_pr": 55,
+      "candidate_head": "b4cb4aee27b1a9479dd6b0ae79f84097e48e6bde",
+      "candidate_set_sha256": "3b37c650c8b0302990cd62f6cb967bcbcdcaaa3cc97ad73f7a12637055e79e9d",
+      "promoted_main_commit": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892"
+    }
+  },
+  "predecessor_disposition": {
+    "activation_v0_5": "ANCESTOR_INCLUDED_BY_SUCCESSOR_NOT_SEPARATELY_PROMOTED",
+    "datasource_v0_7": "SUPERSEDED_CLOSED_NOT_MERGED_NOT_PROMOTED"
+  },
+  "invariants": [
+    "GITHUB_MERGED_FLAG_DOES_NOT_BY_ITSELF_ESTABLISH_HUMAN_PROMOTION",
+    "ANCESTOR_INCLUDED_NEQ_SEPARATE_PROMOTION",
+    "PROMOTION_SCOPE_PREPARATION_BASELINE_ONLY",
+    "NO_EXTERNAL_ACTIVATION_IMPLIED",
+    "NO_AUTHORITY_TRANSFER"
+  ],
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_promotion_trace_candidate.v0_1.json",
+      "receipts/grafana/galia_grafana_activation_v0_6_promotion_receipt.json",
+      "receipts/grafana/galia_grafana_datasource_v0_8_promotion_receipt.json",
+      "tests/test_galia_grafana_promotion_trace_v0_1.py"
+    ],
+    "self_hash_embedded": false
+  },
+  "non_effects": [
+    "NO_SUPABASE_MUTATION",
+    "NO_GRAFANA_MUTATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_JIT_ACTIVATION",
+    "NO_SSL_CHANGE",
+    "NO_TEMPORARY_ACCESS_CHANGE",
+    "NO_AUTHORITY_TRANSFER"
+  ]
+}
