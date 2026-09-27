@@ -50,23 +50,24 @@
     },
     "ow21_checkpoint": {
       "state": "RAW_BYTES_VERIFIED",
-      "sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0",
-      "sqlite_sha256": "9b4634df16377f006c92b09fca936296aaeb58e5620696181f24c5efbe8a14ab",
+      "sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a",
+      "sqlite_sha256": "7dbc8feca01a4f6623101c25b6aa1e07b09dda7c0370997b164f8fef70f63866",
       "sqlite_integrity": "ok",
       "foreign_key_violations": 0,
-      "source": "/GALIA_RECOVERY/GALIA_OW21_REACQUIRED.zip"
+      "source": "/GALIA_RECOVERY/GALIA_OW21_RESEARCH_CHECKPOINT_REACQUIRED.zip",
+      "supplementary_consolidated_package_sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0"
     }
   },
   "controls": {
     "ow21_discovery_audit": {
       "state": "DISCOVERY_AUDIT_COMPLETE",
-      "result": "RAW_PACKAGE_RECOVERED_AND_VERIFIED",
-      "package_sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0"
+      "result": "RESEARCH_CHECKPOINT_AND_SUPPLEMENTARY_CONSOLIDATED_PACKAGE_RECOVERED_AND_VERIFIED",
+      "package_sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a"
     },
     "final_vault": {
       "state": "STAGING_VAULT_BUILT_VERIFIED_WITH_DEFICIT",
       "sha256": null,
-      "staging_manifest_sha256": "a4cfa473e33c5e9f5f869ece8a6100ddfd6c4a7f78d89348974e938f9923e19c",
+      "staging_manifest_sha256": "22a32473f13028491c96f4e665e2a009e602b9bd15e06010dd73bd44c4d3e1e6",
       "library_path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26",
       "missing_required_object": "cleanup_upstream_5ed030"
     },
@@ -113,9 +114,13 @@
       "state": "VERIFIED_IN_STAGING_VAULT",
       "object_id": "ow10_checkpoint"
     },
+    "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a": {
+      "state": "VERIFIED_IN_STAGING_VAULT",
+      "object_id": "ow21_research_checkpoint"
+    },
     "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0": {
       "state": "VERIFIED_IN_STAGING_VAULT",
-      "object_id": "ow21_checkpoint"
+      "object_id": "ow21_consolidated_supplementary"
     },
     "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb": {
       "state": "VERIFIED_IN_STAGING_VAULT",
