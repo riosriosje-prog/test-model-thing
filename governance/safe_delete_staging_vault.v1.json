@@ -1,22 +1,16 @@
 {
-  "clean_room_state": "PARTIAL_PASS_AVAILABLE_OBJECTS_ONLY",
+  "clean_room_state": "STAGING_READBACK_PASS_FINAL_RESTORE_NOT_RUN",
   "final_vault_eligible": false,
   "generated_at_utc": "2026-09-27T00:55:01.896862+00:00",
   "library_path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26",
-  "missing_required_objects": [
-    {
-      "expected_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
-      "id": "cleanup_upstream_5ed030",
-      "state": "RAW_BYTES_NOT_RECOVERED"
-    }
-  ],
-  "reason": "Required upstream 5ed030 raw bytes remain absent.",
-  "schema_version": 2,
-  "state": "STAGING_VAULT_BUILT_VERIFIED_WITH_DEFICIT",
-  "vault_id": "GALIA-FINAL-VAULT-STAGING-2026-09-26-v2",
+  "missing_required_objects": [],
+  "reason": "All mandatory raw-byte objects are preserved and read back. Final immutable vault seal and final clean-room restore remain pending.",
+  "schema_version": 3,
+  "state": "STAGING_VAULT_BYTE_COMPLETE_AWAITING_FINAL_SEAL",
+  "vault_id": "GALIA-FINAL-VAULT-STAGING-2026-09-26-v3",
   "verification": {
     "foreign_key_check": "0_ALL_SQLITE_MEMBERS_INSPECTED",
-    "server_side_copy_readback": "PASS",
+    "server_side_copy_readback": "PASS_INCLUDING_5ED030_AND_V129",
     "sqlite_integrity": "PASS_ALL_SQLITE_MEMBERS_INSPECTED"
   },
   "verified_objects": [
@@ -81,6 +75,21 @@
       "id": "recovery_vault_r6",
       "library_file_id": "libfile_455b7d53c8f48191bbf77bbe0a5a4529",
       "package_sha256": "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb"
+    },
+    {
+      "file_id": "file_00000000e45081f5b46e92dff9779b56",
+      "library_file_id": "libfile_b25aa226852c8191b94749dfd33468a0",
+      "id": "cleanup_upstream_5ed030",
+      "package_sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+      "sqlite_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6"
+    },
+    {
+      "file_id": "file_00000000ab54822f85470421772aaa54",
+      "library_file_id": "libfile_5a2059a4bb048191b47ed67309e41561",
+      "id": "historical_v1_29_binary",
+      "package_sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
+      "sqlite_sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6"
     }
-  ]
+  ],
+  "staging_manifest_sha256": "f28ea1ca8b3b49ebca809cda00658cca29151c688568e346740b8f6d3aabe23f"
 }
