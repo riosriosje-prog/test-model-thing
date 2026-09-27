@@ -7,7 +7,9 @@ name = "tmt-galia"
 version = "0.0.0"
 description = "Shadow packaging proof of concept for GALIA."
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "jsonschema>=4.23,<5",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

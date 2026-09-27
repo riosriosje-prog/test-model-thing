@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-EXTERNAL-FACTS-INTAKE-CANDIDATE-v0.14",
+  "status": "EXTERNAL_FACTS_INTAKE_HARDENED_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-external-facts-intake-v0-14-candidate",
+  "base_candidate": {
+    "candidate_id": "GALIA-GRAFANA-EXTERNAL-FACTS-INTAKE-CANDIDATE-v0.13",
+    "github_pr": 62,
+    "head": "0ef041a4c13ea5c8f3d8fd1ce890d25640ae843d",
+    "candidate_set_sha256": "7f528eba305cd0870847cbd71e2960915dd0ae03a0187cd598a149ba32d5a776"
+  },
+  "authority": {
+    "preparation_baseline_ratification_merge": "82e5b8e6642d1475ebcee9183b401b1fd010e63b",
+    "live_execution_authorized": false,
+    "future_live_execution_candidate_required": true,
+    "future_human_decision_required": true
+  },
+  "hardening": {
+    "runtime_json_schema_enforced": true,
+    "jit_expiry_unit": "UNIX_EPOCH_MILLISECONDS",
+    "minimum_jit_remaining_ms": 300000,
+    "ipv6_requirement": "GLOBAL_UNICAST_ONLY",
+    "per_domain_provenance_receipts_required": true
+  },
+  "fact_packet": {
+    "schema_path": "governance/galia_grafana_external_fact_packet.schema.v0_14.json",
+    "validator_path": "tools/validate_galia_grafana_external_fact_packet_v0_14.py",
+    "actual_packet_storage": "OUT_OF_REPOSITORY",
+    "actual_evidence_receipt_storage": "OUT_OF_REPOSITORY",
+    "max_observation_age_seconds": 900,
+    "secret_material_forbidden": true
+  },
+  "eligibility_output": {
+    "eligible_state": "FACTS_COMPLETE_FOR_FUTURE_LIVE_EXECUTION_CANDIDATE",
+    "ineligible_state": "EXTERNAL_FACTS_HOLD",
+    "does_not_authorize_execution": true,
+    "does_not_create_live_candidate": true
+  },
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "docs/galia_grafana_external_facts_intake_runbook.v0_14.md",
+      "governance/galia_grafana_external_fact_packet.schema.v0_14.json",
+      "governance/galia_grafana_external_facts_intake_candidate.v0_14.json",
+      "pyproject.toml",
+      "tests/test_galia_grafana_external_facts_intake_v0_14.py",
+      "tools/validate_galia_grafana_external_fact_packet_v0_14.py"
+    ],
+    "self_hash_embedded": false
+  },
+  "non_effects": [
+    "NO_MAIN_MUTATION",
+    "NO_GRAFANA_CLOUD_API_CALL",
+    "NO_GRAFANA_STACK_API_WRITE",
+    "NO_SUPABASE_MUTATION",
+    "NO_DATASOURCE_CREATE_OR_UPDATE",
+    "NO_PDC_NETWORK_CREATE_OR_UPDATE",
+    "NO_SSL_CHANGE",
+    "NO_TEMPORARY_ACCESS_CHANGE",
+    "NO_JIT_MAPPING_CHANGE",
+    "NO_TOKEN_CREATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_LIVE_EXECUTION_AUTHORIZATION"
+  ]
+}
