@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "project_ref": "nzoviwitcqmsacwiizhh",
+  "supabase_plan": "Free",
+  "ssl": {
+    "current": "__TRUE_OR_FALSE_REQUIRED__",
+    "server_root_ca": {
+      "source": "SUPABASE_DASHBOARD_DATABASE_SETTINGS_SERVER_ROOT_CERTIFICATE",
+      "sha256": "__LOWERCASE_64_HEX_REQUIRED__",
+      "pem_stored_in_repository": false
+    }
+  },
+  "temporary_access": {
+    "current": "__ENABLED_OR_DISABLED_REQUIRED__",
+    "canonical_endpoint": "/v1/projects/{ref}/jit-access",
+    "guide_alias_quarantined": "/v1/projects/{ref}/database/jit-access"
+  },
+  "identity": {
+    "gotrue_id": "__UUID_REQUIRED__",
+    "source": "__ORGANIZATION_MEMBER_GOTRUE_ID_VERIFIED_OR_DASHBOARD_REQUIRED__",
+    "dedicated_service_identity": true,
+    "service_pat_belongs_to_gotrue_id_verified": "__TRUE_OR_FALSE_REQUIRED__",
+    "primary_email_persisted": false
+  },
+  "network": {
+    "profile": "__SELF_HOSTED_IPV6_OR_GRAFANA_CLOUD_PDC_IPV6_REQUIRED__",
+    "source_cidrs": [
+      "__VERIFIED_IPV6_EGRESS_CIDR_REQUIRED__"
+    ],
+    "cidr_evidence": "__GRAFANA_HOST_EGRESS_TOWARD_SUPABASE_OR_PDC_AGENT_EGRESS_TOWARD_SUPABASE_REQUIRED__",
+    "self_hosted_direct_ipv6_reachability_verified": "__TRUE_OR_FALSE_REQUIRED__",
+    "pdc_agent_ipv6_reachability_verified": "__TRUE_OR_FALSE_REQUIRED__",
+    "supabase_ipv4_addon": false
+  },
+  "jit": {
+    "target_exists": "__TRUE_OR_FALSE_REQUIRED__",
+    "expires_at": 0
+  },
+  "scoped_pat": {
+    "available": "__TRUE_OR_FALSE_REQUIRED__",
+    "expected_prefix": "sbp_fc",
+    "classic_fallback_allowed": false
+  },
+  "project_status": "ACTIVE_HEALTHY"
+}
