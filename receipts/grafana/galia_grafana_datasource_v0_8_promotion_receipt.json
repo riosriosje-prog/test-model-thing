@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "receipt_type": "GALIA_GRAFANA_PREPARATION_PROMOTION_RECEIPT",
+  "candidate_id": "GALIA-GRAFANA-DATASOURCE-CANDIDATE-v0.8",
+  "github_pr": 55,
+  "human_promotion_authorized": true,
+  "candidate_head": "b4cb4aee27b1a9479dd6b0ae79f84097e48e6bde",
+  "candidate_set_sha256": "3b37c650c8b0302990cd62f6cb967bcbcdcaaa3cc97ad73f7a12637055e79e9d",
+  "base_main_commit": "dd717c61d50240251044040b61956768a3325d14",
+  "promoted_main_commit": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892",
+  "merged_at_utc": "2026-09-27T19:39:38Z",
+  "promotion_scope": "PREPARATION_BASELINE_ONLY",
+  "promoted": true,
+  "grafana_datasource_configured": false,
+  "supabase_mutation_executed": false,
+  "jit_activation_executed": false,
+  "secret_material_persisted": false,
+  "canonical_authority_transferred": false,
+  "activation_dependency": {
+    "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.6",
+    "github_pr": 54,
+    "promoted_main_commit": "dd717c61d50240251044040b61956768a3325d14",
+    "promotion_scope": "PREPARATION_BASELINE_ONLY"
+  },
+  "predecessor": {
+    "candidate_id": "GALIA-GRAFANA-DATASOURCE-CANDIDATE-v0.7",
+    "github_pr": 53,
+    "head": "c62d1de756d9cf3e7eac8a3f267a16fa613a6a1a",
+    "github_state": "closed",
+    "merged": false,
+    "relationship": "SUPERSEDED_BY_V0_8",
+    "authority_status": "NOT_PROMOTED"
+  }
+}
