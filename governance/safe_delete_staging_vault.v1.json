@@ -89,6 +89,20 @@
       "id": "historical_v1_29_binary",
       "package_sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
       "sqlite_sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6"
+    },
+    {
+      "file_id": "file_00000000e45081f5b46e92dff9779b56",
+      "library_file_id": "libfile_b25aa226852c8191b94749dfd33468a0",
+      "id": "cleanup_upstream_5ed030",
+      "package_sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+      "sqlite_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6"
+    },
+    {
+      "file_id": "file_00000000ab54822f85470421772aaa54",
+      "library_file_id": "libfile_5a2059a4bb048191b47ed67309e41561",
+      "id": "historical_v1_29_binary",
+      "package_sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
+      "sqlite_sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6"
     }
   ],
   "staging_manifest_sha256": "f28ea1ca8b3b49ebca809cda00658cca29151c688568e346740b8f6d3aabe23f"
