@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "request_id": "GALIA-SAFE-DELETE-AUTHORIZATION-REQUEST-2026-09-26-v1",
+  "state": "AWAITING_EXPLICIT_HUMAN_DELETE_AUTHORIZATION",
+  "deletion_manifest": {
+    "sha256": "6cf056219fa1e036d64e21b3f571bba0f68835a23a134dc47d3982a30d8a1708",
+    "target_count": 27,
+    "path": "governance/safe_delete_deletion_manifest.v1.json"
+  },
+  "final_vault": {
+    "manifest_sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+    "library_path": "/GALIA_FINAL_VAULT_SEALED_2026-09-26"
+  },
+  "required_human_decision_fields": [
+    "decision_id",
+    "decision_text",
+    "deletion_manifest_sha256",
+    "final_vault_manifest_sha256",
+    "target_count",
+    "authorized_scope"
+  ],
+  "required_exact_values": {
+    "deletion_manifest_sha256": "6cf056219fa1e036d64e21b3f571bba0f68835a23a134dc47d3982a30d8a1708",
+    "final_vault_manifest_sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+    "target_count": 27,
+    "authorized_scope": "EXACT_27_TARGETS_IN_PROMOTED_DELETION_MANIFEST_ONLY"
+  },
+  "semantics": {
+    "generic_promotion_signal_is_sufficient": false,
+    "prior_promotions_are_sufficient": false,
+    "ambiguous_authorization_is_sufficient": false,
+    "exact_destructive_authorization_required": true
+  },
+  "safety": {
+    "safe_delete": "HOLD",
+    "delete_authorized": false,
+    "destructive_action_executed": false
+  }
+}
