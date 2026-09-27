@@ -12,7 +12,13 @@
     "role": "CONTROL_PLANE",
     "repository": "riosriosje-prog/test-model-thing",
     "ref": "main",
-    "commit": "384a1b1b2c804b6d7838cd301d61232dd6313895",
+    "candidate_base_commit": "384a1b1b2c804b6d7838cd301d61232dd6313895",
+    "promotion_binding": {
+      "merge_commit_resolution": "REQUIRED_AT_PROMOTION",
+      "template_token": "__PROMOTED_MAIN_COMMIT__",
+      "required_format": "40_lower_hex",
+      "promotion_receipt_must_bind_merge_commit": true
+    },
     "release_authority_module_blob": "50e76bc36a5a77e71eb11ed70724973c5ffc62f2",
     "release_authority_test_blob": "9b73e0497f58f45e04668fc5650db0fd34642628"
   },
