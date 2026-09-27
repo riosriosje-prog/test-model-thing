@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "vault_id": "GALIA-FINAL-VAULT-SEALED-2026-09-26-v1",
+  "state": "VAULT_BUILT_VERIFIED",
+  "library_path": "/GALIA_FINAL_VAULT_SEALED_2026-09-26",
+  "manifest_sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+  "receipt_sha256": "211e44cd3ae5951db8be9e75ee3bede17014ccc251db6faf83e96109189836bb",
+  "clean_room_validation_sha256": "147f97c944ffea498f95ed0a03ef9e2921693ababe2772bb985cd2326a939634",
+  "sealed_readback_sha256": "2886e9f0e01b687755936d6795e89f90dfe4febd5c06874d97216b2856acb28c",
+  "verification": {
+    "server_copy_readback": "PASS",
+    "package_hashes": "PASS",
+    "canonical_member_hashes": "PASS",
+    "sqlite_integrity_check": "PASS_ALL",
+    "foreign_key_check": "0_ALL",
+    "clean_room_restore": "PASS"
+  },
+  "raw_byte_blockers": 0,
+  "deletion_manifest": "ABSENT",
+  "deletion_specific_human_authorization": "ABSENT",
+  "safe_delete": "HOLD",
+  "delete_authorized": false
+}
