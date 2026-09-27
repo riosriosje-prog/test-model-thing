@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "record_id": "GALIA-IRRECOVERABLE-TRANSIENT-5ED030-2026-09-26-v1",
+  "object_id": "cleanup_upstream_5ed030",
+  "expected_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+  "classification": "WORKING_TRANSIENT_NOT_CANONICAL",
+  "disposition": "IRRECOVERABLE_TRANSIENT_DOCUMENTED",
+  "successor": {
+    "object_id": "cleanup_948d41",
+    "sha256": "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad",
+    "state": "RAW_BYTES_VERIFIED"
+  },
+  "source_evidence": {
+    "cleanup_manifest": {
+      "name": "GALIA_WORKING_v1_31_TASK_LIFECYCLE_CLEANUP_manifest.json",
+      "library_file_id": "libfile_db3b8bc2fd18819186b1c20cd7d138ce",
+      "declares_source_v1_30_sha256": true,
+      "master_modified": false,
+      "knowledge_mutations": {
+        "sources": 0,
+        "evidence": 0,
+        "statements": 0
+      }
+    },
+    "cleanup_report": {
+      "name": "GALIA_WORKING_v1_31_TASK_LIFECYCLE_CLEANUP_REPORT.md",
+      "library_file_id": "libfile_f9690b14a6c88191ba12c74525ae358a",
+      "release_authority_changes": 0,
+      "repair_scope": "TASK_LIFECYCLE_ONLY"
+    },
+    "recovery_report": {
+      "name": "GALIA_CANDIDATE_AND_CLEANUP_RECOVERY_2026-09-26.md",
+      "library_file_id": "libfile_1148e016aaa48191bc9691ce85879c0f",
+      "raw_bytes_recovered": false
+    }
+  },
+  "library_inventory_observation": {
+    "window_utc": "2026-09-13T07:32:42Z/2026-09-13T07:45:43Z",
+    "standalone_v1_30_object_located": false,
+    "next_persisted_cleanup_package": "GALIA_WORKING_v1_31_TASK_LIFECYCLE_CLEANUP_PACKAGE.zip"
+  },
+  "recovery_search_state": "EXHAUSTIVE_NEGATIVE",
+  "reverse_reconstruction_accepted": false,
+  "authority_effect": "NONE",
+  "safe_delete_effect": "NONE_UNTIL_SEPARATE_HUMAN_ACCEPTANCE_AND_ALL_OTHER_GATES_PASS"
+}
