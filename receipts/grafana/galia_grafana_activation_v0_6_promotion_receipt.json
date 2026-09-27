@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "receipt_type": "GALIA_GRAFANA_PREPARATION_PROMOTION_RECEIPT",
+  "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.6",
+  "github_pr": 54,
+  "human_promotion_authorized": true,
+  "candidate_head": "d0c71aaf76333a7f6b8542e2b48b01cfa0ad6654",
+  "candidate_set_sha256": "1b0d25ca98a59182ade20d868f371655c7bd86d625d9c8dbd1961f896d5d73c2",
+  "base_main_commit": "a6f3aae4340da9079bdba63df9bdbe46a596cce5",
+  "promoted_main_commit": "dd717c61d50240251044040b61956768a3325d14",
+  "merged_at_utc": "2026-09-27T19:34:07Z",
+  "promotion_scope": "PREPARATION_BASELINE_ONLY",
+  "promoted": true,
+  "external_activation_executed": false,
+  "ssl_enforcement_changed": false,
+  "temporary_access_changed": false,
+  "jit_mapping_changed": false,
+  "pat_created": false,
+  "grafana_datasource_changed": false,
+  "secret_material_persisted": false,
+  "canonical_authority_transferred": false,
+  "predecessor": {
+    "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.5",
+    "github_pr": 52,
+    "head": "96c468c7f37750620a05e62532f36121569b9877",
+    "github_now_reports_merged": true,
+    "relationship": "ANCESTOR_INCLUDED_BY_SUCCESSOR",
+    "separately_human_promoted": false,
+    "authority_status": "NOT_PROMOTED_AS_SEPARATE_BASELINE"
+  }
+}
