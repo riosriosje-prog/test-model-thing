@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "object_type": "GALIA_GRAFANA_PREPARATION_BASELINE_RATIFICATION_TARGETS",
+  "activation": {
+    "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.6",
+    "github_pr": 54,
+    "source_candidate_head": "d0c71aaf76333a7f6b8542e2b48b01cfa0ad6654",
+    "source_candidate_set_sha256": "1b0d25ca98a59182ade20d868f371655c7bd86d625d9c8dbd1961f896d5d73c2",
+    "source_candidate_status_at_merge": "PREPARATION_ONLY_NOT_PROMOTABLE",
+    "github_merge_commit": "dd717c61d50240251044040b61956768a3325d14",
+    "github_merge_executed": true,
+    "canonical_promotion_validated_before_ratification": false,
+    "proposed_authority_after_ratification": "PROMOTED_PREPARATION_BASELINE",
+    "live_execution_eligibility_after_ratification": "BLOCKED_EXTERNAL_FACTS"
+  },
+  "datasource": {
+    "candidate_id": "GALIA-GRAFANA-DATASOURCE-CANDIDATE-v0.8",
+    "github_pr": 55,
+    "source_candidate_head": "b4cb4aee27b1a9479dd6b0ae79f84097e48e6bde",
+    "source_candidate_set_sha256": "3b37c650c8b0302990cd62f6cb967bcbcdcaaa3cc97ad73f7a12637055e79e9d",
+    "source_candidate_status_at_merge": "PREPARATION_ONLY_NOT_PROMOTABLE",
+    "github_merge_commit": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892",
+    "github_merge_executed": true,
+    "canonical_promotion_validated_before_ratification": false,
+    "proposed_authority_after_ratification": "PROMOTED_PREPARATION_BASELINE",
+    "live_execution_eligibility_after_ratification": "BLOCKED_EXTERNAL_FACTS"
+  },
+  "semantic_rules": {
+    "ratification_is_new_authority_event": true,
+    "ratification_effective_time": "AT_FUTURE_HUMAN_PROMOTION_OF_THIS_EXACT_CANDIDATE",
+    "retroactive_eligibility_claim": false,
+    "github_merge_event_rewritten": false,
+    "external_activation_implied": false
+  }
+}
