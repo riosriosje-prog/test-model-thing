@@ -38,8 +38,7 @@
       "operation_selection": "POST_IF_TARGET_USER_ABSENT__PUT_IF_TARGET_USER_PRESENT",
       "request_body": {
         "user_id": "gotrue_id",
-        "roles": "Array<role grant>",
-        "response_field": "user_roles"
+        "roles": "Array<role grant>"
       },
       "allowed_networks": {
         "ipv4_field": "allowed_cidrs",
@@ -49,7 +48,8 @@
       "implementation_evidence": [
         "Supabase Studio jit-db-access-grant-mutation.ts",
         "Supabase Studio JitDbAccess.utils.ts"
-      ]
+      ],
+      "response_field": "user_roles"
     },
     "ssl_enforcement": {
       "get": "/v1/projects/{ref}/ssl-enforcement",
