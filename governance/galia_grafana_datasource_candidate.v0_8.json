@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-DATASOURCE-CANDIDATE-v0.8",
+  "object_ref": "GALIA-GRAFANA-DATASOURCE-PREP-2026-09-27-002",
+  "status": "PREPARATION_ONLY_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-datasource-v0-8-candidate",
+  "base_main_commit": "dd717c61d50240251044040b61956768a3325d14",
+  "predecessor": {
+    "candidate_id": "GALIA-GRAFANA-DATASOURCE-CANDIDATE-v0.7",
+    "github_pr": 53,
+    "head": "c62d1de756d9cf3e7eac8a3f267a16fa613a6a1a",
+    "candidate_set_sha256": "dad685aa5ae26a578ad6e51eac4272e716634d045cf63455b1dad98c8547d1a8",
+    "status": "PREPARATION_ONLY_NOT_PROMOTABLE"
+  },
+  "activation_dependency": {
+    "candidate_id": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.6",
+    "github_pr": 54,
+    "candidate_head": "d0c71aaf76333a7f6b8542e2b48b01cfa0ad6654",
+    "candidate_set_sha256": "1b0d25ca98a59182ade20d868f371655c7bd86d625d9c8dbd1961f896d5d73c2",
+    "current_status": "PROMOTED_PREPARATION_BASELINE",
+    "must_complete_before_datasource_promotion": true,
+    "promoted_main_commit": "dd717c61d50240251044040b61956768a3325d14"
+  },
+  "hardening_changes": [
+    "PROFILE_AWARE_ACTIVATION_RECEIPT",
+    "PDC_NO_LONGER_REQUIRES_SELF_HOSTED_DIRECT_IPV6_CLAIM",
+    "PDC_TLS_PROOF_IS_GRAFANA_SAVE_AND_TEST_NOT_LOCAL_PSQL",
+    "SELF_HOSTED_TLS_PROOF_REMAINS_PSQL_VERIFY_FULL",
+    "ROUTE_AND_TLS_EVIDENCE_METHODS_ARE_EXPLICIT",
+    "REBASED_ON_PROMOTED_ACTIVATION_V0_6_MAIN"
+  ],
+  "inherited_v0_7_surfaces": {
+    "provisioning_yaml": {
+      "path": "grafana/provisioning/datasources/galia_cangrejos_postgres.v0_7.yaml",
+      "sha256": "8db066bbec5bcfa821802307e5a0a04f5ecbbcb8f28c73e68b7ac4eeeb8f801e"
+    },
+    "acceptance_sql": {
+      "path": "grafana/acceptance/galia_cangrejos_postgres_acceptance.v0_7.sql",
+      "sha256": "9b6479ca33e071c96899e205680b00ac6cbfa3c65bec8633cd6ff7aa25c545d6"
+    },
+    "runtime_acceptance": {
+      "path": "tools/run_galia_grafana_runtime_acceptance_v0_7.sh",
+      "sha256": "99bcd25611bdb211f8bde38bd07a7efd844bd1b99aa6a67414644e4cbfafa56b"
+    },
+    "pool_connection_max_lifetime_seconds": 240
+  },
+  "profile_acceptance": {
+    "SELF_HOSTED_IPV6": {
+      "route_verification_method": "SELF_HOSTED_DIRECT_IPV6",
+      "tls_verification_method": "SELF_HOSTED_PSQL_VERIFY_FULL",
+      "grafana_pdc_enabled": false
+    },
+    "GRAFANA_CLOUD_PDC_IPV6": {
+      "route_verification_method": "PDC_AGENT_IPV6",
+      "tls_verification_method": "GRAFANA_PDC_SAVE_AND_TEST_VERIFY_FULL",
+      "grafana_pdc_enabled": true,
+      "permit_remote_open": "db.nzoviwitcqmsacwiizhh.supabase.co:5432"
+    }
+  },
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_activation_receipt.schema.v0_8.json",
+      "governance/galia_grafana_datasource_candidate.v0_8.json",
+      "tests/test_galia_grafana_datasource_v0_8.py",
+      "tools/validate_galia_grafana_datasource_v0_8.py"
+    ],
+    "self_hash_embedded": false
+  },
+  "promotion_gates": {
+    "activation_v0_6_complete": false,
+    "activation_receipt_v0_8_valid": false,
+    "tls_ca_fingerprint_matches_receipt": false,
+    "datasource_health_check_passed": false,
+    "five_monitor_views_passed": false,
+    "denial_tests_passed": false
+  },
+  "non_effects": [
+    "NO_GRAFANA_API_WRITE",
+    "NO_TEMPORARY_ACCESS_MUTATION",
+    "NO_JIT_MAPPING_MUTATION",
+    "NO_PAT_CREATION",
+    "NO_PAT_PERSISTENCE",
+    "NO_DATABASE_MUTATION",
+    "NO_CONTROL_PLANE_BINDING_MUTATION",
+    "NO_AUTHORITY_TRANSFER"
+  ]
+}
