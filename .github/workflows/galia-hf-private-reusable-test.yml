@@ -1,0 +1,13 @@
+name: galia-hf-private-reusable-test
+
+on:
+  push:
+    branches:
+      - galia-hf-private-reusable-test
+    paths:
+      - .github/workflows/galia-hf-private-reusable-test.yml
+
+jobs:
+  call-private:
+    uses: riosriosje-prog/galia-mlx-validation/.github/workflows/galia-hf-private-reusable-gate.yml@galia-hf-private-bridge-preflight
+    secrets: inherit
