@@ -65,6 +65,15 @@ class CrossPlaneBindingsPolicyTests(unittest.TestCase):
         self.assertEqual(supa["project_name"], "galia-cangrejos")
         self.assertEqual(supa["target_schema_version"], "1.4.0")
 
+    def test_pre_fix_migration_set_hash_contract_is_explicit(self):
+        supa = POLICY["supabase"]
+        self.assertEqual(
+            supa["pre_fix_migration_set_sha256"],
+            "eb9fd47b916a228150f56b380f8b997ab307513a7a6abac645726f8011666fb3",
+        )
+        self.assertEqual(supa["pre_fix_migration_set_hash_contract"]["algorithm"], "SHA-256")
+        self.assertEqual(supa["pre_fix_migration_set_hash_contract"]["migration_count"], 9)
+
     def test_migration_preserves_old_external_anchors(self):
         lower = MIGRATION.lower()
         self.assertNotIn("drop table", lower)
