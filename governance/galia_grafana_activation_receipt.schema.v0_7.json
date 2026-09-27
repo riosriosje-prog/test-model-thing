@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "galia-grafana-activation-receipt-v0.7",
+  "title": "GALIA Grafana JIT Activation Receipt v0.7",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "project_ref",
+    "activation_contract_candidate_id",
+    "activation_contract_head",
+    "activation_contract_candidate_set_sha256",
+    "activation_complete",
+    "credential_mode",
+    "postgres_role",
+    "gotrue_id",
+    "service_pat_belongs_to_gotrue_id_verified",
+    "scoped_pat_available",
+    "ssl_enforcement_enabled",
+    "temporary_access_enabled",
+    "jit_mapping_verified",
+    "network_profile",
+    "source_cidrs",
+    "direct_ipv6_reachability_verified",
+    "pdc_agent_network_verified",
+    "server_root_ca_sha256",
+    "expires_at",
+    "direct_verify_full_connection_passed",
+    "secret_material_persisted",
+    "primary_email_persisted"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "receipt_type": {"const": "GALIA_GRAFANA_JIT_ACTIVATION_RECEIPT"},
+    "project_ref": {"const": "nzoviwitcqmsacwiizhh"},
+    "activation_contract_candidate_id": {"const": "GALIA-GRAFANA-JIT-ACTIVATION-CANDIDATE-v0.5"},
+    "activation_contract_head": {"const": "96c468c7f37750620a05e62532f36121569b9877"},
+    "activation_contract_candidate_set_sha256": {"const": "20feda3c06beb0464d06067680ee340bda921e7a2a12226c1af6f337500f2f3d"},
+    "activation_complete": {"const": true},
+    "credential_mode": {"const": "TEMPORARY_ACCESS_JIT_DIRECT"},
+    "postgres_role": {"const": "galia_grafana_ro"},
+    "gotrue_id": {"type": "string", "format": "uuid"},
+    "service_pat_belongs_to_gotrue_id_verified": {"const": true},
+    "scoped_pat_available": {"const": true},
+    "ssl_enforcement_enabled": {"const": true},
+    "temporary_access_enabled": {"const": true},
+    "jit_mapping_verified": {"const": true},
+    "network_profile": {
+      "enum": ["SELF_HOSTED_IPV6", "GRAFANA_CLOUD_PDC_IPV6"]
+    },
+    "source_cidrs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string"}
+    },
+    "direct_ipv6_reachability_verified": {"const": true},
+    "pdc_agent_network_verified": {"type": "boolean"},
+    "server_root_ca_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "expires_at": {"type": "integer", "minimum": 1},
+    "direct_verify_full_connection_passed": {"const": true},
+    "secret_material_persisted": {"const": false},
+    "primary_email_persisted": {"const": false}
+  }
+}
