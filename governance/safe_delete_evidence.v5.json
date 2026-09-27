@@ -1,0 +1,509 @@
+{
+  "schema_version": 5,
+  "snapshot_id": "GALIA-SAFE-DELETE-EVIDENCE-2026-09-26-v6-HOLD-PREFLIGHT",
+  "decision": "HOLD",
+  "required_objects": {
+    "global_master_1_0_1": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354",
+      "package_sha256": "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87"
+    },
+    "santurce_research_15_003": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "22865209ebb914543ce90ad933758d37f2f0abf760084c37380838bd121745f8",
+      "package_sha256": "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee"
+    },
+    "v1_30_14_003": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "85e616800a65f5349d61277c7b5cce97863406b995e7560e3102b02a4bb63de6",
+      "package_sha256": "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f"
+    },
+    "cleanup_948d41": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad",
+      "package_sha256": "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d"
+    },
+    "cleanup_upstream_5ed030": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+      "package_sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+      "size_bytes": 481763328,
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0,
+      "recovery_class": "DETERMINISTIC_REPLAY_BYTE_EXACT_HASH_VERIFIED",
+      "recovery_receipt": "governance/5ed030_byte_exact_recovery.v1.json"
+    },
+    "ow02_checkpoint": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "455f67ab608714af9cb2687fb567b600ed7730d386f6d2238bc62a68dde07948",
+      "package_sha256": "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0
+    },
+    "ow10_checkpoint": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "709099a1d695f0cb53983dfef6a7983b75aa5c1992a9d5c32061c611471d36b2",
+      "package_sha256": "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0
+    },
+    "ow21_checkpoint": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "7dbc8feca01a4f6623101c25b6aa1e07b09dda7c0370997b164f8fef70f63866",
+      "package_sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a",
+      "sqlite_integrity": "ok",
+      "foreign_key_violations": 0,
+      "supplementary_consolidated_package_sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0"
+    }
+  },
+  "controls": {
+    "ow21_discovery_audit": {
+      "state": "DISCOVERY_AUDIT_COMPLETE",
+      "result": "RESEARCH_CHECKPOINT_AND_SUPPLEMENTARY_CONSOLIDATED_PACKAGE_RECOVERED_AND_VERIFIED"
+    },
+    "irrecoverable_transient_acceptance": {
+      "state": "NOT_REQUIRED_RAW_BYTES_RECOVERED",
+      "object_id": "cleanup_upstream_5ed030"
+    },
+    "final_vault": {
+      "state": "VAULT_BUILT_VERIFIED",
+      "sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+      "receipt_sha256": "211e44cd3ae5951db8be9e75ee3bede17014ccc251db6faf83e96109189836bb",
+      "library_path": "/GALIA_FINAL_VAULT_SEALED_2026-09-26"
+    },
+    "clean_room_restore": {
+      "state": "PASS",
+      "package_hashes": "PASS",
+      "canonical_member_hashes": "PASS",
+      "sqlite_integrity": "PASS_ALL",
+      "foreign_key_check": "0_ALL",
+      "sealed_readback_sha256": "2886e9f0e01b687755936d6795e89f90dfe4febd5c06874d97216b2856acb28c"
+    },
+    "deletion_manifest": {
+      "state": "PRESENT_HASHED",
+      "sha256": "6cf056219fa1e036d64e21b3f571bba0f68835a23a134dc47d3982a30d8a1708",
+      "target_count": 27,
+      "targets": [
+        {
+          "file_id": "file_000000004878822f8049d9979a977f63",
+          "library_file_id": "libfile_f1457dc4efa88191bcf1d301905d8011",
+          "object_id": "library:libfile_f1457dc4efa88191bcf1d301905d8011",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/MASTER_1_0_1_REACQUIRED.zip",
+          "preservation_sha256": "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/MASTER_1_0_1_REACQUIRED.zip",
+          "scope": "STAGING",
+          "sha256": "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87",
+          "size_bytes": 91255625
+        },
+        {
+          "file_id": "file_000000008e48822fbb8609fddac8e3d5",
+          "library_file_id": "libfile_956de5e985e88191ad31f56cf91d34ed",
+          "object_id": "library:libfile_956de5e985e88191ad31f56cf91d34ed",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/OW02_REACQUIRED.zip",
+          "preservation_sha256": "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/OW02_REACQUIRED.zip",
+          "scope": "STAGING",
+          "sha256": "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907",
+          "size_bytes": 74107
+        },
+        {
+          "file_id": "file_000000006d9c822fa0e03007d1b7b4fe",
+          "library_file_id": "libfile_b79e4867382881918c9100723c5f4653",
+          "object_id": "library:libfile_b79e4867382881918c9100723c5f4653",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/OW10_REACQUIRED.zip",
+          "preservation_sha256": "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/OW10_REACQUIRED.zip",
+          "scope": "STAGING",
+          "sha256": "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda",
+          "size_bytes": 194951
+        },
+        {
+          "file_id": "file_000000000c9c822fba59798599eb1a29",
+          "library_file_id": "libfile_383b9857dab88191a00704bb8174abee",
+          "object_id": "library:libfile_383b9857dab88191a00704bb8174abee",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/OW21_REACQUIRED.zip",
+          "preservation_sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/OW21_CONSOLIDATED_SUPPLEMENTARY_REACQUIRED.zip",
+          "scope": "STAGING",
+          "sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0",
+          "size_bytes": 267604
+        },
+        {
+          "file_id": "file_000000003fe8822f9954a52e1d0a3fad",
+          "library_file_id": "libfile_377be59cf3ec8191a14f4e2a97268509",
+          "object_id": "library:libfile_377be59cf3ec8191a14f4e2a97268509",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/OW21_RESEARCH_CHECKPOINT_REACQUIRED.zip",
+          "preservation_sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/OW21_RESEARCH_CHECKPOINT_REACQUIRED.zip",
+          "scope": "STAGING",
+          "sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a",
+          "size_bytes": 247076
+        },
+        {
+          "file_id": "file_000000008b70822faadd5037ca357574",
+          "library_file_id": "libfile_455b7d53c8f48191bbf77bbe0a5a4529",
+          "object_id": "library:libfile_455b7d53c8f48191bbf77bbe0a5a4529",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/RECOVERY_VAULT_R6_REACQUIRED.zip",
+          "preservation_sha256": "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/RECOVERY_VAULT_R6_REACQUIRED.zip",
+          "scope": "STAGING",
+          "sha256": "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb",
+          "size_bytes": 1389499
+        },
+        {
+          "file_id": "file_000000005a78822f8d8f0bba49cb4611",
+          "library_file_id": "libfile_6ae3fb2e51d4819198bddfe825baf047",
+          "object_id": "library:libfile_6ae3fb2e51d4819198bddfe825baf047",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/SANTURCE_14_003_RECOVERY_PROMOTED.zip",
+          "preservation_sha256": "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/SANTURCE_14_003_RECOVERY_PROMOTED.zip",
+          "scope": "STAGING",
+          "sha256": "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f",
+          "size_bytes": 339539
+        },
+        {
+          "file_id": "file_0000000083d0822f9ce3019c090a71fe",
+          "library_file_id": "libfile_de0792651eac8191b5ee7d31dcd48077",
+          "object_id": "library:libfile_de0792651eac8191b5ee7d31dcd48077",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/SANTURCE_15_003_PROMOTED.zip",
+          "preservation_sha256": "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/SANTURCE_15_003_PROMOTED.zip",
+          "scope": "STAGING",
+          "sha256": "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee",
+          "size_bytes": 310387
+        },
+        {
+          "file_id": "file_00000000da14822f949392761445ecc8",
+          "library_file_id": "libfile_2f30b83384648191892437c4087bc8b7",
+          "object_id": "library:libfile_2f30b83384648191892437c4087bc8b7",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/TASK_LIFECYCLE_CLEANUP_948D41.zip",
+          "preservation_sha256": "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/TASK_LIFECYCLE_CLEANUP_948D41.zip",
+          "scope": "STAGING",
+          "sha256": "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d",
+          "size_bytes": 90103215
+        },
+        {
+          "file_id": "file_00000000e45081f5b46e92dff9779b56",
+          "library_file_id": "libfile_b25aa226852c8191b94749dfd33468a0",
+          "object_id": "library:libfile_b25aa226852c8191b94749dfd33468a0",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/5ED030_BYTE_EXACT_RECOVERY.zip",
+          "preservation_sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/UPSTREAM_5ED030_BYTE_EXACT_RECOVERY.zip",
+          "scope": "STAGING",
+          "sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+          "size_bytes": 90102046
+        },
+        {
+          "file_id": "file_000000009608822f97807f0197da7182",
+          "library_file_id": "libfile_8a8323fe1c908191b118ccbcfc058ad5",
+          "object_id": "library:libfile_8a8323fe1c908191b118ccbcfc058ad5",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/V1_29_PROMOTED_PARENT_RECOVERED.zip",
+          "preservation_sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/HISTORICAL_V1_29_PARENT_RC_2026_09_13_002.zip",
+          "scope": "STAGING",
+          "sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
+          "size_bytes": 90099772
+        },
+        {
+          "file_id": "file_00000000fd8481f587fb5131664c4475",
+          "library_file_id": "libfile_88475651bd1c8191a5adc6a22f252c46",
+          "object_id": "library:libfile_88475651bd1c8191a5adc6a22f252c46",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_RECEIPT_2026-09-26.json",
+          "preservation_sha256": "f5f79c5a782881b3be7d60012c272d6ccd5b61818f07cc118864d233acee097a",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_RECEIPT_2026-09-26.json",
+          "scope": "STAGING",
+          "sha256": "f5f79c5a782881b3be7d60012c272d6ccd5b61818f07cc118864d233acee097a",
+          "size_bytes": 1518
+        },
+        {
+          "file_id": "file_00000000d3f481f5b2c86576fa6d1bea",
+          "library_file_id": "libfile_fcaac08616988191abe8a2595067c5dc",
+          "object_id": "library:libfile_fcaac08616988191abe8a2595067c5dc",
+          "path": "/GALIA_FINAL_VAULT_STAGING_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_REPORT_2026-09-26.md",
+          "preservation_sha256": "d08e503d4871a8e934a3c3dd2c570138545d0e29d2016a404f7254d758f70802",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_REPORT_2026-09-26.md",
+          "scope": "STAGING",
+          "sha256": "d08e503d4871a8e934a3c3dd2c570138545d0e29d2016a404f7254d758f70802",
+          "size_bytes": 859
+        },
+        {
+          "file_id": "file_00000000f5cc822f8f635ac3ec68cc87",
+          "library_file_id": "libfile_02972e51844c8191b61eb3b1400739cc",
+          "object_id": "library:libfile_02972e51844c8191b61eb3b1400739cc",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/MASTER_1_0_1_REACQUIRED.zip",
+          "preservation_sha256": "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/MASTER_1_0_1_REACQUIRED.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87",
+          "size_bytes": 91255625
+        },
+        {
+          "file_id": "file_0000000013e4822fa5230f6b25f025a5",
+          "library_file_id": "libfile_40a13f55f5408191875180b9748ef6fd",
+          "object_id": "library:libfile_40a13f55f5408191875180b9748ef6fd",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/SANTURCE_15_003_PROMOTED.zip",
+          "preservation_sha256": "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/SANTURCE_15_003_PROMOTED.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee",
+          "size_bytes": 310387
+        },
+        {
+          "file_id": "file_00000000346c822fa0ac1ac19dcb3171",
+          "library_file_id": "libfile_1c76e4a877b48191b04ba37f279b5d9d",
+          "object_id": "library:libfile_1c76e4a877b48191b04ba37f279b5d9d",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/SANTURCE_14_003_RECOVERY_PROMOTED.zip",
+          "preservation_sha256": "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/SANTURCE_14_003_RECOVERY_PROMOTED.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f",
+          "size_bytes": 339539
+        },
+        {
+          "file_id": "file_0000000080d8822f90e87d3e5d5da2f6",
+          "library_file_id": "libfile_a24224be1f2481919979c318de0818df",
+          "object_id": "library:libfile_a24224be1f2481919979c318de0818df",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/TASK_LIFECYCLE_CLEANUP_948D41.zip",
+          "preservation_sha256": "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/TASK_LIFECYCLE_CLEANUP_948D41.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d",
+          "size_bytes": 90103215
+        },
+        {
+          "file_id": "file_000000005d7881f5be48b9b2cb13c16f",
+          "library_file_id": "libfile_79eb1172efac81919d8ffb642a98b229",
+          "object_id": "library:libfile_79eb1172efac81919d8ffb642a98b229",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/UPSTREAM_5ED030_BYTE_EXACT_RECOVERY.zip",
+          "preservation_sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/UPSTREAM_5ED030_BYTE_EXACT_RECOVERY.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad",
+          "size_bytes": 90102046
+        },
+        {
+          "file_id": "file_00000000c964822f99f08438c82bc0ef",
+          "library_file_id": "libfile_0eeb9a17af4081918cef7b9398b6f49f",
+          "object_id": "library:libfile_0eeb9a17af4081918cef7b9398b6f49f",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/OW02_REACQUIRED.zip",
+          "preservation_sha256": "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/OW02_REACQUIRED.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907",
+          "size_bytes": 74107
+        },
+        {
+          "file_id": "file_000000008f98822f83095503f071eca3",
+          "library_file_id": "libfile_af7a9ffbe46481919e6af52736558bdc",
+          "object_id": "library:libfile_af7a9ffbe46481919e6af52736558bdc",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/OW10_REACQUIRED.zip",
+          "preservation_sha256": "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/OW10_REACQUIRED.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda",
+          "size_bytes": 194951
+        },
+        {
+          "file_id": "file_000000006c48822fa743a4dc319ef5d0",
+          "library_file_id": "libfile_cc9ab95fc784819198fe482d5aafc64d",
+          "object_id": "library:libfile_cc9ab95fc784819198fe482d5aafc64d",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/OW21_RESEARCH_CHECKPOINT_REACQUIRED.zip",
+          "preservation_sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/OW21_RESEARCH_CHECKPOINT_REACQUIRED.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a",
+          "size_bytes": 247076
+        },
+        {
+          "file_id": "file_000000001f88822f8b45d358384c4f1e",
+          "library_file_id": "libfile_dab920873d248191b7286ebdf8e3703c",
+          "object_id": "library:libfile_dab920873d248191b7286ebdf8e3703c",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/OW21_CONSOLIDATED_SUPPLEMENTARY_REACQUIRED.zip",
+          "preservation_sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/OW21_CONSOLIDATED_SUPPLEMENTARY_REACQUIRED.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0",
+          "size_bytes": 267604
+        },
+        {
+          "file_id": "file_0000000052d8822fbdb8208361e3a166",
+          "library_file_id": "libfile_f865ad6e6c14819180b5a4fb7fa95880",
+          "object_id": "library:libfile_f865ad6e6c14819180b5a4fb7fa95880",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/RECOVERY_VAULT_R6_REACQUIRED.zip",
+          "preservation_sha256": "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/RECOVERY_VAULT_R6_REACQUIRED.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb",
+          "size_bytes": 1389499
+        },
+        {
+          "file_id": "file_000000003fdc822fb259641ac662e81c",
+          "library_file_id": "libfile_f4931c6696d88191bebe7406e1d81a81",
+          "object_id": "library:libfile_f4931c6696d88191bebe7406e1d81a81",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/HISTORICAL_V1_29_PARENT_RC_2026_09_13_002.zip",
+          "preservation_sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/HISTORICAL_V1_29_PARENT_RC_2026_09_13_002.zip",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
+          "size_bytes": 90099772
+        },
+        {
+          "file_id": "file_000000001b7c81f581be039c56229aa1",
+          "library_file_id": "libfile_414739e165948191829f0966459f280f",
+          "object_id": "library:libfile_414739e165948191829f0966459f280f",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_RECEIPT_2026-09-26.json",
+          "preservation_sha256": "f5f79c5a782881b3be7d60012c272d6ccd5b61818f07cc118864d233acee097a",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_RECEIPT_2026-09-26.json",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "f5f79c5a782881b3be7d60012c272d6ccd5b61818f07cc118864d233acee097a",
+          "size_bytes": 1518
+        },
+        {
+          "file_id": "file_00000000b51c81f5b2c0a197820130e2",
+          "library_file_id": "libfile_d2bac614326c81918da3dba364a2875d",
+          "object_id": "library:libfile_d2bac614326c81918da3dba364a2875d",
+          "path": "/GALIA_FINAL_VAULT_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_REPORT_2026-09-26.md",
+          "preservation_sha256": "d08e503d4871a8e934a3c3dd2c570138545d0e29d2016a404f7254d758f70802",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/GALIA_5ED030_BYTE_EXACT_RECOVERY_REPORT_2026-09-26.md",
+          "scope": "INTERMEDIATE_FINAL",
+          "sha256": "d08e503d4871a8e934a3c3dd2c570138545d0e29d2016a404f7254d758f70802",
+          "size_bytes": 859
+        },
+        {
+          "file_id": "file_00000000945c822fa0c878a4c280eeba",
+          "library_file_id": "libfile_9eea9da715d481919053b670de1d2d77",
+          "object_id": "library:libfile_9eea9da715d481919053b670de1d2d77",
+          "path": "/GALIA_RECOVERY_WORK_2026-09-26/MASTER_RC_GALIA_2026_09_13_002.zip",
+          "preservation_sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
+          "preserved_in_sealed_vault": "/GALIA_FINAL_VAULT_SEALED_2026-09-26/HISTORICAL_V1_29_PARENT_RC_2026_09_13_002.zip",
+          "scope": "RECOVERY_WORK",
+          "sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61",
+          "size_bytes": 90099772
+        }
+      ],
+      "manifest_path": "governance/safe_delete_deletion_manifest.v1.json",
+      "selection_rule": "Only exact byte duplicates whose SHA-256 matches a preserved object in the sealed final vault."
+    },
+    "human_authorization": {
+      "state": "ABSENT",
+      "decision_id": null,
+      "deletion_manifest_sha256": null,
+      "final_vault_sha256": null,
+      "preflight_state": "READY_FOR_EXPLICIT_HUMAN_DELETE_AUTHORIZATION",
+      "preflight_record": "governance/safe_delete_hold_preflight.v1.json"
+    }
+  },
+  "vault_objects": {
+    "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "global_master_1_0_1"
+    },
+    "22865209ebb914543ce90ad933758d37f2f0abf760084c37380838bd121745f8": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "santurce_research_15_003"
+    },
+    "85e616800a65f5349d61277c7b5cce97863406b995e7560e3102b02a4bb63de6": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "v1_30_14_003"
+    },
+    "948d41f220e166f6d0e816b424e3bd0f1576f9be1fc3abdc1698fa82cfe507ad": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "cleanup_948d41"
+    },
+    "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "cleanup_upstream_5ed030"
+    },
+    "455f67ab608714af9cb2687fb567b600ed7730d386f6d2238bc62a68dde07948": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow02_checkpoint"
+    },
+    "709099a1d695f0cb53983dfef6a7983b75aa5c1992a9d5c32061c611471d36b2": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow10_checkpoint"
+    },
+    "7dbc8feca01a4f6623101c25b6aa1e07b09dda7c0370997b164f8fef70f63866": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow21_research_checkpoint"
+    },
+    "9b4634df16377f006c92b09fca936296aaeb58e5620696181f24c5efbe8a14ab": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow21_consolidated_supplementary"
+    },
+    "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "historical_v1_29_parent"
+    },
+    "ef23e663c5e1fee5e684aa1a6be361bf25cd89f59c727a557bb1647a50dcae87": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "global_master_1_0_1_package"
+    },
+    "86dc5ec3a6e0563ae8ee0a923724eacaeed834228fde2087803311a54996e7ee": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "santurce_research_15_003_package"
+    },
+    "58f93f1c7a8bd77e3ae7ffb7788dda8ee2f62a96d3e0e8422dcdc7712e4b736f": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "v1_30_14_003_package"
+    },
+    "8b76d79cba90c85d75f6f9b171b35f22cfe46196d310b77fbeff15114751700d": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "cleanup_948d41_package"
+    },
+    "1f76d7198951ca47641e10ff653972102577dae966f9a25f633b6afc27abbdad": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "cleanup_upstream_5ed030_package"
+    },
+    "4fade434491c8a4b345c576fffc7dc1a017a52bf00c86e6b2b53433e00df9907": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow02_package"
+    },
+    "bbd1188b3141b61a4d7738fdd1dba51244265456b5b0d7b759c2aee4e9ae4eda": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow10_package"
+    },
+    "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow21_research_package"
+    },
+    "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "ow21_supplementary_package"
+    },
+    "9d407ece6b5eef87e2396c1d872464efa989717139cc42b58d1a1b2b0cc121cb": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "recovery_vault_r6_package"
+    },
+    "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "historical_v1_29_parent_package"
+    },
+    "f5f79c5a782881b3be7d60012c272d6ccd5b61818f07cc118864d233acee097a": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "5ed030_recovery_receipt"
+    },
+    "d08e503d4871a8e934a3c3dd2c570138545d0e29d2016a404f7254d758f70802": {
+      "state": "VERIFIED_IN_FINAL_VAULT",
+      "object_id": "5ed030_recovery_report"
+    }
+  },
+  "should_preserve": {
+    "historical_v1_29_binary": {
+      "state": "RAW_BYTES_VERIFIED",
+      "sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6",
+      "package_sha256": "e941c3e84d81a68357804720ab9740496a5df8fb52450f074ee8126c8e0cdb61"
+    }
+  },
+  "forensic_only": {
+    "g28_14_003_to_15_003": {
+      "state": "OPEN_UNPROVEN"
+    },
+    "sqlite_3_46_1_same_writer_replay": {
+      "state": "NOT_RUN"
+    },
+    "sqlite_3_46_1_v1_30_byte_recovery_replay": {
+      "state": "PASS"
+    }
+  }
+}
