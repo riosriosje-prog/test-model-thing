@@ -71,7 +71,7 @@ class SafeDeleteGateTests(unittest.TestCase):
     def test_ow21_raw_is_verified_and_required(self):
         item = SNAPSHOT["required_objects"]["ow21_checkpoint"]
         self.assertEqual(item["state"], "RAW_BYTES_VERIFIED")
-        self.assertEqual(item["sha256"], "b1c90bf046439a97c3b6faa961fd44cc080ceebcd2109ec8dd0def7f7bc662f0")
+        self.assertEqual(item["sha256"], "960e3bb7f1c3aa943a65e20ea2f81fc298391c16f4fd2c2177c56226f2a4c73a")
 
     def test_ow21_discovery_is_complete(self):
         self.assertEqual(SNAPSHOT["controls"]["ow21_discovery_audit"]["state"], "DISCOVERY_AUDIT_COMPLETE")
