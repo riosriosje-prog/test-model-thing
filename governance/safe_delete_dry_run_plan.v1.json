@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "plan_id": "GALIA-SAFE-DELETE-DRY-RUN-PLAN-2026-09-26-v1",
+  "state": "DRY_RUN_HOLD",
+  "based_on": {
+    "deletion_manifest_sha256": "6cf056219fa1e036d64e21b3f571bba0f68835a23a134dc47d3982a30d8a1708",
+    "final_vault_manifest_sha256": "53345029a3d93b931946a2494af357a1beb2a2a989d3507eba23a028c309becf",
+    "target_count": 27
+  },
+  "execution": {
+    "destructive_action_supported": false,
+    "connector_mutation_supported": false,
+    "filesystem_mutation_supported": false,
+    "operation_label": "WOULD_DELETE_LIBRARY_OBJECT"
+  },
+  "preconditions": [
+    "exact human delete authorization receipt",
+    "fresh live inventory match for all 27 targets",
+    "no target under sealed vault prefix",
+    "exact file_id/library_file_id/path/size match",
+    "exact promoted manifest and vault bindings"
+  ],
+  "delete_authorized": false
+}
