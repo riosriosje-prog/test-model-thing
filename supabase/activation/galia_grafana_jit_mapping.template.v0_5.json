@@ -1,12 +1,17 @@
 {
   "user_id": "__GOTRUE_USER_ID_REQUIRED__",
-  "user_roles": [
+  "roles": [
     {
       "role": "galia_grafana_ro",
       "allowed_networks": {
         "allowed_cidrs": [
           {
-            "cidr": "__VERIFIED_EGRESS_CIDR_REQUIRED__"
+            "cidr": "__VERIFIED_IPV4_EGRESS_CIDR_OPTIONAL__"
+          }
+        ],
+        "allowed_cidrs_v6": [
+          {
+            "cidr": "__VERIFIED_IPV6_EGRESS_CIDR_REQUIRED__"
           }
         ]
       },
