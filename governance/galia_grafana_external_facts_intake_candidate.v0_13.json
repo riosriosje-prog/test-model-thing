@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-EXTERNAL-FACTS-INTAKE-CANDIDATE-v0.13",
+  "status": "EXTERNAL_FACTS_INTAKE_READY_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-external-facts-intake-v0-13-candidate",
+  "base_candidate": {
+    "candidate_id": "GALIA-GRAFANA-PDC-OFFICIAL-BINDING-CONTRACT-CANDIDATE-v0.11",
+    "github_pr": 60,
+    "head": "ce4d638f11d5e63461ec5a2bd99155146c806ec4",
+    "candidate_set_sha256": "ea5988231b7585dd6124722520483f258b34e39592de535a251c7bbc7d0296fc",
+    "status": "EXTERNAL_FACTS_BLOCKED_NOT_PROMOTABLE"
+  },
+  "authority": {
+    "preparation_baseline_ratification_merge": "82e5b8e6642d1475ebcee9183b401b1fd010e63b",
+    "preparation_baseline_authority_satisfied": true,
+    "live_execution_authorized": false,
+    "future_live_execution_candidate_required": true,
+    "future_human_decision_required": true
+  },
+  "purpose": "Validate a non-secret, freshness-bounded external fact packet for the Grafana Cloud PDC path and determine whether facts are sufficient to construct a future live-execution candidate without authorizing or executing any external mutation.",
+  "supported_profile": "GRAFANA_CLOUD_PDC_IPV6",
+  "fact_packet": {
+    "schema_path": "governance/galia_grafana_external_fact_packet.schema.v0_13.json",
+    "validator_path": "tools/validate_galia_grafana_external_fact_packet_v0_13.py",
+    "actual_packet_storage": "OUT_OF_REPOSITORY",
+    "max_observation_age_seconds": 900,
+    "minimum_jit_remaining_seconds": 300,
+    "secret_material_forbidden": true,
+    "primary_email_forbidden": true,
+    "ca_pem_forbidden": true,
+    "strict_shape_parity_with_schema": true,
+    "unknown_field_policy": "FAIL_CLOSED"
+  },
+  "required_fact_domains": [
+    "AUTHORITY_BINDING",
+    "GRAFANA_STACK_IDENTITY",
+    "PDC_NETWORK_IDENTITY",
+    "PDC_CONNECTED_AGENT_STATE",
+    "PDC_IPV6_ROUTE_TO_SUPABASE",
+    "CREDENTIAL_AVAILABILITY_AND_DOMAIN_SEPARATION",
+    "SUPABASE_SSL_STATE",
+    "SUPABASE_TEMPORARY_ACCESS_STATE",
+    "SUPABASE_JIT_MAPPING_STATE",
+    "SUPABASE_SERVER_ROOT_CA_SHA256"
+  ],
+  "eligibility_output": {
+    "eligible_state": "FACTS_COMPLETE_FOR_FUTURE_LIVE_EXECUTION_CANDIDATE",
+    "ineligible_state": "EXTERNAL_FACTS_HOLD",
+    "does_not_authorize_execution": true,
+    "does_not_create_live_candidate": true
+  },
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_external_facts_intake_candidate.v0_13.json",
+      "governance/galia_grafana_external_fact_packet.schema.v0_13.json",
+      "tools/validate_galia_grafana_external_fact_packet_v0_13.py",
+      "docs/galia_grafana_external_facts_intake_runbook.v0_13.md",
+      "tests/test_galia_grafana_external_facts_intake_v0_13.py"
+    ],
+    "self_hash_embedded": false
+  },
+  "non_effects": [
+    "NO_MAIN_MUTATION",
+    "NO_GRAFANA_CLOUD_API_CALL",
+    "NO_GRAFANA_STACK_API_WRITE",
+    "NO_SUPABASE_MUTATION",
+    "NO_DATASOURCE_CREATE_OR_UPDATE",
+    "NO_PDC_NETWORK_CREATE_OR_UPDATE",
+    "NO_SSL_CHANGE",
+    "NO_TEMPORARY_ACCESS_CHANGE",
+    "NO_JIT_MAPPING_CHANGE",
+    "NO_TOKEN_CREATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_LIVE_EXECUTION_AUTHORIZATION"
+  ],
+  "predecessor": {
+    "candidate_id": "GALIA-GRAFANA-EXTERNAL-FACTS-INTAKE-CANDIDATE-v0.12",
+    "github_pr": 61,
+    "head": "7c76280fd1beec60a26cd5893820a9f63d748eda",
+    "candidate_set_sha256": "e9c1e9cd304071e07b9508ea29c3089575f40cfabda163f7399df691d71ca442",
+    "status": "EXTERNAL_FACTS_INTAKE_READY_NOT_PROMOTABLE"
+  },
+  "hardening_changes": [
+    "VALIDATOR_ENFORCES_SCHEMA_ADDITIONAL_PROPERTIES_FALSE",
+    "VALIDATOR_ENFORCES_EXACT_REQUIRED_KEYS_AT_ALL_OBJECT_LEVELS",
+    "UNKNOWN_NONSECRET_FIELDS_FAIL_CLOSED"
+  ]
+}
