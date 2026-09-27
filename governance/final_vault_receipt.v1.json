@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "receipt_id": "GALIA-FINAL-VAULT-2026-09-26-v1",
+  "state": "VAULT_BUILT_VERIFIED",
+  "library_path": "/GALIA_FINAL_VAULT_2026-09-26",
+  "manifest_sha256": "2e964136234ebeccb091998c959ada549af878ea8908414be24889402ad36664",
+  "clean_room_report_sha256": "fac245174cb9724271afd99fded3a1de6b3d21a377d65f841b8c90550577485a",
+  "seal_sha256": "09b0367f513d1edc674296a2bcfdfe701f3d1a52029f4e23104da9ffb1520853",
+  "recovered_upstream_sha256": "5ed03098751c71efb5d87ec33f0f9d2894c6a7c729265eb322dfb37e9f42a4b6",
+  "recovered_upstream_method": "DETERMINISTIC_REPLAY_BYTE_EXACT_HASH_VERIFIED",
+  "chunk_manifest_sha256": "e677d311d384953f7980ba5743566b907022a97cd6380606e638c11ae413ef79",
+  "historical_v1_29_sha256": "3ed9a658665314d01f7448a0d6f040c07d8b0eab00986d8334589719f58037b6",
+  "clean_room_restore": "PASS",
+  "all_required_raw_objects_preserved": true,
+  "safe_delete": "HOLD",
+  "deletion_manifest": "ABSENT",
+  "deletion_specific_human_authorization": "ABSENT",
+  "delete_authorized": false,
+  "authority_effect": "NONE"
+}
