@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRADIO-LITE-DASHBOARD-CANDIDATE-v0.1",
+  "state": "CANDIDATE_NOT_PROMOTED",
+  "scope": "READ_ONLY_PRESENTATION_PLANE_ONLY",
+  "source_control_plane": {
+    "repository": "riosriosje-prog/test-model-thing",
+    "authority_pointer": "governance/galia_dashboard_authority_pointer.v1.json",
+    "research_registry": "governance/galia_dashboard_research_registry.v1.json",
+    "canonical_authority_transferred": false
+  },
+  "runtime": {
+    "hugging_face_sdk": "static",
+    "app_file": "index.html",
+    "gradio_lite_version": "5.45.0",
+    "python_runtime": "pyodide_in_browser",
+    "server_required": false
+  },
+  "publication_boundary": {
+    "authority_mutation": false,
+    "canonical_writes": false,
+    "remote_write": false,
+    "target_space": "UNBOUND_PENDING_HUMAN_SELECTION"
+  },
+  "promotion": {
+    "human_promotion_required": true,
+    "auto_promote": false
+  }
+}
