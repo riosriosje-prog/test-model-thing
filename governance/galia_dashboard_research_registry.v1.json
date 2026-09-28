@@ -1,0 +1,10 @@
+{
+  "schema_version": "galia.dashboard.research.v1",
+  "projects": [
+    {"id": "mcleary", "title": "Calle McLeary", "state": "EVIDENCE_EMBEDDED"},
+    {"id": "taft", "title": "Avenida Taft", "state": "REGISTERED_NOT_EMBEDDED"},
+    {"id": "cerra", "title": "Calle Cerra", "state": "REGISTERED_NOT_EMBEDDED"},
+    {"id": "borinquen", "title": "Calle Borinquen", "state": "REGISTERED_NOT_EMBEDDED"},
+    {"id": "tranvia", "title": "Tranvía San Juan–Santurce", "state": "REGISTERED_NOT_EMBEDDED"}
+  ]
+}
