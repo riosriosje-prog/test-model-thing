@@ -1,0 +1,46 @@
+name: GALIA Gradio Lite candidate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
+      - "publisher/gradio_lite/**"
+      - "tools/build_galia_gradio_lite_dashboard.py"
+      - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
+      - ".github/workflows/galia-gradio-lite-candidate.yml"
+      - "governance/galia_dashboard_authority_pointer.v1.json"
+      - "governance/galia_dashboard_research_registry.v1.json"
+      - "research/evidence/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install tests
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run candidate tests
+        run: python -m pytest -q tests/test_galia_gradio_lite_dashboard_v0_1.py
+      - name: Build candidate
+        run: python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
+      - name: Enforce no-deploy boundary
+        run: |
+          test -f dist/gradio-lite/index.html
+          grep -q '@gradio/lite@5.45.0' dist/gradio-lite/index.html
+          grep -q 'READ ONLY' dist/gradio-lite/index.html
+          grep -q 'CANDIDATE_NOT_PROMOTED' governance/galia_gradio_lite_dashboard_candidate.v0_1.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: galia-gradio-lite-dashboard-candidate-v0.1
+          path: |
+            dist/gradio-lite/index.html
+            publisher/gradio_lite/README.md
+            governance/galia_gradio_lite_dashboard_candidate.v0_1.json
