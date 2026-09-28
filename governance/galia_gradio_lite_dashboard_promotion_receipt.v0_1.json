@@ -1,0 +1,31 @@
+{
+  "schema_version": "galia.promotion_receipt.v1",
+  "receipt_id": "GALIA-GRADIO-LITE-DASHBOARD-PROMOTION-2026-09-28-001",
+  "state": "PROMOTED",
+  "promoted_object": {
+    "candidate_id": "GALIA-GRADIO-LITE-DASHBOARD-CANDIDATE-v0.1",
+    "candidate_manifest_path": "governance/galia_gradio_lite_dashboard_candidate.v0_1.json",
+    "candidate_manifest_git_blob_sha": "6bc741fa631b1da7217b6ea28256158c8b87507a",
+    "validated_head_sha": "5e282b926adbd87416899fff26c2611547899ee6",
+    "validated_artifact_sha256": "f797e23a125d540f213661c34fde7aec8e1fec85da30e9935bb4bed672eef923",
+    "promotion_merge_commit": "9a9407ceb7166c982398eb9cccc0ea0fea5366ec"
+  },
+  "human_authorization": {
+    "command": "Prom",
+    "authorized": true,
+    "date": "2026-09-28"
+  },
+  "scope": {
+    "baseline": "GRADIO_LITE_DASHBOARD_PRESENTATION_BASELINE_v0.1",
+    "publication_plane": "READ_ONLY_PRESENTATION_PLANE_ONLY",
+    "authority_mutation": false,
+    "canonical_writes": false,
+    "hugging_face_deploy_authorized": false,
+    "canonical_authority_transferred": false
+  },
+  "runtime": {
+    "hugging_face_sdk": "static",
+    "gradio_lite_version": "5.45.0",
+    "python_runtime": "pyodide_in_browser"
+  }
+}
