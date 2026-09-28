@@ -1,0 +1,84 @@
+name: GALIA direct dashboard publisher
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "governance/galia_dashboard_authority_pointer.v1.json"
+      - "governance/galia_dashboard_research_registry.v1.json"
+      - "governance/safe_delete_execution_receipt.v1.json"
+      - "governance/hf_final_release_candidate.v1.json"
+      - "tools/build_galia_dashboard.py"
+      - "tests/test_galia_dashboard_publisher.py"
+      - ".github/workflows/galia-dashboard-publish.yml"
+  push:
+    branches: [main]
+    paths:
+      - "governance/galia_dashboard_authority_pointer.v1.json"
+      - "governance/galia_dashboard_research_registry.v1.json"
+      - "governance/safe_delete_execution_receipt.v1.json"
+      - "governance/hf_final_release_candidate.v1.json"
+      - "tools/build_galia_dashboard.py"
+      - "tests/test_galia_dashboard_publisher.py"
+      - ".github/workflows/galia-dashboard-publish.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: galia-direct-dashboard-publisher
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Run focused publisher tests
+        run: |
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q tests/test_galia_dashboard_publisher.py
+      - name: Build read-only dashboard from control plane
+        run: python tools/build_galia_dashboard.py --output dist/index.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: galia-direct-dashboard
+          path: dist/index.html
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: galia-direct-dashboard
+          path: artifact
+      - name: Install Hugging Face client
+        run: python -m pip install --disable-pip-version-check "huggingface_hub>=1.19,<2"
+      - name: Publish to Junitos/GALIA
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from huggingface_hub import HfApi
+          token=os.environ.get("HF_TOKEN")
+          if not token:
+              raise SystemExit("HF_TOKEN repository secret is missing")
+          html=next(Path("artifact").rglob("index.html"))
+          info=HfApi(token=token).upload_file(
+              path_or_fileobj=str(html),
+              path_in_repo="index.html",
+              repo_id="Junitos/GALIA",
+              repo_type="space",
+              commit_message="Auto-publish GALIA dashboard from canonical control plane",
+          )
+          print("GALIA_DIRECT_HF_PUBLISH=PASS")
+          print(info)
+          PY
