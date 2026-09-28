@@ -5,11 +5,15 @@ import argparse
 import hashlib
 import html
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools import build_galia_dashboard as base
 
-ROOT = Path(__file__).resolve().parents[1]
 PINNED_GRADIO_LITE = "5.45.0"
 
 APP_PY = r"""
