@@ -1,0 +1,105 @@
+{
+  "schema_version": "galia.research.evidence.v1",
+  "project_id": "mcleary",
+  "title": "Calle McLeary",
+  "state": "EVIDENCE_EMBEDDED",
+  "scope": "RESEARCH_PRESENTATION_ONLY",
+  "authority_mutation": false,
+  "claims": [
+    {
+      "id": "MCLEARY-1915-PUBLIC-NAME-USE",
+      "date": "1915-11-22",
+      "status": "FACT",
+      "claim": "Contemporary press uses the road name 'Avenida MacLeary. Parada 44'.",
+      "limits": [
+        "Does not establish first-ever mention.",
+        "Does not establish municipal naming, opening, or dedication."
+      ],
+      "source": {
+        "publication": "El Tiempo",
+        "page": "4",
+        "surrogate_url": "https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01444/1915112201.pdf"
+      }
+    },
+    {
+      "id": "MCLEARY-TAFT-TOPOLOGY-1916",
+      "date": "1916-03-08",
+      "status": "FACT",
+      "claim": "Contemporary press describes 'Calle Me Leary (sale de Taft)', proving an explicit McLeary-to-Taft topological relation by that date.",
+      "limits": [
+        "Topology is not metric survey geometry.",
+        "Does not prove the relation existed at first public-name use in November 1915."
+      ],
+      "source": {
+        "publication": "The Times",
+        "surrogate_url": "https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01534/1916030801.pdf"
+      }
+    },
+    {
+      "id": "MCLEARY-NAME-VARIANTS",
+      "date_range": "1915-1917",
+      "status": "PARTIAL_HIGH",
+      "claim": "The documentary sequence MacLeary (1915), Me Leary (1916), and McLeary (1917) strongly favors same-road operational identity.",
+      "limits": [
+        "Formal municipal normalization remains open.",
+        "Eponymy remains open."
+      ]
+    }
+  ],
+  "open_gates": [
+    {
+      "id": "MCLEARY-NAMING-ACT-19140105-19151121",
+      "state": "OPEN",
+      "target": "Locate item-level municipal naming, opening, alignment, acceptance, signage, paving, plan, or related administrative record.",
+      "window": "1914-01-05/1915-11-21"
+    },
+    {
+      "id": "MCLEARY-TAFT-PRE19160308-LITERAL-CROSSWALK",
+      "state": "OPEN",
+      "target": "Find a 1915-11-22 through 1916-03-07 deed, classified, directory, ordinance, or plat naming Taft and MacLeary/McLeary together."
+    },
+    {
+      "id": "MCLEARY-METRIC-GEOMETRY",
+      "state": "GEO_OPEN",
+      "target": "Coordinates, bearing, width, parcel corner, centerline, and modern-intersection equivalence remain unpromoted."
+    }
+  ],
+  "archival_routes": [
+    {
+      "repository": "Archivo General de Puerto Rico",
+      "fonds": "Fondo Municipio de San Juan",
+      "identifier": "PR-SJ-AGPR-00338",
+      "priority": [
+        "Expedientes de Servicios / Calles y caminos",
+        "Obras Municipales",
+        "Proyectos",
+        "Expedientes Administrativos / Ordenanzas",
+        "Actas Varios / Certificaciones / Correspondencia / Asuntos Varios"
+      ]
+    },
+    {
+      "repository": "Archivo General de Puerto Rico",
+      "fonds": "Fortaleza / Correspondencia General II",
+      "identifier": "PR-SJ-AGPR-00349",
+      "classification": "Municipalidades",
+      "role": "cross-fonds fallback"
+    }
+  ],
+  "source_lineage": [
+    {
+      "kind": "project_state_dump",
+      "name": "Santurce_Cutty_Sark_STATE_DUMP_2026-09-12_v350_MCLEARY_TAFT_1915_1916_SOURCE_LINEAGE_RECONCILIATION.md",
+      "library_file_id": "file_00000000e41c81f78907b4e496232717"
+    },
+    {
+      "kind": "archival_locator_packet",
+      "name": "AGPR_McLeary_locator_request_v0_5.md",
+      "library_file_id": "file_00000000bf5881f5ab1b4a6d23fe0a4f"
+    },
+    {
+      "kind": "crossfonds_packet",
+      "name": "AGPR_McLeary_crossfonds_request_v0_6.md",
+      "library_file_id": "file_0000000012f881f59ba6bf43d20d90da"
+    }
+  ]
+}
