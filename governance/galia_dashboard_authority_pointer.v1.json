@@ -1,0 +1,42 @@
+{
+  "schema_version": "galia.dashboard.authority.v1",
+  "state": "ACTIVE",
+  "authority": {
+    "global_master_release": "RC-GALIA-2026-09-13-004",
+    "semantic_version": "1.0.1",
+    "global_master_sqlite_sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354",
+    "trust_root_v8_sha256": "7aa0d35cdd6b3746c43f0cfd379fdb78e50347b32ff8fa0092fd7ded6956e778",
+    "active_pointer_sha256": "ceb60f75e5fdf38dbe743d0d6560f58bb359ebbeaa322d501460e5eb579a02b9",
+    "activation_receipt_sha256": "2a8a26acda62683718da8e7d958f19ac08004333d11df35b59a7e35036db9621",
+    "activation_control_plane_commit": "384a1b1b2c804b6d7838cd301d61232dd6313895",
+    "authority_hold": "LIFTED"
+  },
+  "gates": {
+    "G20": "PASS",
+    "G22": "PASS_SINGLE_BYTE_AUTHORITATIVE_INTEGRATION_BASE",
+    "G27": "PASS",
+    "G28": "OPEN_UNPROVEN_FORENSIC_ONLY",
+    "SAFE_DELETE": "EXECUTED_27_OF_27"
+  },
+  "safe_delete_binding": {
+    "path": "governance/safe_delete_execution_receipt.v1.json",
+    "execution_receipt_id": "GALIA-SAFE-DELETE-EXECUTION-2026-09-26-001",
+    "authorization_decision_id": "HUMAN-DELETE-2026-09-26-001",
+    "target_count": 27,
+    "required_final_state": "EXECUTED"
+  },
+  "release_identity_binding": {
+    "path": "governance/hf_final_release_candidate.v1.json",
+    "required_binary_sha256": "9e98bf9cad5c8efafb7a4f0dc09373ecff532b7f3fdcb483e40c5e0053062354",
+    "distribution_authority_transfer": false
+  },
+  "scope_bindings": {
+    "RC-GALIA-2026-09-13-004": "GLOBAL_MASTER",
+    "RC-GALIA-2026-09-15-003": "SANTURCE_RESEARCH_CANONICAL_STATE"
+  },
+  "publication": {
+    "mode": "READ_ONLY",
+    "target": "Junitos/GALIA",
+    "authority_mutation": false
+  }
+}
