@@ -229,22 +229,32 @@ begin
 end;
 $$;
 
-do $$
+do $
+declare
+    v_blocked boolean := false;
 begin
     begin
         update derived.search_chunks
         set content = 'MUTATION SHOULD FAIL'
         where id = '40000000-0000-4000-8000-000000000001'::uuid;
-
-        raise exception 'CANARY FAIL: immutable search chunk accepted update';
     exception
-        when raise_exception then
-            if position('immutable' in sqlerrm) = 0 then
+        when others then
+            if position(
+                'GALIA derived retrieval row is immutable'
+                in sqlerrm
+            ) > 0 then
+                v_blocked := true;
+            else
                 raise;
             end if;
     end;
+
+    if not v_blocked then
+        raise exception
+            'CANARY FAIL: immutable search chunk accepted update';
+    end if;
 end;
-$$;
+$;
 
 insert into derived.search_chunks (
     id, derivation_key, canonical_object_type, document_page_id,

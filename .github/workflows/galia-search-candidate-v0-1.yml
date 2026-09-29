@@ -7,17 +7,26 @@ on:
     paths:
       - "supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql"
       - "supabase/activation/galia_search_v0_1_shadow_canary.sql"
+      - "supabase/ci/galia_schema_1_5_search_contract.sql"
       - "tests/test_galia_search_candidate.py"
       - ".github/workflows/galia-search-candidate-v0-1.yml"
   pull_request:
     paths:
       - "supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql"
       - "supabase/activation/galia_search_v0_1_shadow_canary.sql"
+      - "supabase/ci/galia_schema_1_5_search_contract.sql"
       - "tests/test_galia_search_candidate.py"
       - ".github/workflows/galia-search-candidate-v0-1.yml"
 
 permissions:
   contents: read
+
+env:
+  PGHOST: 127.0.0.1
+  PGPORT: "5432"
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGDATABASE: galia_shadow
 
 jobs:
   static-hardening:
@@ -35,3 +44,100 @@ jobs:
 
       - name: Run GALIA search candidate invariants
         run: python tests/test_galia_search_candidate.py
+
+  postgres-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: galia_shadow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d galia_shadow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify PostgreSQL client
+        run: psql --version
+
+      - name: Load GALIA 1.5 search contract fixture
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f supabase/ci/galia_schema_1_5_search_contract.sql
+
+      - name: Apply candidate migration 1.6.0
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql
+
+      - name: Verify candidate schema and extensions
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          select schema_version, migration_name, status
+          from audit.schema_versions
+          where schema_version in ('1.5.0', '1.6.0')
+          order by schema_version;
+
+          select extname, extversion
+          from pg_extension
+          where extname in ('pgcrypto', 'pg_trgm', 'vector')
+          order by extname;
+
+          select
+            to_regclass('derived.search_chunks') is not null
+              as search_chunks_exists,
+            to_regclass('derived.search_embeddings') is not null
+              as search_embeddings_exists,
+            to_regprocedure(
+              'derived.hybrid_search_v1(text,vector,text,integer,text,text,date,date,date,date,integer,double precision,double precision,double precision)'
+            ) is not null
+              as hybrid_search_exists;
+          SQL
+
+      - name: Run transactional McLeary-Taﬅ-Parada 44 canary
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f supabase/activation/galia_search_v0_1_shadow_canary.sql
+
+      - name: Assert canary rollback left no fixture rows
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if exists (
+              select 1
+              from canonical.sources
+              where source_key = 'CANARY-MCLEARY-1915'
+            ) then
+              raise exception 'SHADOW FAIL: canary source survived rollback';
+            end if;
+
+            if exists (
+              select 1
+              from derived.search_chunks
+              where derivation_key like 'canary:%'
+            ) then
+              raise exception 'SHADOW FAIL: canary chunks survived rollback';
+            end if;
+          end;
+          $$;
+          SQL
+
+      - name: Assert production credentials are absent
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          test -z "$SUPABASE_URL"
+          test -z "$SUPABASE_DB_URL"

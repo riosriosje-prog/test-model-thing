@@ -92,6 +92,27 @@ class GaliaSearchCandidateTests(unittest.TestCase):
             self.lower.replace("automatic promotion", ""),
         )
 
+    def test_shadow_canary_uses_real_fail_closed_sentinel(self):
+        canary = Path(
+            "supabase/activation/galia_search_v0_1_shadow_canary.sql"
+        ).read_text(encoding="utf-8")
+        self.assertIn("v_blocked boolean := false", canary)
+        self.assertIn(
+            "GALIA derived retrieval row is immutable",
+            canary,
+        )
+        self.assertIn("if not v_blocked then", canary)
+        self.assertIn("rollback;", canary.lower())
+
+    def test_ci_contract_fixture_contains_no_production_rows(self):
+        fixture = Path(
+            "supabase/ci/galia_schema_1_5_search_contract.sql"
+        ).read_text(encoding="utf-8").lower()
+        self.assertIn("contains no production data", fixture)
+        self.assertIn("'1.5.0'", fixture)
+        self.assertIn("create table canonical.sources", fixture)
+        self.assertIn("create table audit.schema_versions", fixture)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
