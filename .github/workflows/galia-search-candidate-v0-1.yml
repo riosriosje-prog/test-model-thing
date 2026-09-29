@@ -100,7 +100,7 @@ jobs:
             to_regclass('derived.search_embeddings') is not null
               as search_embeddings_exists,
             to_regprocedure(
-              'derived.hybrid_search_v1(text,vector,text,integer,text,text,date,date,date,date,integer,double precision,double precision,double precision)'
+              'derived.hybrid_search_v1(text,extensions.vector,text,integer,text,text,date,date,date,date,integer,double precision,double precision,double precision)'
             ) is not null
               as hybrid_search_exists;
           SQL
