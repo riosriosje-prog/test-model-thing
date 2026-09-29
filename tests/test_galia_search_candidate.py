@@ -75,7 +75,8 @@ class GaliaSearchCandidateTests(unittest.TestCase):
         self.assertIn("semantic as (", self.lower)
         self.assertIn("exact_match as (", self.lower)
         self.assertIn("websearch_to_tsquery", self.lower)
-        self.assertIn("<=> p_query_embedding", self.lower)
+        self.assertIn("operator(extensions.<=>) p_query_embedding", self.lower)
+        self.assertNotIn("se.embedding <=> p_query_embedding", self.lower)
         self.assertIn("rrf_score", self.lower)
 
     def test_schema_version_advances_from_1_5_to_1_6(self):
