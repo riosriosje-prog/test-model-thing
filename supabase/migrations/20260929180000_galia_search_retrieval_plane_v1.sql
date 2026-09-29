@@ -489,6 +489,8 @@ grant select, insert on table derived.search_embeddings to service_role;
 grant select, insert, update on table derived.embedding_profiles to service_role;
 grant select, insert, update on table derived.embedding_jobs to service_role;
 
+grant execute on function derived.search_fold_v1(text) to service_role;
+
 grant execute on function derived.hybrid_search_v1(
     text,
     extensions.vector,
