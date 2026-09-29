@@ -3,6 +3,20 @@
 -- ADDITIVE ONLY. No writes to canonical.*. No automatic promotion.
 -- Derived retrieval artifacts are never canonical authority.
 
+do $
+begin
+    if not exists (
+        select 1
+        from audit.schema_versions
+        where schema_version = '1.5.0'
+          and status = 'APPLIED'
+    ) then
+        raise exception
+            'GALIA search migration requires base schema 1.5.0/APPLIED';
+    end if;
+end;
+$;
+
 create extension if not exists vector with schema extensions;
 create extension if not exists pg_trgm with schema extensions;
 

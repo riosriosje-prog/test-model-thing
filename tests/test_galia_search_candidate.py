@@ -79,6 +79,14 @@ class GaliaSearchCandidateTests(unittest.TestCase):
         self.assertNotIn("se.embedding <=> p_query_embedding", self.lower)
         self.assertIn("rrf_score", self.lower)
 
+    def test_migration_requires_1_5_applied_base(self):
+        self.assertIn(
+            "GALIA search migration requires base schema 1.5.0/APPLIED",
+            self.sql,
+        )
+        self.assertIn("schema_version = '1.5.0'", self.sql)
+        self.assertIn("status = 'APPLIED'", self.sql)
+
     def test_schema_version_advances_from_1_5_to_1_6(self):
         self.assertIn("'1.6.0'", self.sql)
         self.assertIn("'base_schema', '1.5.0'", self.sql)
