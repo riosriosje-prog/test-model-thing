@@ -109,7 +109,7 @@ jobs:
           SQL
 
           PGDATABASE=galia_txn_probe psql -v ON_ERROR_STOP=1 <<'SQL'
-          do $
+          do $galia_check$
           begin
             if exists (
               select 1
@@ -131,7 +131,7 @@ jobs:
               raise exception 'SHADOW FAIL: candidate extensions survived rollback';
             end if;
           end;
-          $;
+          $galia_check$;
           SQL
 
       - name: Load GALIA 1.5 search contract fixture
