@@ -229,7 +229,7 @@ begin
 end;
 $$;
 
-do $
+do $$
 declare
     v_blocked boolean := false;
 begin
@@ -254,7 +254,7 @@ begin
             'CANARY FAIL: immutable search chunk accepted update';
     end if;
 end;
-$;
+$$;
 
 insert into derived.search_chunks (
     id, derivation_key, canonical_object_type, document_page_id,
