@@ -104,6 +104,9 @@ class GaliaSearchCandidateTests(unittest.TestCase):
         )
         self.assertIn("if not v_blocked then", canary)
         self.assertIn("rollback;", canary.lower())
+        self.assertNotIn("\\ndo $\\n", canary)
+        self.assertNotIn("\\n$;\\n", canary)
+        self.assertEqual(canary.count("do $$"), canary.count("$$;"))
 
     def test_ci_contract_fixture_contains_no_production_rows(self):
         fixture = Path(
