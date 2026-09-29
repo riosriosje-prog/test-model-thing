@@ -94,6 +94,46 @@ jobs:
 
           printf '%s\n' "$output" | grep -F             "GALIA search migration requires base schema 1.5.0/APPLIED"
 
+      - name: Prove transactional migration rollback
+        run: |
+          createdb galia_txn_probe
+          trap 'dropdb --if-exists galia_txn_probe >/dev/null 2>&1 || true' EXIT
+
+          PGDATABASE=galia_txn_probe psql -v ON_ERROR_STOP=1 \
+            -f supabase/ci/galia_schema_1_5_search_contract.sql
+
+          PGDATABASE=galia_txn_probe psql -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          \i supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql
+          rollback;
+          SQL
+
+          PGDATABASE=galia_txn_probe psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $
+          begin
+            if exists (
+              select 1
+              from audit.schema_versions
+              where schema_version = '1.6.0'
+            ) then
+              raise exception 'SHADOW FAIL: schema 1.6.0 survived rollback';
+            end if;
+
+            if to_regclass('derived.search_chunks') is not null then
+              raise exception 'SHADOW FAIL: derived.search_chunks survived rollback';
+            end if;
+
+            if exists (
+              select 1
+              from pg_extension
+              where extname in ('vector', 'pg_trgm')
+            ) then
+              raise exception 'SHADOW FAIL: candidate extensions survived rollback';
+            end if;
+          end;
+          $;
+          SQL
+
       - name: Load GALIA 1.5 search contract fixture
         run: >-
           psql -v ON_ERROR_STOP=1
