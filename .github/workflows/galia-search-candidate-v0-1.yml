@@ -71,6 +71,29 @@ jobs:
       - name: Verify PostgreSQL client
         run: psql --version
 
+      - name: Reject non-APPLIED GALIA 1.5 base
+        run: |
+          createdb galia_wrong_base
+          trap 'dropdb --if-exists galia_wrong_base >/dev/null 2>&1 || true' EXIT
+
+          PGDATABASE=galia_wrong_base psql -v ON_ERROR_STOP=1             -f supabase/ci/galia_schema_1_5_search_contract.sql
+
+          PGDATABASE=galia_wrong_base psql -v ON_ERROR_STOP=1             -c "update audit.schema_versions set status='SUPERSEDED' where schema_version='1.5.0'"
+
+          set +e
+          output="$(PGDATABASE=galia_wrong_base psql -v ON_ERROR_STOP=1             -f supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql 2>&1)"
+          rc=$?
+          set -e
+
+          printf '%s\n' "$output"
+
+          if [ "$rc" -eq 0 ]; then
+            echo "SHADOW FAIL: migration accepted non-APPLIED GALIA 1.5 base"
+            exit 1
+          fi
+
+          printf '%s\n' "$output" | grep -F             "GALIA search migration requires base schema 1.5.0/APPLIED"
+
       - name: Load GALIA 1.5 search contract fixture
         run: >-
           psql -v ON_ERROR_STOP=1
