@@ -130,6 +130,18 @@ class GaliaSearchCandidateTests(unittest.TestCase):
         self.assertNotIn("\\n$;\\n", canary)
         self.assertEqual(canary.count("do $$"), canary.count("$$;"))
 
+    def test_ci_fixture_uses_explicit_role_dollar_tags(self):
+        fixture = Path(
+            "supabase/ci/galia_schema_1_5_search_contract.sql"
+        ).read_text(encoding="utf-8")
+        for tag in (
+            "$role_anon$",
+            "$role_authenticated$",
+            "$role_service$",
+        ):
+            self.assertGreaterEqual(fixture.count(tag), 2)
+        self.assertNotIn("\ndo $\n", fixture)
+
     def test_ci_fixture_mirrors_extensions_usage_contract(self):
         fixture = Path(
             "supabase/ci/galia_schema_1_5_search_contract.sql"
