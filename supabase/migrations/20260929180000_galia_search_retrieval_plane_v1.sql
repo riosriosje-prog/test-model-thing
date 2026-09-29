@@ -344,7 +344,7 @@ semantic as (
     select
         e.id,
         row_number() over (
-            order by se.embedding <=> p_query_embedding, e.id
+            order by se.embedding OPERATOR(extensions.<=>) p_query_embedding, e.id
         ) as rank_ix
     from eligible e
     join derived.search_embeddings se
@@ -352,7 +352,7 @@ semantic as (
      and se.content_sha256 = e.content_sha256
      and se.profile_key = p_profile_key
     where p_query_embedding is not null
-    order by se.embedding <=> p_query_embedding, e.id
+    order by se.embedding OPERATOR(extensions.<=>) p_query_embedding, e.id
     limit (select least(match_count * 3, 300) from params)
 ),
 exact_match as (
