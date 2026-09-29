@@ -12,23 +12,26 @@ create schema if not exists derived;
 
 create extension if not exists pgcrypto with schema extensions;
 
-do $$
+do $role_anon$
 begin
     create role anon nologin;
 exception when duplicate_object then null;
-end $$;
+end
+$role_anon$;
 
-do $$
+do $role_authenticated$
 begin
     create role authenticated nologin;
 exception when duplicate_object then null;
-end $$;
+end
+$role_authenticated$;
 
-do $
+do $role_service$
 begin
     create role service_role nologin;
 exception when duplicate_object then null;
-end $;
+end
+$role_service$;
 
 -- Mirrors production schema privilege observed via read-only catalog introspection.
 grant usage on schema extensions to anon, authenticated, service_role;
