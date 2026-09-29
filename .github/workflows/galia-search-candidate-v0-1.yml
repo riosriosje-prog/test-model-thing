@@ -1,0 +1,37 @@
+name: GALIA Search Candidate v0.1
+
+on:
+  push:
+    branches:
+      - candidate/galia-search-v0.1
+    paths:
+      - "supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql"
+      - "supabase/activation/galia_search_v0_1_shadow_canary.sql"
+      - "tests/test_galia_search_candidate.py"
+      - ".github/workflows/galia-search-candidate-v0-1.yml"
+  pull_request:
+    paths:
+      - "supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql"
+      - "supabase/activation/galia_search_v0_1_shadow_canary.sql"
+      - "tests/test_galia_search_candidate.py"
+      - ".github/workflows/galia-search-candidate-v0-1.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  static-hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run GALIA search candidate invariants
+        run: python -m pytest -q tests/test_galia_search_candidate.py
