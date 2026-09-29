@@ -24,11 +24,14 @@ begin
 exception when duplicate_object then null;
 end $$;
 
-do $$
+do $
 begin
     create role service_role nologin;
 exception when duplicate_object then null;
-end $$;
+end $;
+
+-- Mirrors production schema privilege observed via read-only catalog introspection.
+grant usage on schema extensions to anon, authenticated, service_role;
 
 create table audit.human_decisions (
     id uuid primary key default gen_random_uuid(),
