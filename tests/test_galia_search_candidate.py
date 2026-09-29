@@ -87,6 +87,20 @@ class GaliaSearchCandidateTests(unittest.TestCase):
         self.assertIn("schema_version = '1.5.0'", self.sql)
         self.assertIn("status = 'APPLIED'", self.sql)
 
+    def test_service_role_gets_only_required_retrieval_execute(self):
+        self.assertIn(
+            "grant execute on function derived.search_fold_v1(text) to service_role;",
+            self.lower,
+        )
+        self.assertIn(
+            "grant execute on function derived.hybrid_search_v1(",
+            self.lower,
+        )
+        self.assertNotIn("grant usage on schema canonical to service_role", self.lower)
+        self.assertNotIn("grant insert on table canonical.", self.lower)
+        self.assertNotIn("grant update on table canonical.", self.lower)
+        self.assertNotIn("grant delete on table canonical.", self.lower)
+
     def test_schema_version_advances_from_1_5_to_1_6(self):
         self.assertIn("'1.6.0'", self.sql)
         self.assertIn("'base_schema', '1.5.0'", self.sql)
