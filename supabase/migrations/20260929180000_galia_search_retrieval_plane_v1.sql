@@ -3,7 +3,7 @@
 -- ADDITIVE ONLY. No writes to canonical.*. No automatic promotion.
 -- Derived retrieval artifacts are never canonical authority.
 
-do $
+do $galia$
 begin
     if not exists (
         select 1
@@ -15,7 +15,7 @@ begin
             'GALIA search migration requires base schema 1.5.0/APPLIED';
     end if;
 end;
-$;
+$galia$;
 
 create extension if not exists vector with schema extensions;
 create extension if not exists pg_trgm with schema extensions;
