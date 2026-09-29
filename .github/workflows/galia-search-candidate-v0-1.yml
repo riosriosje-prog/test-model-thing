@@ -168,6 +168,45 @@ jobs:
               as hybrid_search_exists;
           SQL
 
+      - name: Prove retrieval role boundaries
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          set role service_role;
+          select derived.search_fold_v1('McLeary') = 'mcleary' as fold_ok;
+          select count(*)
+          from derived.hybrid_search_v1(
+            'McLeary',
+            null,
+            'ROLE-PROBE',
+            5
+          );
+          reset role;
+          SQL
+
+          for role in anon authenticated; do
+            set +e
+            output="$(psql -v ON_ERROR_STOP=1 -c "set role $role; select count(*) from derived.search_chunks;" 2>&1)"
+            rc=$?
+            set -e
+            printf '%s\n' "$output"
+
+            if [ "$rc" -eq 0 ]; then
+              echo "SHADOW FAIL: $role unexpectedly accessed derived.search_chunks"
+              exit 1
+            fi
+          done
+
+          set +e
+          output="$(psql -v ON_ERROR_STOP=1 -c "set role service_role; insert into canonical.sources (id, source_key, title, promotion_decision_id) values ('90000000-0000-4000-8000-000000000001','ROLE-PROBE-CANONICAL','ROLE PROBE','90000000-0000-4000-8000-000000000002');" 2>&1)"
+          rc=$?
+          set -e
+          printf '%s\n' "$output"
+
+          if [ "$rc" -eq 0 ]; then
+            echo "SHADOW FAIL: service_role unexpectedly wrote canonical.sources"
+            exit 1
+          fi
+
       - name: Run transactional McLeary-Taﬅ-Parada 44 canary
         run: >-
           psql -v ON_ERROR_STOP=1
