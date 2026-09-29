@@ -1,0 +1,200 @@
+name: GALIA Search FK Index Candidate v0.2
+
+on:
+  push:
+    branches:
+      - candidate/galia-search-fk-indexes-v0.2
+    paths:
+      - "supabase/migrations/20260929191500_galia_search_fk_index_hardening_v1.sql"
+      - "tests/test_galia_search_fk_index_candidate.py"
+      - ".github/workflows/galia-search-fk-index-candidate-v0-2.yml"
+  pull_request:
+    paths:
+      - "supabase/migrations/20260929191500_galia_search_fk_index_hardening_v1.sql"
+      - "tests/test_galia_search_fk_index_candidate.py"
+      - ".github/workflows/galia-search-fk-index-candidate-v0-2.yml"
+
+permissions:
+  contents: read
+
+env:
+  PGHOST: 127.0.0.1
+  PGPORT: "5432"
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGDATABASE: galia_shadow
+
+jobs:
+  static-hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run FK index candidate invariants
+        run: python tests/test_galia_search_fk_index_candidate.py
+
+  postgres-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: galia_shadow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d galia_shadow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build GALIA 1.6.0 shadow baseline
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/ci/galia_schema_1_5_search_contract.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql
+
+      - name: Reject non-APPLIED GALIA 1.6.0 base
+        run: |
+          createdb galia_wrong_16
+          trap 'dropdb --if-exists galia_wrong_16 >/dev/null 2>&1 || true' EXIT
+          PGDATABASE=galia_wrong_16 psql -v ON_ERROR_STOP=1 -f supabase/ci/galia_schema_1_5_search_contract.sql
+          PGDATABASE=galia_wrong_16 psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql
+          PGDATABASE=galia_wrong_16 psql -v ON_ERROR_STOP=1 -c "update audit.schema_versions set status='SUPERSEDED' where schema_version='1.6.0'"
+
+          set +e
+          output="$(PGDATABASE=galia_wrong_16 psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260929191500_galia_search_fk_index_hardening_v1.sql 2>&1)"
+          rc=$?
+          set -e
+          printf '%s\n' "$output"
+          test "$rc" -ne 0
+          printf '%s\n' "$output" | grep -F "GALIA search FK index hardening requires base schema 1.6.0/APPLIED"
+
+      - name: Prove transactional rollback
+        run: |
+          createdb galia_txn_161
+          trap 'dropdb --if-exists galia_txn_161 >/dev/null 2>&1 || true' EXIT
+          PGDATABASE=galia_txn_161 psql -v ON_ERROR_STOP=1 -f supabase/ci/galia_schema_1_5_search_contract.sql
+          PGDATABASE=galia_txn_161 psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql
+
+          PGDATABASE=galia_txn_161 psql -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          \i supabase/migrations/20260929191500_galia_search_fk_index_hardening_v1.sql
+          rollback;
+          SQL
+
+          PGDATABASE=galia_txn_161 psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $galia_161_rollback$
+          begin
+            if exists (
+              select 1 from audit.schema_versions where schema_version='1.6.1'
+            ) then
+              raise exception 'SHADOW FAIL: schema 1.6.1 survived rollback';
+            end if;
+            if to_regclass('derived.search_chunks_document_page_fk_idx') is not null then
+              raise exception 'SHADOW FAIL: FK index survived rollback';
+            end if;
+          end;
+          $galia_161_rollback$;
+          SQL
+
+      - name: Apply candidate 1.6.1
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20260929191500_galia_search_fk_index_hardening_v1.sql
+
+      - name: Assert all target foreign keys are covered
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $galia_fk_coverage$
+          declare
+            v_missing integer;
+          begin
+            select count(*) into v_missing
+            from pg_constraint con
+            join pg_class c on c.oid=con.conrelid
+            join pg_namespace n on n.oid=c.relnamespace
+            where con.contype='f'
+              and n.nspname='derived'
+              and con.conname in (
+                'embedding_jobs_chunk_id_content_sha256_fkey',
+                'embedding_jobs_profile_key_fkey',
+                'search_chunk_supersessions_new_chunk_id_fkey',
+                'search_chunks_claim_id_fkey',
+                'search_chunks_document_id_fkey',
+                'search_chunks_document_page_id_fkey',
+                'search_chunks_entity_alias_id_fkey',
+                'search_chunks_entity_id_fkey',
+                'search_chunks_event_id_fkey',
+                'search_chunks_evidence_item_id_fkey',
+                'search_chunks_source_id_fkey',
+                'search_embeddings_chunk_id_content_sha256_fkey',
+                'search_embeddings_profile_key_fkey'
+              )
+              and not exists (
+                select 1
+                from pg_index i
+                where i.indrelid=con.conrelid
+                  and i.indisvalid
+                  and i.indisready
+                  and i.indpred is null
+                  and i.indnkeyatts >= array_length(con.conkey,1)
+                  and not exists (
+                    select 1
+                    from unnest(con.conkey) with ordinality fk(attnum, ord)
+                    where i.indkey[(fk.ord - 1)::integer] <> fk.attnum
+                  )
+              );
+
+            if v_missing <> 0 then
+              raise exception 'SHADOW FAIL: % target foreign keys remain unindexed', v_missing;
+            end if;
+          end;
+          $galia_fk_coverage$;
+          SQL
+
+      - name: Verify schema and exact index set
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          select schema_version, migration_name, status
+          from audit.schema_versions
+          where schema_version in ('1.6.0','1.6.1')
+          order by schema_version;
+
+          select indexname
+          from pg_indexes
+          where schemaname='derived'
+            and indexname in (
+              'search_chunks_document_page_fk_idx',
+              'search_chunks_claim_fk_idx',
+              'search_chunks_event_fk_idx',
+              'search_chunks_entity_fk_idx',
+              'search_chunks_entity_alias_fk_idx',
+              'search_chunks_evidence_item_fk_idx',
+              'search_chunks_source_fk_idx',
+              'search_chunks_document_fk_idx',
+              'search_chunk_supersessions_new_chunk_fk_idx',
+              'search_embeddings_chunk_hash_fk_idx',
+              'search_embeddings_profile_fk_idx',
+              'embedding_jobs_chunk_hash_fk_idx',
+              'embedding_jobs_profile_fk_idx'
+            )
+          order by indexname;
+          SQL
+
+      - name: Re-run McLeary-Taﬅ-Parada 44 semantic canary
+        run: psql -v ON_ERROR_STOP=1 -f supabase/activation/galia_search_v0_1_shadow_canary.sql
+
+      - name: Assert production credentials are absent
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          test -z "$SUPABASE_URL"
+          test -z "$SUPABASE_DB_URL"
