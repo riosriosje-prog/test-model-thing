@@ -1,0 +1,245 @@
+name: GALIA Search Candidate v0.1
+
+on:
+  push:
+    branches:
+      - candidate/galia-search-v0.1
+    paths:
+      - "supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql"
+      - "supabase/activation/galia_search_v0_1_shadow_canary.sql"
+      - "supabase/ci/galia_schema_1_5_search_contract.sql"
+      - "tests/test_galia_search_candidate.py"
+      - ".github/workflows/galia-search-candidate-v0-1.yml"
+  pull_request:
+    paths:
+      - "supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql"
+      - "supabase/activation/galia_search_v0_1_shadow_canary.sql"
+      - "supabase/ci/galia_schema_1_5_search_contract.sql"
+      - "tests/test_galia_search_candidate.py"
+      - ".github/workflows/galia-search-candidate-v0-1.yml"
+
+permissions:
+  contents: read
+
+env:
+  PGHOST: 127.0.0.1
+  PGPORT: "5432"
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGDATABASE: galia_shadow
+
+jobs:
+  static-hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run GALIA search candidate invariants
+        run: python tests/test_galia_search_candidate.py
+
+  postgres-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: galia_shadow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d galia_shadow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify PostgreSQL client
+        run: psql --version
+
+      - name: Reject non-APPLIED GALIA 1.5 base
+        run: |
+          createdb galia_wrong_base
+          trap 'dropdb --if-exists galia_wrong_base >/dev/null 2>&1 || true' EXIT
+
+          PGDATABASE=galia_wrong_base psql -v ON_ERROR_STOP=1             -f supabase/ci/galia_schema_1_5_search_contract.sql
+
+          PGDATABASE=galia_wrong_base psql -v ON_ERROR_STOP=1             -c "update audit.schema_versions set status='SUPERSEDED' where schema_version='1.5.0'"
+
+          set +e
+          output="$(PGDATABASE=galia_wrong_base psql -v ON_ERROR_STOP=1             -f supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql 2>&1)"
+          rc=$?
+          set -e
+
+          printf '%s\n' "$output"
+
+          if [ "$rc" -eq 0 ]; then
+            echo "SHADOW FAIL: migration accepted non-APPLIED GALIA 1.5 base"
+            exit 1
+          fi
+
+          printf '%s\n' "$output" | grep -F             "GALIA search migration requires base schema 1.5.0/APPLIED"
+
+      - name: Prove transactional migration rollback
+        run: |
+          createdb galia_txn_probe
+          trap 'dropdb --if-exists galia_txn_probe >/dev/null 2>&1 || true' EXIT
+
+          PGDATABASE=galia_txn_probe psql -v ON_ERROR_STOP=1 \
+            -f supabase/ci/galia_schema_1_5_search_contract.sql
+
+          PGDATABASE=galia_txn_probe psql -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          \i supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql
+          rollback;
+          SQL
+
+          PGDATABASE=galia_txn_probe psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $galia_check$
+          begin
+            if exists (
+              select 1
+              from audit.schema_versions
+              where schema_version = '1.6.0'
+            ) then
+              raise exception 'SHADOW FAIL: schema 1.6.0 survived rollback';
+            end if;
+
+            if to_regclass('derived.search_chunks') is not null then
+              raise exception 'SHADOW FAIL: derived.search_chunks survived rollback';
+            end if;
+
+            if exists (
+              select 1
+              from pg_extension
+              where extname in ('vector', 'pg_trgm')
+            ) then
+              raise exception 'SHADOW FAIL: candidate extensions survived rollback';
+            end if;
+          end;
+          $galia_check$;
+          SQL
+
+      - name: Load GALIA 1.5 search contract fixture
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f supabase/ci/galia_schema_1_5_search_contract.sql
+
+      - name: Apply candidate migration 1.6.0
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f supabase/migrations/20260929180000_galia_search_retrieval_plane_v1.sql
+
+      - name: Verify candidate schema and extensions
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          select schema_version, migration_name, status
+          from audit.schema_versions
+          where schema_version in ('1.5.0', '1.6.0')
+          order by schema_version;
+
+          select extname, extversion
+          from pg_extension
+          where extname in ('pgcrypto', 'pg_trgm', 'vector')
+          order by extname;
+
+          select
+            to_regclass('derived.search_chunks') is not null
+              as search_chunks_exists,
+            to_regclass('derived.search_embeddings') is not null
+              as search_embeddings_exists,
+            to_regprocedure(
+              'derived.hybrid_search_v1(text,extensions.vector,text,integer,text,text,date,date,date,date,integer,double precision,double precision,double precision)'
+            ) is not null
+              as hybrid_search_exists;
+          SQL
+
+      - name: Prove retrieval role boundaries
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          set role service_role;
+          select derived.search_fold_v1('McLeary') = 'mcleary' as fold_ok;
+          select count(*)
+          from derived.hybrid_search_v1(
+            'McLeary',
+            null,
+            'ROLE-PROBE',
+            5
+          );
+          reset role;
+          SQL
+
+          for role in anon authenticated; do
+            set +e
+            output="$(psql -v ON_ERROR_STOP=1 -c "set role $role; select count(*) from derived.search_chunks;" 2>&1)"
+            rc=$?
+            set -e
+            printf '%s\n' "$output"
+
+            if [ "$rc" -eq 0 ]; then
+              echo "SHADOW FAIL: $role unexpectedly accessed derived.search_chunks"
+              exit 1
+            fi
+          done
+
+          set +e
+          output="$(psql -v ON_ERROR_STOP=1 -c "set role service_role; insert into canonical.sources (id, source_key, title, promotion_decision_id) values ('90000000-0000-4000-8000-000000000001','ROLE-PROBE-CANONICAL','ROLE PROBE','90000000-0000-4000-8000-000000000002');" 2>&1)"
+          rc=$?
+          set -e
+          printf '%s\n' "$output"
+
+          if [ "$rc" -eq 0 ]; then
+            echo "SHADOW FAIL: service_role unexpectedly wrote canonical.sources"
+            exit 1
+          fi
+
+      - name: Run transactional McLeary-Taﬅ-Parada 44 canary
+        run: >-
+          psql -v ON_ERROR_STOP=1
+          -f supabase/activation/galia_search_v0_1_shadow_canary.sql
+
+      - name: Assert canary rollback left no fixture rows
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if exists (
+              select 1
+              from canonical.sources
+              where source_key = 'CANARY-MCLEARY-1915'
+            ) then
+              raise exception 'SHADOW FAIL: canary source survived rollback';
+            end if;
+
+            if exists (
+              select 1
+              from derived.search_chunks
+              where derivation_key like 'canary:%'
+            ) then
+              raise exception 'SHADOW FAIL: canary chunks survived rollback';
+            end if;
+          end;
+          $$;
+          SQL
+
+      - name: Assert production credentials are absent
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          test -z "$SUPABASE_URL"
+          test -z "$SUPABASE_DB_URL"
