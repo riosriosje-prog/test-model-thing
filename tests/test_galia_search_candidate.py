@@ -130,6 +130,15 @@ class GaliaSearchCandidateTests(unittest.TestCase):
         self.assertNotIn("\\n$;\\n", canary)
         self.assertEqual(canary.count("do $$"), canary.count("$$;"))
 
+    def test_ci_fixture_mirrors_extensions_usage_contract(self):
+        fixture = Path(
+            "supabase/ci/galia_schema_1_5_search_contract.sql"
+        ).read_text(encoding="utf-8").lower()
+        self.assertIn(
+            "grant usage on schema extensions to anon, authenticated, service_role;",
+            fixture,
+        )
+
     def test_ci_contract_fixture_contains_no_production_rows(self):
         fixture = Path(
             "supabase/ci/galia_schema_1_5_search_contract.sql"
