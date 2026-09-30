@@ -1,0 +1,29 @@
+name: GALIA South Base 1900 annual-report probe
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/probe_cgs_annual_report_1900.py"
+      - ".github/workflows/galia-south-base-annual1900.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Probe Internet Archive copy of C&GS 1900 annual report
+        run: python tools/probe_cgs_annual_report_1900.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: south-base-annual1900-probe
+          path: research/gates/derived/south_base_annual_report_1900_probe.v0_1.json
+          if-no-files-found: error
+          retention-days: 90
