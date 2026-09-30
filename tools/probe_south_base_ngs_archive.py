@@ -116,6 +116,7 @@ def main():
                 name = str(vals[name_idx]) if name_idx is not None else ""
                 name_u = name.upper()
                 if any(token in name_u for token in ("SOUTH BASE","MORRO","SAN JUAN")):
+                    record_map = {fields[i]: vals[i] for i in range(len(fields))}
                     row = {
                         "name": name,
                         "pid": vals[pid_idx] if pid_idx is not None else None,
@@ -124,6 +125,7 @@ def main():
                         "state": vals[state_idx] if state_idx is not None else None,
                         "county": vals[county_idx] if county_idx is not None else None,
                         "shape_xy": list(sr.shape.points[0]) if sr.shape.points else None,
+                        "record": record_map,
                     }
                     if lat_idx is not None:
                         row["latitude_field"] = vals[lat_idx]
@@ -133,6 +135,30 @@ def main():
                     print("NGS_MATCH=" + json.dumps(row, default=str, sort_keys=True))
         else:
             receipt["status"] = "ZIP_RECOVERED_BUT_SHAPEFILE_INCOMPLETE"
+
+    south = next((x for x in receipt.get("matches", []) if x.get("pid") == "TV1051"), None)
+    if south:
+        for ds_url in [
+            "https://geodesy.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1051",
+            "https://www.ngs.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1051",
+        ]:
+            try:
+                status, final_url, headers, body = fetch(ds_url, 60)
+                text_body = body.decode("latin1", errors="replace")
+                receipt["tv1051_datasheet"] = {
+                    "status": status,
+                    "url": final_url,
+                    "content_type": headers.get("Content-Type"),
+                    "body": text_body,
+                }
+                print("TV1051_DATASHEET_STATUS=" + str(status))
+                print("TV1051_DATASHEET_URL=" + final_url)
+                print("TV1051_DATASHEET_BEGIN")
+                print(text_body[:50000])
+                print("TV1051_DATASHEET_END")
+                break
+            except Exception as exc:
+                print("TV1051_DATASHEET_ERROR=" + f"{type(exc).__name__}: {exc}")
 
     out = Path("artifacts/south-base-ngs-archive-probe.json")
     out.parent.mkdir(parents=True, exist_ok=True)
