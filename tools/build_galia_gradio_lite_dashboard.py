@@ -14,7 +14,8 @@ if str(ROOT) not in sys.path:
 
 from tools import build_galia_dashboard as base
 
-PINNED_GRADIO_LITE = "PINNED_HF_HUB"\nPINNED_GRADIO_LITE_BASE = "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
+PINNED_GRADIO_LITE = "PINNED_HF_HUB"
+PINNED_GRADIO_LITE_BASE = "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
 
 APP_PY = r"""
 import json
@@ -273,7 +274,8 @@ def main():
 
     digest = hashlib.sha256(data.encode("utf-8")).hexdigest()
     print("GALIA_GRADIO_LITE_VALIDATION=PASS")
-    print("GALIA_GRADIO_LITE_RUNTIME=" + PINNED_GRADIO_LITE)\n    print("GALIA_GRADIO_LITE_RUNTIME_BASE=" + PINNED_GRADIO_LITE_BASE)
+    print("GALIA_GRADIO_LITE_RUNTIME=" + PINNED_GRADIO_LITE)
+    print("GALIA_GRADIO_LITE_RUNTIME_BASE=" + PINNED_GRADIO_LITE_BASE)
     print("GALIA_GRADIO_LITE_EVIDENCE_DOCS=" + str(len(evidence_docs)))
     print("GALIA_GRADIO_LITE_SHA256=" + digest)
 
