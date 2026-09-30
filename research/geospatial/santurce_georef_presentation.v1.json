@@ -1,0 +1,216 @@
+{
+  "schema_version": "galia.dashboard.geospatial.v1",
+  "state": "READ_ONLY_PRESENTATION",
+  "authority_mutation": false,
+  "source": {
+    "repository": "riosriosje-prog/galia-mlx-validation",
+    "commit_sha": "1f8d25d66188476d8bf376b644a1a222100828f7",
+    "first_section_path": "publisher/sources/first_section_georef_closeout_v0_1.json",
+    "second_section_path": "publisher/sources/second_section_georef_transfer_v0_1.json"
+  },
+  "crs": {
+    "target": "EPSG:32161",
+    "display": "EPSG:4326",
+    "note": "Map display coordinates are WGS84 representations of promoted/diagnostic control geometry; historical datum coordinates must not be silently treated as WGS84."
+  },
+  "sheets": [
+    {
+      "id": "first-section-1917",
+      "title": "First Section · 30 Aug 1917",
+      "authority": "PROMOTED_DERIVATION_BASELINE",
+      "raster": {
+        "width": 2690,
+        "height": 4127,
+        "dpi": 300
+      },
+      "internal_rms_m": 0.7624138817091146,
+      "equivalent_pixel_rms": 1.140040223842292,
+      "fit_control_count": 5,
+      "polygon_status": "DERIVED_FROM_PROMOTED_AFFINE",
+      "polygon": [
+        [
+          18.465905118051495,
+          -66.08664047294171
+        ],
+        [
+          18.461254930910393,
+          -66.07038817069694
+        ],
+        [
+          18.43723123398134,
+          -66.07775230053464
+        ],
+        [
+          18.44188081665027,
+          -66.09400256463502
+        ]
+      ],
+      "controls": [
+        {
+          "id": "gcp-carretera-central-avenida-miramar",
+          "label": "Carretera Central × Avenida Miramar",
+          "lat": 18.4565645,
+          "lon": -66.0848495,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 0.2388039
+        },
+        {
+          "id": "gcp-piccioni-delcasse",
+          "label": "Piccioni × Delcasse",
+          "lat": 18.455713,
+          "lon": -66.075266,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 1.1746009
+        },
+        {
+          "id": "gcp-ashford-delcasse",
+          "label": "Ashford × Delcasse",
+          "lat": 18.457109,
+          "lon": -66.074747,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 0.7593624
+        },
+        {
+          "id": "gcp-condado-ponce",
+          "label": "Condado × Ponce",
+          "lat": 18.451223,
+          "lon": -66.075069,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 0.7826013
+        },
+        {
+          "id": "gcp-aurora-monserrate",
+          "label": "Aurora × Monserrate",
+          "lat": 18.450055,
+          "lon": -66.079159,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 0.5296831
+        }
+      ]
+    },
+    {
+      "id": "second-section-1918",
+      "title": "Second Section · 30 Jan 1918",
+      "authority": "PROMOTED_DERIVATION_BASELINE",
+      "raster": {
+        "width": 2710,
+        "height": 4138,
+        "dpi": 300
+      },
+      "internal_rms_m": 0.35415183000367206,
+      "fit_control_count": 5,
+      "polygon_status": "DERIVED_FROM_PROMOTED_AFFINE",
+      "polygon": [
+        [
+          18.462103320036316,
+          -66.07319067284119
+        ],
+        [
+          18.457361999712806,
+          -66.05678514756463
+        ],
+        [
+          18.43323196211501,
+          -66.06428728889159
+        ],
+        [
+          18.4379726605984,
+          -66.0806907526094
+        ]
+      ],
+      "controls": [
+        {
+          "id": "second-ponce-villamil",
+          "label": "Ponce de León × Villamil",
+          "lat": 18.449904,
+          "lon": -66.073261,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 0.17812002062759846
+        },
+        {
+          "id": "second-ponce-de-diego",
+          "label": "Ponce de León × De Diego",
+          "lat": 18.446108,
+          "lon": -66.068329,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 0.5997891535740868
+        },
+        {
+          "id": "second-delparque-colon",
+          "label": "Del Parque × Colón",
+          "lat": 18.450802,
+          "lon": -66.062962,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 0.09978928687845888
+        },
+        {
+          "id": "second-delparque-sanmateo",
+          "label": "Del Parque × San Mateo",
+          "lat": 18.445626,
+          "lon": -66.065684,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 0.46464626366740863
+        },
+        {
+          "id": "second-delparque-antonsanti",
+          "label": "Del Parque × Antonsanti",
+          "lat": 18.446345,
+          "lon": -66.065085,
+          "status": "PROMOTED_FIT_CONTROL",
+          "residual_m": 0.09894327094582621
+        }
+      ],
+      "holdouts": [
+        {
+          "id": "second-loiza-san-jorge",
+          "label": "Loíza × San Jorge",
+          "lat": 18.451783,
+          "lon": -66.061687,
+          "status": "FAIL_TEMPORAL_ALIGNMENT_DO_NOT_USE_AS_GCP",
+          "residual_m": 34.86337773
+        }
+      ]
+    },
+    {
+      "id": "third-section-1918",
+      "title": "Third Section · 28 Feb 1918",
+      "authority": "DIAGNOSTIC_CHAIN_NOT_PROMOTED_ABSOLUTE",
+      "raster": {
+        "width": 2727,
+        "height": 4117,
+        "dpi": 300
+      },
+      "overlap_registration": {
+        "inliers": 101,
+        "rms_px": 1.1859701,
+        "median_px": 0.89285517
+      },
+      "polygon_status": "DIAGNOSTIC_DERIVATION_FROM_SECOND_TO_THIRD_REGISTRATION",
+      "polygon": [
+        [
+          18.458297481399736,
+          -66.0601173948817
+        ],
+        [
+          18.45350555699943,
+          -66.04354404998338
+        ],
+        [
+          18.429403035263665,
+          -66.05104063594071
+        ],
+        [
+          18.434194331779114,
+          -66.06761190078495
+        ]
+      ],
+      "caution": "Third Section footprint is a diagnostic chained derivation only. It is not an independently promoted absolute georeference and must remain visually distinct."
+    }
+  ],
+  "publication_limits": [
+    "No automatic historical feature publication.",
+    "No retroprojection of modern geometry as historical geometry.",
+    "Third Section is diagnostic only until independently validated/promoted.",
+    "Historical raster overlays are not embedded in the dashboard repository yet."
+  ]
+}
