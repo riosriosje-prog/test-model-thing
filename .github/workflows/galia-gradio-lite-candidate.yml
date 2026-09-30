@@ -7,8 +7,10 @@ on:
     paths:
       - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
       - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"
+      - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_5.json"
       - "publisher/gradio_lite/**"
       - "tools/build_galia_gradio_lite_dashboard.py"
+      - "tools/vendor_patch_gradio_lite_worker.py"
       - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
       - ".github/workflows/galia-gradio-lite-candidate.yml"
       - "governance/galia_dashboard_authority_pointer.v1.json"
@@ -30,42 +32,19 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest
       - name: Run candidate tests
         run: python -m pytest -q tests/test_galia_gradio_lite_dashboard_v0_1.py
-      - name: Inspect upstream pinned Gradio Lite bundle
-        run: |
-          python - <<'PY'
-          import re, urllib.request
-          base="https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/"
-          data=urllib.request.urlopen(base+"lite.js", timeout=30).read().decode("utf-8","replace")
-          print("LITE_JS_BYTES", len(data))
-          refs=sorted(set(re.findall(r'(?:\./)?assets/[A-Za-z0-9_.-]+', data)))
-          for ref in refs:
-              print("ASSET_REF", ref)
-          for pat in ("webworker","gradio_client","gradio-","\.whl"):
-              hits=sorted(set(re.findall(r'.{0,80}'+pat+r'.{0,120}', data, re.I)))
-              for hit in hits[:20]:
-                  print("MATCH", pat, hit)
-          PY
-      - name: Inspect upstream worker filelock shim
-        run: |
-          python - <<'PY'
-          import urllib.request
-          url="https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/assets/webworker-BsZ7XNFH.js"
-          worker=urllib.request.urlopen(url, timeout=30).read().decode("utf-8","replace")
-          print("WORKER_BYTES", len(worker))
-          import base64
-          for needle in ("os.link", "lambda src", "Mocking os module methods", "follow_symlinks"):
-              pos=worker.find(needle)
-              print("WORKER_NEEDLE", repr(needle), pos)
-              if pos >= 0:
-                  print("WORKER_SNIPPET", worker[max(0,pos-500):pos+1000])
-          print("WORKER_B64="+base64.b64encode(worker.encode()).decode())
-          PY
       - name: Build candidate
-        run: python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
+        run: |
+          python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
+          python tools/vendor_patch_gradio_lite_worker.py --output dist/gradio-lite/assets/webworker-galia.js
       - name: Enforce promoted read-only boundary
         run: |
           test -f dist/gradio-lite/index.html
-          grep -q 'gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js' dist/gradio-lite/index.html
+          grep -q 'gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist' dist/gradio-lite/index.html
+          grep -q 'webworker-BsZ7XNFH.js' dist/gradio-lite/index.html
+          grep -q './assets/webworker-galia.js' dist/gradio-lite/index.html
+          test -f dist/gradio-lite/assets/webworker-galia.js
+          grep -q '_galia_wasm_os_link' dist/gradio-lite/assets/webworker-galia.js
+          ! grep -q 'os.link = lambda src, dst: None' dist/gradio-lite/assets/webworker-galia.js
           grep -q 'READ ONLY' dist/gradio-lite/index.html
           grep -q 'PROMOTED_DEPLOY_AUTHORIZED' governance/galia_gradio_lite_dashboard_candidate.v0_1.json
       - uses: actions/upload-artifact@v4
@@ -73,5 +52,6 @@ jobs:
           name: galia-gradio-lite-dashboard-candidate-v0.1
           path: |
             dist/gradio-lite/index.html
+            dist/gradio-lite/assets/webworker-galia.js
             publisher/gradio_lite/README.md
             governance/galia_gradio_lite_dashboard_candidate.v0_1.json
