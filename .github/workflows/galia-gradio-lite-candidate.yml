@@ -7,6 +7,7 @@ on:
     paths:
       - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
       - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"
+      - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_4.json"
       - "publisher/gradio_lite/**"
       - "tools/build_galia_gradio_lite_dashboard.py"
       - "tools/vendor_patch_gradio_lite_runtime.py"
@@ -49,5 +50,6 @@ jobs:
           name: galia-gradio-lite-dashboard-candidate-v0.1
           path: |
             dist/gradio-lite/index.html
+            dist/gradio-lite/runtime/**
             publisher/gradio_lite/README.md
             governance/galia_gradio_lite_dashboard_candidate.v0_1.json
