@@ -36,8 +36,9 @@ def test_promoted_manifest_is_read_only_and_deploy_bound():
 
 def test_gradio_lite_build_is_pinned_and_read_only(tmp_path):
     text = build(tmp_path)
-    assert "@gradio/lite@5.45.0/dist/lite.js" in text
-    assert "@gradio/lite@5.45.0/dist/lite.css" in text
+    assert 'src="./vendor/gradio-lite/lite.js"' in text
+    assert 'href="./vendor/gradio-lite/lite.css"' in text
+    assert "cdn.jsdelivr.net/npm/@gradio/lite" not in text
     assert "READ ONLY" in text
     assert "authority mutation disabled" in text
     assert "RC-GALIA-2026-09-13-004" in text
