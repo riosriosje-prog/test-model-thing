@@ -60,76 +60,77 @@ jobs:
             tests/test_galia_dashboard_publisher.py \
             tests/test_galia_gradio_lite_dashboard_v0_1.py
 
-      - name: Build and vendor patched Gradio Lite runtime
+      - name: Build dashboard and record upstream patch hashes
         run: |
           python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
           cp publisher/gradio_lite/README.md dist/gradio-lite/README.md
 
-          mkdir -p .tmp/gradio-lite dist/gradio-lite/vendor/gradio-lite
-          TARBALL=$(npm pack @gradio/lite@5.45.0 --pack-destination .tmp/gradio-lite | tail -n 1)
-          tar -xzf ".tmp/gradio-lite/$TARBALL" -C .tmp/gradio-lite
-          cp -R .tmp/gradio-lite/package/dist/. dist/gradio-lite/vendor/gradio-lite/
+          PATCH_BASE="https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
+          curl -fsSL --retry 3 "$PATCH_BASE/lite.js" -o /tmp/galia-lite.js
+          curl -fsSL --retry 3 "$PATCH_BASE/lite.css" -o /tmp/galia-lite.css
 
-          python - <<'PY'
+          JS_SHA256=$(sha256sum /tmp/galia-lite.js | awk '{print $1}')
+          CSS_SHA256=$(sha256sum /tmp/galia-lite.css | awk '{print $1}')
+          echo "GALIA_GRADIO_LITE_PATCH_JS_SHA256=$JS_SHA256"
+          echo "GALIA_GRADIO_LITE_PATCH_CSS_SHA256=$CSS_SHA256"
+
+          python - "$JS_SHA256" "$CSS_SHA256" <<'PY'
+          import json
+          import sys
           from pathlib import Path
 
-          root = Path("dist/gradio-lite/vendor/gradio-lite")
-          workers = list(root.rglob("webworker-*.js"))
-          if not workers:
-              raise SystemExit("No Gradio Lite webworker asset found")
-
-          old = "https://cdn.jsdelivr.net/pyodide/v0.27.3/full/pyodide.js"
-          new = "https://cdn.jsdelivr.net/pyodide/v0.27.6/full/pyodide.js"
-
-          patched = 0
-          for path in workers:
-              text = path.read_text(encoding="utf-8")
-              if old in text:
-                  path.write_text(text.replace(old, new), encoding="utf-8")
-                  patched += 1
-
-          if patched != 1:
-              raise SystemExit(f"Expected exactly one Pyodide runtime patch, got {patched}")
-
-          print("GALIA_GRADIO_LITE_RUNTIME_PATCH=PASS")
-          print("GALIA_GRADIO_LITE_PYODIDE=0.27.6")
+          payload = {
+              "runtime": "GRADIO_LITE_PINNED_HF_HUB",
+              "upstream_issue": "gradio-app/gradio#12262",
+              "js_url": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js",
+              "css_url": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.css",
+              "js_sha256": sys.argv[1],
+              "css_sha256": sys.argv[2],
+          }
+          Path("dist/gradio-lite/runtime-lock.json").write_text(
+              json.dumps(payload, indent=2) + "\n",
+              encoding="utf-8",
+          )
           PY
 
-          grep -q './vendor/gradio-lite/lite.js' dist/gradio-lite/index.html
+          grep -q 'gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js' dist/gradio-lite/index.html
           grep -q 'South Base · San Juan' dist/gradio-lite/index.html
           grep -q 'sdk: static' dist/gradio-lite/README.md
-          grep -R -q 'pyodide/v0.27.6/full/pyodide.js' dist/gradio-lite/vendor/gradio-lite
 
-      - name: Browser smoke test patched Gradio Lite
+      - name: Browser smoke test official Gradio Lite patch
         run: |
           npm install --no-save playwright@1.55.0
-          npx playwright install chromium
+          npx playwright install --with-deps chromium webkit
 
           python -m http.server 8765 --directory dist/gradio-lite >/tmp/galia-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
 
           node - <<'JS'
-          const { chromium } = require("playwright");
+          const { chromium, webkit } = require("playwright");
 
-          (async () => {
-            const browser = await chromium.launch({ headless: true });
-            const page = await browser.newPage();
+          async function smoke(browserType, name) {
+            const browser = await browserType.launch({ headless: true });
+            const page = await browser.newPage({
+              viewport: { width: 390, height: 844 }
+            });
             const errors = [];
             const failedRequests = [];
 
             page.on("pageerror", err => {
-              const line = "PAGEERROR: " + String(err);
+              const line = name + " PAGEERROR: " + String(err);
               errors.push(line);
               console.error(line);
             });
             page.on("console", msg => {
-              const line = "CONSOLE[" + msg.type() + "]: " + msg.text();
-              console.log(line);
-              if (msg.type() === "error") errors.push(line);
+              const line = name + " CONSOLE[" + msg.type() + "]: " + msg.text();
+              if (msg.type() === "error") {
+                errors.push(line);
+                console.error(line);
+              }
             });
             page.on("requestfailed", req => {
-              const line = "REQUESTFAILED: " + req.url() + " :: " + (req.failure()?.errorText || "");
+              const line = name + " REQUESTFAILED: " + req.url() + " :: " + (req.failure()?.errorText || "");
               failedRequests.push(line);
               console.error(line);
             });
@@ -141,22 +142,23 @@ jobs:
 
             try {
               await page.getByText("GALIA", { exact: false }).first().waitFor({
-                timeout: 90000
+                timeout: 120000
               });
               await page.getByText("South Base · San Juan", { exact: false }).first().waitFor({
-                timeout: 90000
+                timeout: 120000
               });
             } catch (err) {
-              console.error("GALIA_BROWSER_RENDER_TIMEOUT");
-              console.error("BODY_TEXT_START");
+              console.error(name + " GALIA_BROWSER_RENDER_TIMEOUT");
+              console.error(name + " BODY_TEXT_START");
               console.error((await page.locator("body").innerText()).slice(0, 12000));
-              console.error("BODY_TEXT_END");
-              console.error("ERRORS_START");
+              console.error(name + " BODY_TEXT_END");
+              console.error(name + " ERRORS_START");
               console.error(errors.join("\n"));
-              console.error("ERRORS_END");
-              console.error("FAILED_REQUESTS_START");
+              console.error(name + " ERRORS_END");
+              console.error(name + " FAILED_REQUESTS_START");
               console.error(failedRequests.join("\n"));
-              console.error("FAILED_REQUESTS_END");
+              console.error(name + " FAILED_REQUESTS_END");
+              await browser.close();
               throw err;
             }
 
@@ -168,7 +170,8 @@ jobs:
             ];
             for (const marker of bad) {
               if (body.includes(marker)) {
-                throw new Error("Runtime failure marker: " + marker);
+                await browser.close();
+                throw new Error(name + " runtime failure marker: " + marker);
               }
             }
 
@@ -179,11 +182,17 @@ jobs:
               x.includes("Traceback")
             );
             if (relevant.length) {
+              await browser.close();
               throw new Error(relevant.join("\n"));
             }
 
-            console.log("GALIA_GRADIO_LITE_BROWSER_SMOKE=PASS");
+            console.log("GALIA_GRADIO_LITE_BROWSER_SMOKE_" + name.toUpperCase() + "=PASS");
             await browser.close();
+          }
+
+          (async () => {
+            await smoke(chromium, "chromium");
+            await smoke(webkit, "webkit");
           })().catch(err => {
             console.error(err);
             process.exit(1);
@@ -227,7 +236,7 @@ jobs:
               folder_path="artifact",
               repo_id="Junitos/GALIA",
               repo_type="space",
-              commit_message="Publish patched GALIA Gradio Lite dashboard",
+              commit_message="Publish GALIA with official Gradio Lite dependency patch",
           )
           print("GALIA_GRADIO_LITE_HF_PUBLISH=PASS")
           print(info)
