@@ -32,6 +32,8 @@ def main() -> None:
         "SOUTHBASE-PUERTO-RICO-DATUM-POSITION",
         "SOUTHBASE-NAD83-POSITION",
         "SOUTHBASE-MORRO-BEARING-RECONCILIATION",
+        "SOUTHBASE-1899-HARBOR-CHART-CONTEXT",
+        "SOUTHBASE-1899-CHART-EXPLICIT-STATION-LABEL",
         "FORNEY-1900-ORIGIN-HYPOTHESIS",
         "FORNEY-1900-MORRO-INTEGRATION",
         "SOUTHBASE-ORIGINAL-FIELD-OBSERVATION-COMPUTATION",
@@ -51,6 +53,10 @@ def main() -> None:
         fail("station description gate regressed")
     if gates["SOUTHBASE-ESTABLISHING-PARTY"].get("state") != "PASS_CORROBORATED_IDENTITY":
         fail("establishing-party attribution changed")
+    if gates["SOUTHBASE-1899-HARBOR-CHART-CONTEXT"].get("state") != "PASS_DIAGNOSTIC_POSITIONAL_CONTEXT":
+        fail("1899 chart contextual gate regressed")
+    if gates["SOUTHBASE-1899-CHART-EXPLICIT-STATION-LABEL"].get("state") != "NOT_FOUND_IN_INSPECTED_SCAN":
+        fail("chart-label gate changed without review")
     if gates["FORNEY-1900-ORIGIN-HYPOTHESIS"].get("state") != "REJECT_AS_ORIGIN_SUPERSEDED":
         fail("obsolete 1900-origin hypothesis revived")
     if gates["SOUTHBASE-ORIGINAL-FIELD-OBSERVATION-COMPUTATION"].get("state") != "OPEN":
@@ -81,6 +87,8 @@ def main() -> None:
     print("SOUTH_BASE_PID=TV1051")
     print("SOUTH_BASE_ORIGIN_YEAR=1899")
     print("NORTH_BASE_PID=TV1049")
+    print("1899_CHART_CONTEXT=PASS_DIAGNOSTIC_POSITIONAL_CONTEXT")
+    print("1899_CHART_EXPLICIT_LABEL=NOT_FOUND_IN_INSPECTED_SCAN")
     print("FORNEY_1900_ORIGIN=REJECT_AS_ORIGIN_SUPERSEDED")
     print("FIELD_OBSERVATION_COMPUTATION=OPEN")
     print("PROMOTION=NO")
