@@ -1,0 +1,29 @@
+name: South Base NGS archive probe
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/probe_south_base_ngs_archive.py"
+      - ".github/workflows/south-base-ngs-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install probe dependency
+        run: python -m pip install --disable-pip-version-check pyshp
+      - name: Probe archived NGS Puerto Rico control shapefile
+        run: python tools/probe_south_base_ngs_archive.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: south-base-ngs-archive-probe
+          path: artifacts/south-base-ngs-archive-probe.json
