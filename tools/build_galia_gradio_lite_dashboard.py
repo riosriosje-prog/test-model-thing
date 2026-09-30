@@ -14,11 +14,27 @@ if str(ROOT) not in sys.path:
 
 from tools import build_galia_dashboard as base
 
-PINNED_GRADIO_LITE = "5.45.0"
+PINNED_GRADIO_LITE = "PINNED_HF_HUB"\nPINNED_GRADIO_LITE_BASE = "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
 
 APP_PY = r"""
 import json
 from pathlib import Path
+
+# Compatibility shim used by the current upstream Gradio Lite pinned runtime:
+# Starlette may receive query_string as str inside Pyodide and expects bytes.
+import starlette.datastructures as _sd
+_original_url_init = _sd.URL.__init__
+
+def _galia_starlette_url_init(self, url="", scope=None, **kwargs):
+    if scope is not None:
+        scope = dict(scope)
+        qs = scope.get("query_string")
+        if isinstance(qs, str):
+            scope["query_string"] = qs.encode("latin-1")
+    return _original_url_init(self, url=url, scope=scope, **kwargs)
+
+_sd.URL.__init__ = _galia_starlette_url_init
+
 import gradio as gr
 
 def load_json(name):
@@ -226,8 +242,8 @@ def render(pointer, registry, evidence_docs):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GALIA — Gradio Lite</title>
 <meta name="description" content="Read-only GALIA authority and research dashboard">
-<script type="module" crossorigin src="https://cdn.jsdelivr.net/npm/@gradio/lite@VERSION/dist/lite.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gradio/lite@VERSION/dist/lite.css">
+<script type="module" crossorigin src="RUNTIME_BASE/lite.js"></script>
+<link rel="stylesheet" href="RUNTIME_BASE/lite.css">
 <style>html,body{margin:0;padding:0;min-height:100%;background:#0b1020}</style>
 </head>
 <body>
@@ -236,7 +252,7 @@ FILES
 </gradio-lite>
 </body>
 </html>
-""".replace("VERSION", PINNED_GRADIO_LITE).replace("FILES", files)
+""".replace("RUNTIME_BASE", PINNED_GRADIO_LITE_BASE).replace("FILES", files)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -257,7 +273,7 @@ def main():
 
     digest = hashlib.sha256(data.encode("utf-8")).hexdigest()
     print("GALIA_GRADIO_LITE_VALIDATION=PASS")
-    print("GALIA_GRADIO_LITE_VERSION=" + PINNED_GRADIO_LITE)
+    print("GALIA_GRADIO_LITE_RUNTIME=" + PINNED_GRADIO_LITE)\n    print("GALIA_GRADIO_LITE_RUNTIME_BASE=" + PINNED_GRADIO_LITE_BASE)
     print("GALIA_GRADIO_LITE_EVIDENCE_DOCS=" + str(len(evidence_docs)))
     print("GALIA_GRADIO_LITE_SHA256=" + digest)
 
