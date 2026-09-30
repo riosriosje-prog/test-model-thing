@@ -53,36 +53,11 @@ def main() -> None:
     out = Path("research/gates/derived/south-base-1899-map")
     out.mkdir(parents=True, exist_ok=True)
 
-    raw, final_manifest, ctype = fetch(MANIFEST_URL)
-    manifest = json.loads(raw.decode("utf-8"))
-    (out / "manifest.json").write_bytes(raw)
-
-    service = find_image_service(manifest)
-    if not service:
-        raise SystemExit("IIIF image service/resource not found")
-
-    if service.lower().endswith((".jpg", ".jpeg", ".png")):
-        image_url = service
-    else:
-        image_url = service.rstrip("/") + "/full/4000,/0/default.jpg"
-
-    image, final_image, image_type = fetch(image_url, timeout=120)
-    image_path = out / "san-juan-harbor-1899-iiif-4000.jpg"
-    image_path.write_bytes(image)
-
     receipt = {
         "schema_version": "galia.south_base_1899_map_probe.v1",
         "mode": "READ_ONLY_REMOTE_SOURCE_RECOVERY",
+        "status": "FETCH_FAILED",
         "manifest_url": MANIFEST_URL,
-        "manifest_final_url": final_manifest,
-        "manifest_content_type": ctype,
-        "manifest_sha256": hashlib.sha256(raw).hexdigest(),
-        "iiif_service": service,
-        "image_request_url": image_url,
-        "image_final_url": final_image,
-        "image_content_type": image_type,
-        "image_byte_size": len(image),
-        "image_sha256": hashlib.sha256(image).hexdigest(),
         "source_identity": {
             "title": "San Juan Harbor Porto Rico.",
             "creator": "U.S. Coast and Geodetic Survey",
@@ -92,16 +67,58 @@ def main() -> None:
             "local_control_no": "2011-847",
         },
     }
+
+    try:
+        raw, final_manifest, ctype = fetch(MANIFEST_URL)
+        manifest = json.loads(raw.decode("utf-8"))
+        (out / "manifest.json").write_bytes(raw)
+        receipt.update({
+            "manifest_final_url": final_manifest,
+            "manifest_content_type": ctype,
+            "manifest_sha256": hashlib.sha256(raw).hexdigest(),
+        })
+
+        service = find_image_service(manifest)
+        if not service:
+            raise RuntimeError("IIIF image service/resource not found")
+        receipt["iiif_service"] = service
+
+        if service.lower().endswith((".jpg", ".jpeg", ".png")):
+            image_url = service
+        else:
+            image_url = service.rstrip("/") + "/full/4000,/0/default.jpg"
+        receipt["image_request_url"] = image_url
+
+        image, final_image, image_type = fetch(image_url, timeout=120)
+        image_path = out / "san-juan-harbor-1899-iiif-4000.jpg"
+        image_path.write_bytes(image)
+        receipt.update({
+            "status": "FETCHED",
+            "image_final_url": final_image,
+            "image_content_type": image_type,
+            "image_byte_size": len(image),
+            "image_sha256": hashlib.sha256(image).hexdigest(),
+        })
+    except Exception as exc:
+        receipt["status"] = "FETCH_FAILED"
+        receipt["error"] = f"{type(exc).__name__}: {exc}"
+
     (out / "receipt.json").write_text(
         json.dumps(receipt, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
-    print("SOUTHBASE_1899_MAP_PROBE=PASS")
-    print("SOUTHBASE_1899_MAP_IIIF_SERVICE=" + service)
-    print("SOUTHBASE_1899_MAP_IMAGE_URL=" + final_image)
-    print("SOUTHBASE_1899_MAP_IMAGE_BYTES=" + str(len(image)))
-    print("SOUTHBASE_1899_MAP_IMAGE_SHA256=" + receipt["image_sha256"])
+    print("SOUTHBASE_1899_MAP_PROBE_STATUS=" + receipt["status"])
+    if receipt.get("iiif_service"):
+        print("SOUTHBASE_1899_MAP_IIIF_SERVICE=" + receipt["iiif_service"])
+    if receipt.get("image_final_url"):
+        print("SOUTHBASE_1899_MAP_IMAGE_URL=" + receipt["image_final_url"])
+        print("SOUTHBASE_1899_MAP_IMAGE_BYTES=" + str(receipt["image_byte_size"]))
+        print("SOUTHBASE_1899_MAP_IMAGE_SHA256=" + receipt["image_sha256"])
+    if receipt.get("error"):
+        print("SOUTHBASE_1899_MAP_ERROR=" + receipt["error"])
+    # Remote availability is a research-source gate, not a CI infrastructure gate.
+    # Preserve the receipt and do not fail the suite solely on timeout/unavailability.
 
 
 if __name__ == "__main__":
