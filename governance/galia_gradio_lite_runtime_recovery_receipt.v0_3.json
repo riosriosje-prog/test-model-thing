@@ -1,0 +1,33 @@
+{
+  "schema_version": "galia.runtime_recovery_receipt.v1",
+  "receipt_id": "GALIA-GRADIO-LITE-RUNTIME-RECOVERY-2026-09-30-003",
+  "state": "CANDIDATE",
+  "incident": {
+    "symptom": "Browser-side Pyodide/micropip traceback during Gradio Lite initialization",
+    "affected_runtime": "@gradio/lite@5.45.0 from jsDelivr",
+    "failure_class": "UPSTREAM_HUGGINGFACE_HUB_DEPENDENCY_RESOLUTION",
+    "canonical_data_impact": false
+  },
+  "upstream_evidence": {
+    "issue": "https://github.com/gradio-app/gradio/issues/12127",
+    "issue_signature": "Can't find a pure Python 3 wheel for huggingface-hub<1.0,>=0.33.5",
+    "fix_pr": "https://github.com/gradio-app/gradio/pull/12162",
+    "fix_merge_commit": "81278c41110b94e7bee9b4fe493b5df72afd4b13",
+    "patched_runtime_base": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
+  },
+  "candidate_change": {
+    "replace_runtime": "https://cdn.jsdelivr.net/npm/@gradio/lite@5.45.0/dist",
+    "with_runtime": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist",
+    "add_starlette_query_string_compatibility_shim": true
+  },
+  "scope": {
+    "presentation_runtime_only": true,
+    "authority_mutation": false,
+    "canonical_writes": false,
+    "space_visibility_change": false
+  },
+  "promotion": {
+    "human_promotion_required": true,
+    "auto_promote": false
+  }
+}
