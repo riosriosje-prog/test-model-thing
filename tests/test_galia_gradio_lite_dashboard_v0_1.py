@@ -83,3 +83,14 @@ def test_worker_patch_handles_modern_filelock_signature():
 def test_worker_patch_fails_closed_if_upstream_changes():
     with pytest.raises(RuntimeError):
         patch_worker("no legacy shim here")
+
+
+def test_filelock_recovery_receipt_is_bound():
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    receipt_path = ROOT / manifest["runtime_recovery_receipt"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["state"] == "AUTHORIZED_REMEDIATION"
+    assert receipt["scope"]["presentation_runtime_only"] is True
+    assert receipt["scope"]["authority_mutation"] is False
+    assert receipt["scope"]["canonical_writes"] is False
+    assert receipt["remediation"]["local_worker"] == "assets/webworker-galia.js"
