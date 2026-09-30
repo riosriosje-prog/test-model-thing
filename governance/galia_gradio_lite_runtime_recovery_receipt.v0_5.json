@@ -1,0 +1,41 @@
+{
+  "schema_version": "galia.runtime_recovery_receipt.v1",
+  "receipt_id": "GALIA-GRADIO-LITE-RUNTIME-RECOVERY-2026-09-30-005",
+  "state": "AUTHORIZED_REMEDIATION",
+  "incident": {
+    "symptom": "Pyodide import of gradio fails inside filelock because the Gradio Lite worker replaces os.link with a two-argument lambda while filelock calls os.link(..., follow_symlinks=False)",
+    "trace_signature": "TypeError: <lambda>() got an unexpected keyword argument 'follow_symlinks'",
+    "affected_worker": "webworker-BsZ7XNFH.js",
+    "canonical_data_impact": false
+  },
+  "root_cause": {
+    "upstream_worker_code": "os.link = lambda src, dst: None",
+    "downstream_call": "os.link(source, probe-link, follow_symlinks=False)",
+    "failure_phase": "before app.py; during import gradio -> gradio_client -> huggingface_hub -> filelock"
+  },
+  "remediation": {
+    "strategy": "vendor and redirect only the pinned Gradio Lite worker",
+    "local_worker": "assets/webworker-galia.js",
+    "old_shim": "os.link = lambda src, dst: None",
+    "new_behavior": "os.link accepts *args/**kwargs and raises NotImplementedError so filelock capability probing fails safely",
+    "upstream_runtime_kept": "PINNED_HF_HUB",
+    "application_code_mutation": false
+  },
+  "human_authorization": {
+    "authorized": true,
+    "date": "2026-09-30",
+    "basis": "Continuation of the explicitly authorized GALIA dashboard deployment and runtime repair; user supplied the traceback and directed continuation."
+  },
+  "scope": {
+    "presentation_runtime_only": true,
+    "authority_mutation": false,
+    "canonical_writes": false,
+    "space_visibility_change": false,
+    "research_evidence_mutation": false
+  },
+  "promotion": {
+    "human_promotion_required": false,
+    "auto_promote": false,
+    "scope": "RUNTIME_RECOVERY_ONLY"
+  }
+}
