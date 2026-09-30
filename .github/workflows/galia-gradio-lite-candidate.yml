@@ -31,12 +31,12 @@ jobs:
         run: python -m pytest -q tests/test_galia_gradio_lite_dashboard_v0_1.py
       - name: Build candidate
         run: python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
-      - name: Enforce no-deploy boundary
+      - name: Enforce promoted read-only boundary
         run: |
           test -f dist/gradio-lite/index.html
           grep -q '@gradio/lite@5.45.0' dist/gradio-lite/index.html
           grep -q 'READ ONLY' dist/gradio-lite/index.html
-          grep -q 'CANDIDATE_NOT_PROMOTED' governance/galia_gradio_lite_dashboard_candidate.v0_1.json
+          grep -q 'PROMOTED_DEPLOY_AUTHORIZED' governance/galia_gradio_lite_dashboard_candidate.v0_1.json
       - uses: actions/upload-artifact@v4
         with:
           name: galia-gradio-lite-dashboard-candidate-v0.1
