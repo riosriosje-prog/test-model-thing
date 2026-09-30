@@ -51,6 +51,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -77,6 +78,114 @@ jobs:
           grep -q 'src="runtime/lite.js"' dist/gradio-lite/index.html
           grep -q 'South Base · San Juan' dist/gradio-lite/index.html
           grep -q 'sdk: static' dist/gradio-lite/README.md
+      - name: Browser smoke test Chromium and WebKit
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium webkit
+
+          python -m http.server 8765 --directory dist/gradio-lite >/tmp/galia-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+
+          node - <<'JS'
+          const { chromium, webkit } = require("playwright");
+
+          async function smoke(browserType, name) {
+            const browser = await browserType.launch({ headless: true });
+            const page = await browser.newPage({
+              viewport: { width: 390, height: 844 }
+            });
+            const errors = [];
+            const failedRequests = [];
+
+            page.on("pageerror", err => {
+              const line = name + " PAGEERROR: " + String(err);
+              errors.push(line);
+              console.error(line);
+            });
+            page.on("console", msg => {
+              const line = name + " CONSOLE[" + msg.type() + "]: " + msg.text();
+              if (msg.type() === "error") {
+                errors.push(line);
+                console.error(line);
+              }
+            });
+            page.on("requestfailed", req => {
+              const line = name + " REQUESTFAILED: " + req.url() + " :: " + (req.failure()?.errorText || "");
+              failedRequests.push(line);
+              console.error(line);
+            });
+
+            await page.goto("http://127.0.0.1:8765/", {
+              waitUntil: "domcontentloaded",
+              timeout: 60000
+            });
+
+            try {
+              await page.getByText("GALIA", { exact: false }).first().waitFor({
+                timeout: 180000
+              });
+            } catch (err) {
+              console.error(name + " GALIA_BROWSER_RENDER_TIMEOUT");
+              console.error(name + " BODY_TEXT_START");
+              console.error((await page.locator("body").innerText()).slice(0, 12000));
+              console.error(name + " BODY_TEXT_END");
+              console.error(name + " ERRORS_START");
+              console.error(errors.join("\n"));
+              console.error(name + " ERRORS_END");
+              console.error(name + " FAILED_REQUESTS_START");
+              console.error(failedRequests.join("\n"));
+              console.error(name + " FAILED_REQUESTS_END");
+              await browser.close();
+              throw err;
+            }
+
+            const bodyText = (await page.locator("body").textContent()) || "";
+            if (!bodyText.includes("South Base · San Juan")) {
+              await browser.close();
+              throw new Error(name + " did not render the South Base dossier");
+            }
+
+            const bad = [
+              "Can't find a pure Python 3 wheel",
+              "Traceback (most recent call last)",
+              "Requested 'huggingface-hub",
+              "unexpected keyword argument 'follow_symlinks'"
+            ];
+            for (const marker of bad) {
+              if (bodyText.includes(marker)) {
+                await browser.close();
+                throw new Error(name + " runtime failure marker: " + marker);
+              }
+            }
+
+            const relevant = errors.filter(x =>
+              x.includes("micropip") ||
+              x.includes("huggingface-hub") ||
+              x.includes("filelock") ||
+              x.includes("follow_symlinks") ||
+              x.includes("PythonError") ||
+              x.includes("Traceback") ||
+              x.includes("Initialization failed")
+            );
+            if (relevant.length) {
+              await browser.close();
+              throw new Error(relevant.join("\n"));
+            }
+
+            console.log("GALIA_GRADIO_LITE_BROWSER_SMOKE_" + name.toUpperCase() + "=PASS");
+            await browser.close();
+          }
+
+          (async () => {
+            await smoke(chromium, "chromium");
+            await smoke(webkit, "webkit");
+          })().catch(err => {
+            console.error(err);
+            process.exit(1);
+          });
+          JS
+
       - uses: actions/upload-artifact@v4
         with:
           name: galia-gradio-lite-dashboard
