@@ -29,7 +29,10 @@ def test_direct_dashboard_build(tmp_path):
     assert "SOUTHBASE-ORIGINAL-STATION-DESCRIPTION" in text
     assert "STRONG_HYPOTHESIS" in text
     assert "Human-promoted dossiers" in text
-    assert "<script src=" not in text
+    external_scripts = [line.strip() for line in text.splitlines() if "<script src=" in line]
+    assert external_scripts == ['<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>']
+    assert "pyodide" not in text.lower()
+    assert "gradio" not in text.lower()
 
 
 def test_pointer_is_non_mutating():
@@ -77,7 +80,10 @@ def test_static_site_is_mobile_readable(tmp_path):
     assert "--ink:#000000" in text
     assert "background:var(--paper);color:var(--ink)" in text
     assert "@media (max-width:760px)" in text
-    assert "<script src=" not in text
+    external_scripts = [line.strip() for line in text.splitlines() if "<script src=" in line]
+    assert external_scripts == ['<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>']
+    assert "pyodide" not in text.lower()
+    assert "gradio" not in text.lower()
 
 
 def test_static_site_has_progress_and_filters(tmp_path):
@@ -163,6 +169,8 @@ def test_static_site_has_governed_geospatial_map(tmp_path):
     assert "FAILED HOLDOUT — NOT A GCP" in text
     assert "riosriosje-prog/galia-mlx-validation" in text
     assert "1f8d25d66188" in text
+    assert 'class="geo-fallback"' in text
+    assert "Interactive basemap unavailable; governed static control-network fallback shown." in text
 
 
 def test_geospatial_snapshot_preserves_authority_separation():
