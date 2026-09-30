@@ -94,7 +94,7 @@ def test_runtime_worker_preinstalls_hf_hub_before_gradio_wheels():
     )
     patched, count = module.patch_hf_preinstall_text(source)
     assert count == 1
-    assert module.HF_PREINSTALL_NEEDLE not in patched
+    assert patched.count(module.HF_PREINSTALL_NEEDLE) == 1
     assert 'await E(s,a,["huggingface-hub==0.35.0"])' in patched
     assert patched.index('huggingface-hub==0.35.0') < patched.index('await E(s,a,n)')
 
