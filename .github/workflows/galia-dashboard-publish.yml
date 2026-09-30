@@ -16,6 +16,7 @@ on:
       - "publisher/gradio_lite/**"
       - "tools/build_galia_dashboard.py"
       - "tools/build_galia_gradio_lite_dashboard.py"
+      - "tools/vendor_patch_gradio_lite_runtime.py"
       - "tests/test_galia_dashboard_publisher.py"
       - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
       - ".github/workflows/galia-dashboard-publish.yml"
@@ -33,6 +34,7 @@ on:
       - "publisher/gradio_lite/**"
       - "tools/build_galia_dashboard.py"
       - "tools/build_galia_gradio_lite_dashboard.py"
+      - "tools/vendor_patch_gradio_lite_runtime.py"
       - "tests/test_galia_dashboard_publisher.py"
       - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
       - ".github/workflows/galia-dashboard-publish.yml"
@@ -56,11 +58,21 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check pytest
           python -m pytest -q             tests/test_galia_dashboard_publisher.py             tests/test_galia_gradio_lite_dashboard_v0_1.py
+      - name: Vendor and patch Gradio Lite runtime
+        run: |
+          python tools/vendor_patch_gradio_lite_runtime.py --output dist/gradio-lite/runtime
+          test -f dist/gradio-lite/runtime/lite.js
+          test -f dist/gradio-lite/runtime/lite.css
+          grep -R -q 'os.link unavailable in WASM' dist/gradio-lite/runtime
+          if grep -R -q 'os.link = lambda src, dst: None' dist/gradio-lite/runtime; then
+            echo "Broken Gradio Lite os.link shim survived patch" >&2
+            exit 1
+          fi
       - name: Build Gradio Lite dashboard from control plane
         run: |
           python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
           cp publisher/gradio_lite/README.md dist/gradio-lite/README.md
-          grep -q 'gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js' dist/gradio-lite/index.html
+          grep -q 'src="runtime/lite.js"' dist/gradio-lite/index.html
           grep -q 'South Base · San Juan' dist/gradio-lite/index.html
           grep -q 'sdk: static' dist/gradio-lite/README.md
       - uses: actions/upload-artifact@v4
