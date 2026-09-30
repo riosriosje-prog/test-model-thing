@@ -7,6 +7,8 @@ import urllib.request
 import zipfile
 import io
 import hashlib
+import re
+from pyproj import Geod
 from pathlib import Path
 
 # H10076 historic-control listing for MORRO LIGHTHOUSE 1900, used only as
@@ -14,7 +16,7 @@ from pathlib import Path
 # as WGS84 control for South Base.
 CENTER_LAT = 18 + 28/60 + 22.774/3600
 CENTER_LON = -(66 + 7/60 + 26.371/3600)
-RADIUS_KM = 2.0
+RADIUS_KM = 3.5
 
 API = "https://geodesy.noaa.gov/api/nde/radial"
 ARCHIVE_URL = "https://geodesy.noaa.gov/pub/DS_ARCHIVE/DataSheets/PR.ZIP"
@@ -31,6 +33,26 @@ def fetch_json(url: str):
     )
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)
+
+
+
+def extract_station_block(text: str, pid: str) -> str | None:
+    pattern = re.compile(
+        rf"(?ms)^ {re.escape(pid)} \*{{20,}}\s*$.*?(?=^ [A-Z0-9]{{6}} \*{{20,}}\s*$|\Z)"
+    )
+    m = pattern.search(text)
+    return m.group(0) if m else None
+
+
+def dms_string(degrees_value: float) -> str:
+    sign = "-" if degrees_value < 0 else ""
+    value = abs(degrees_value)
+    d = int(value)
+    m_float = (value - d) * 60.0
+    m = int(m_float)
+    s = (m_float - m) * 60.0
+    return f"{sign}{d:02d} {m:02d} {s:08.5f}"
+
 
 
 def main() -> None:
@@ -50,7 +72,7 @@ def main() -> None:
         "query": {
             "center_lat": CENTER_LAT,
             "center_lon": CENTER_LON,
-            "center_basis": "H10076 MORRO LIGHTHOUSE 1900 historic-system coordinate; 2 km radius chosen to tolerate datum offset",
+            "center_basis": "H10076 MORRO LIGHTHOUSE 1900 historic-system coordinate; 3.5 km radius chosen to tolerate datum offset and include both San Juan base stations",
             "radius_km": RADIUS_KM,
             "url": url,
         },
@@ -97,6 +119,29 @@ def main() -> None:
         candidates.sort(key=lambda x: (-x["name_match_score"], str(x.get("name"))))
         receipt["name_candidates"] = candidates
 
+        by_pid = {str(row.get("pid")): row for row in norm if row.get("pid")}
+        if "TV1051" in by_pid and "TV1029" in by_pid:
+            sb = by_pid["TV1051"]
+            lh = by_pid["TV1029"]
+            geod = Geod(ellps="GRS80")
+            az12, az21, distance_m = geod.inv(
+                float(sb["lon"]), float(sb["lat"]),
+                float(lh["lon"]), float(lh["lat"]),
+            )
+            historic_az = 37.0 + 9.4 / 60.0
+            receipt["morro_lighthouse_bearing_diagnostic"] = {
+                "from_pid": "TV1051",
+                "to_pid": "TV1029",
+                "ellipsoid": "GRS80",
+                "current_ngs_geodesic_azimuth_deg": az12,
+                "current_ngs_geodesic_azimuth_dms": dms_string(az12),
+                "current_ngs_distance_m": distance_m,
+                "historical_1909_true_bearing_deg": historic_az,
+                "historical_1909_true_bearing_dms": "37 09 24.00000",
+                "azimuth_difference_arcsec": (az12 - historic_az) * 3600.0,
+                "interpretation": "Independent identity/topology diagnostic only; does not equate all lighthouse epochs or replace original survey observations.",
+            }
+
         # Monthly NGS state archive is deterministic and much more reliable than
         # repeatedly querying the legacy CGI datasheet endpoint.
         archive_req = urllib.request.Request(
@@ -140,17 +185,13 @@ def main() -> None:
             for pid in PRIORITY_PIDS:
                 hits = []
                 for member, text_data in searchable:
-                    upper = text_data.upper()
-                    pos = upper.find(pid)
-                    if pos >= 0:
-                        start = max(0, pos - 12000)
-                        end = min(len(text_data), pos + 50000)
-                        excerpt = text_data[start:end]
+                    block = extract_station_block(text_data, pid)
+                    if block:
                         hits.append({
                             "member": member,
-                            "contains_south_base": "SOUTH BASE" in excerpt.upper(),
-                            "contains_north_base": "NORTH BASE" in excerpt.upper(),
-                            "text": excerpt,
+                            "contains_south_base": "SOUTH BASE" in block.upper(),
+                            "contains_north_base": "NORTH BASE" in block.upper(),
+                            "text": block,
                         })
                 datasheets[pid] = {
                     "status": "FOUND_IN_ARCHIVE" if hits else "NOT_FOUND_IN_ARCHIVE",
@@ -167,6 +208,10 @@ def main() -> None:
         print("NGS_ROW=" + json.dumps(row, sort_keys=True))
     for row in receipt.get("name_candidates", []):
         print("NGS_NAME_CANDIDATE=" + json.dumps(row, sort_keys=True))
+    if receipt.get("morro_lighthouse_bearing_diagnostic"):
+        print("SOUTH_BASE_MORRO_BEARING_DIAGNOSTIC=" + json.dumps(
+            receipt["morro_lighthouse_bearing_diagnostic"], sort_keys=True
+        ))
     archive = receipt.get("datasheet_archive", {})
     if archive:
         print("NGS_PR_ARCHIVE_SHA256=" + archive.get("sha256", ""))

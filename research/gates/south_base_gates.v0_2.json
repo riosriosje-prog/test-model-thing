@@ -45,6 +45,41 @@
       "effect": "Provides an orientation constraint but not a unique coordinate."
     },
     {
+      "id": "SB-NGS-MORRO-LIGHTHOUSE-BEARING-DIAGNOSTIC",
+      "state": "PASS_INDEPENDENT_GEOMETRIC_CORROBORATION",
+      "proposition": "The current official NGS positions for SAN JUAN SOUTH BASE (TV1051) and MORRO LIGHTHOUSE (TV1029) reproduce the 1909 C&GS South Base→Morro lighthouse bearing to within about 9 arcseconds.",
+      "computation": {
+        "source_positions": {
+          "from": {
+            "pid": "TV1051",
+            "designation": "SAN JUAN SOUTH BASE",
+            "datum": "NAD 83(1997)",
+            "lat": 18.4520642611,
+            "lon": -66.1386454944
+          },
+          "to": {
+            "pid": "TV1029",
+            "designation": "MORRO LIGHTHOUSE",
+            "datum": "NAD 83(1997)",
+            "lat": 18.4710023333,
+            "lon": -66.1236058528
+          }
+        },
+        "ellipsoid": "GRS80",
+        "geodesic_distance_m": 2630.118939518387,
+        "geodesic_azimuth_deg": 37.154158396903554,
+        "geodesic_azimuth_dms": "37 09 14.97023",
+        "historical_1909_bearing_deg": 37.156666666666666,
+        "historical_1909_bearing_dms": "37 09 24.00000",
+        "difference_arcsec": -9.029771147203292
+      },
+      "limits": [
+        "This is an independent identity/topology diagnostic, not a substitute for original 1899/1909 observation reductions.",
+        "The lighthouse underwent historical structural changes; the calculation uses the official NGS station MORRO LIGHTHOUSE TV1029 and therefore must not be generalized to every lighthouse epoch without a station-history tie."
+      ],
+      "effect": "Strongly corroborates that TV1051 is the historical South Base referenced by the 1909 magnetic description."
+    },
+    {
       "id": "SB-1936-CORPS-MAP-SURVIVAL",
       "state": "PASS_LABEL_PRESENT",
       "proposition": "A 1936 U.S. Engineer Office, Puerto Rico District map explicitly labels STA. SOUTH BASE.",
@@ -277,7 +312,8 @@
     "Recover the GA-series original station-description card/image for TV1051 and, if possible, TV1049.",
     "Recover 1899 field/reconnaissance observations to determine the exact role of WCH and the measured baseline workflow.",
     "Use TV1051 current and superseded coordinates only with their explicit datum/status labels; do not relabel a later adjustment as the original 1899 coordinate.",
-    "Reconcile Forney 1900 as occupation/integration/reobservation rather than station origin unless primary field records show otherwise."
+    "Reconcile Forney 1900 as occupation/integration/reobservation rather than station origin unless primary field records show otherwise.",
+    "Recover the full station-history block for MORRO LIGHTHOUSE TV1029 to document the target epoch and structural-history semantics behind the 1909 bearing comparison."
   ],
   "source_register": [
     {

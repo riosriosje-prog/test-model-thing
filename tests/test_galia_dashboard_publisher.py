@@ -26,7 +26,10 @@ def test_direct_dashboard_build(tmp_path):
     assert "MCLEARY-NAMING-ACT-19140105-19151121" in text
     assert "South Base · San Juan" in text
     assert "2,572.6-meter base line" in text
-    assert "SOUTHBASE-ORIGINAL-STATION-DESCRIPTION" in text
+    assert "SOUTHBASE-1899-BASELINE-MEASUREMENT" in text
+    assert "SAN JUAN SOUTH BASE" in text
+    assert "PID TV1051" in text
+    assert "MONUMENTED by CGS in 1899" in text
     assert "STRONG_HYPOTHESIS" in text
     assert "Human-promoted dossiers" in text
     external_scripts = [line.strip() for line in text.splitlines() if "<script src=" in line]
@@ -61,7 +64,11 @@ def test_south_base_promotion_receipt_preserves_hypothesis_boundary():
     assert receipt["scope"]["canonical_database_write"] is False
     assert receipt["scope"]["hypothesis_promoted_as_fact"] is False
     origin = next(c for c in evidence["claims"] if c["id"] == "SOUTHBASE-ORIGIN-1900")
-    assert origin["status"] == "STRONG_HYPOTHESIS"
+    assert origin["status"] == "SUPERSEDED"
+    ngs_fact = next(c for c in evidence["claims"] if c["id"] == "SOUTHBASE-NGS-TV1051-1899")
+    assert ngs_fact["status"] == "FACT"
+    assert "PID TV1051" in ngs_fact["claim"]
+    assert "1899" in ngs_fact["claim"]
 
 
 def test_static_site_is_mobile_readable(tmp_path):
