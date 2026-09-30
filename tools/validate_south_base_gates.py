@@ -118,13 +118,13 @@ def main() -> None:
         fail("1899 Porto Rico triangulation classification changed")
     if ti.get("porto_rico_enumerated_under_base_lines") is not False:
         fail("1899 Base-lines limiting evidence changed")
-    if gates["SB-1899-BASELINE-MEASUREMENT"]["state"] != "OPEN_FUNCTION_AND_MEASUREMENT_RECORD":
+    if gates["SB-1899-BASELINE-MEASUREMENT"]["state"] != "OPEN_ARCHIVAL_REQUIRED_STRONG_LIMITING_EVIDENCE":
         fail("baseline function/measurement record must remain open")
     if gates["SB-GA-ORIGINAL-CARD-IMAGE"]["state"] != "OPEN_ARCHIVAL_REQUIRED":
         fail("GA original-card gate must remain open")
     if gates["SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION"]["state"] != "OPEN_HUMAN_RECONCILIATION_REQUIRED":
         fail("promoted-dossier reconciliation must remain explicitly human-gated")
-    if gates["SB-1899-BASELINE-DIGITAL-SEARCH-SATURATION"]["state"] != "PASS_SEARCH_SATURATION_NO_PRIMARY_MEASUREMENT_FOUND":
+    if gates["SB-1899-BASELINE-DIGITAL-SEARCH-SATURATION"]["state"] != "PASS_SEARCH_SATURATION_WITH_STRONG_OFFICIAL_LIMITING_EVIDENCE":
         fail("baseline digital-search saturation state regressed")
     if gates["SB-1899-SAN-JUAN-EXAMINATION-BLUEPRINT"]["state"] != "OPEN_ARCHIVAL_LEAD":
         fail("1899 San Juan blueprint gate must remain an archival lead")
@@ -164,10 +164,10 @@ def main() -> None:
     print("MONUMENTATION=PASS:1899_CGS")
     print("ORIGIN_MODEL=PASS_1899_MONUMENTATION_WITH_1900_NETWORK_INTEGRATION_SEPARATE")
     print("FIELD_WORK_CLASSIFICATION=PASS_LIMITING_EVIDENCE")
-    print("BASELINE_MEASUREMENT_RECORD=OPEN_FUNCTION_AND_MEASUREMENT_RECORD")
+    print("BASELINE_MEASUREMENT_RECORD=OPEN_ARCHIVAL_REQUIRED_STRONG_LIMITING_EVIDENCE")
     print("GA_ORIGINAL_CARD=OPEN_PROVENANCE_DEPTH")
     print("PROMOTED_DOSSIER_RECONCILIATION=OPEN_HUMAN_RECONCILIATION_REQUIRED")
-    print("BASELINE_DIGITAL_SEARCH=PASS_SEARCH_SATURATION_NO_PRIMARY_MEASUREMENT_FOUND")
+    print("BASELINE_DIGITAL_SEARCH=PASS_SEARCH_SATURATION_WITH_STRONG_OFFICIAL_LIMITING_EVIDENCE")
     print("SAN_JUAN_1899_BLUEPRINT=OPEN_ARCHIVAL_LEAD")
     print("FORNEY_TV1051_1900=OPEN_NO_DIRECT_STATION_TIE")
     print("HYDROGRAPHIC_OFFICE_1899_MAP=PASS_LIMITING_EVIDENCE")
