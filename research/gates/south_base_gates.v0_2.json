@@ -103,23 +103,106 @@
     },
     {
       "id": "SB-1899-SAN-JUAN-HARBOR-CONTROL",
-      "state": "PASS_CAMPAIGN_AND_PRODUCT_ONLY",
-      "proposition": "Hodgkins surveyed San Juan Harbor in April 1899 and a C&GS San Juan Harbor map dated 1899 survives.",
+      "state": "PASS_CAMPAIGN_PLUS_OFFICIAL_1899_STATION_NETWORK",
+      "proposition": "Hodgkins surveyed San Juan Harbor in April 1899; official NGS station histories independently preserve an 1899 C&GS/WCH San Juan control layer including SAN JUAN SOUTH BASE, SAN JUAN NORTH BASE and MORRO CASTLE.",
       "limits": [
-        "No inspected 1899 source yet nominates South Base by name.",
-        "Local survey control is plausible but South Base establishment in 1899 remains unproven."
+        "The 1898-99 annual report itself describes the San Juan harbor survey but does not name South Base.",
+        "The station-name/date identity comes from the official NGS datasheet archive, not from wording in the annual report.",
+        "The original GB/GBZ measured-base record is still required before calling the North↔South line a formally measured baseline with a specific historical length/method."
       ],
-      "effect": "1899 remains a plausible local-control origin branch."
+      "effect": "The 1899 local-control branch is no longer merely plausible: an 1899 C&GS station network at San Juan is verified. Formal base-measurement details remain open."
+    },
+    {
+      "id": "SB-1899-WCH-MORRO-CASTLE",
+      "state": "PASS",
+      "proposition": "NGS PID TV1031 MORRO CASTLE was monumented by CGS in 1899 and preserves the description header 'DESCRIBED BY COAST AND GEODETIC SURVEY 1899 (WCH)'.",
+      "recovered": {
+        "pid": "TV1031",
+        "designation": "MORRO CASTLE",
+        "history": [
+          {
+            "date": "1899",
+            "condition": "MONUMENTED",
+            "report_by": "CGS"
+          }
+        ],
+        "description_header": "DESCRIBED BY COAST AND GEODETIC SURVEY 1899 (WCH)",
+        "mark": "iron pipe set in cement"
+      },
+      "effect": "Places a third 1899 WCH control at Morro in the same San Juan network as North Base and South Base."
+    },
+    {
+      "id": "SB-1900-SF-MORRO-CASTLE-2",
+      "state": "PASS_STRONG_PERSONNEL_CORROBORATION",
+      "proposition": "NGS PID TV1021 MORRO CASTLE 2 was monumented by CGS in 1900 and preserves the description header 'DESCRIBED BY COAST AND GEODETIC SURVEY 1900 (SF)'; independent C&GS personnel history places Stehman Forney's triangulation party in Puerto Rico from Ponce to San Juan in Jan-May 1900.",
+      "recovered": {
+        "pid": "TV1021",
+        "designation": "MORRO CASTLE 2",
+        "history": [
+          {
+            "date": "1900",
+            "condition": "MONUMENTED",
+            "report_by": "CGS"
+          },
+          {
+            "date": "1902",
+            "condition": "GOOD",
+            "report_by": "CGS"
+          }
+        ],
+        "description_header": "DESCRIBED BY COAST AND GEODETIC SURVEY 1900 (SF)",
+        "mark_summary": "hollow cement-covered brick pier with standard brass disk; surface station mark a marble slab with triangle and copper bolt"
+      },
+      "limits": [
+        "The datasheet itself records only the initials SF; it does not spell out Stehman Forney.",
+        "The attribution of SF to Stehman Forney is strongly corroborated by the independent 1900 field-assignment record, but remains a cross-source identification."
+      ],
+      "effect": "Demonstrates a distinct 1900 CGS/SF control layer at Morro rather than the original monumentation of South Base."
+    },
+    {
+      "id": "SB-1900-MORRO-LIGHTHOUSE-FIRST-OBSERVED",
+      "state": "PASS",
+      "proposition": "NGS PID TV1029 MORRO LIGHTHOUSE records CGS 'FIRST OBSERVED' in 1900.",
+      "recovered": {
+        "pid": "TV1029",
+        "designation": "MORRO LIGHTHOUSE",
+        "history_first_observed": {
+          "date": "1900",
+          "condition": "FIRST OBSERVED",
+          "report_by": "CGS"
+        },
+        "current_datum": "NAD 83(1997)",
+        "superseded_pr_position": "18 28 22.77427 N / 066 07 26.37128 W"
+      },
+      "effect": "Independently corroborates a 1900 observation campaign centered on Morro while South Base/North Base/Morro Castle already carry 1899 CGS/WCH monumentation."
+    },
+    {
+      "id": "SB-1899-1900-CAMPAIGN-SEPARATION",
+      "state": "PASS",
+      "model": {
+        "layer_1899": [
+          "TV1051 SAN JUAN SOUTH BASE — 1899 MONUMENTED CGS — described 1899 (WCH)",
+          "TV1049 SAN JUAN NORTH BASE — 1899 MONUMENTED CGS — described 1899 (WCH)",
+          "TV1031 MORRO CASTLE — 1899 MONUMENTED CGS — described 1899 (WCH)"
+        ],
+        "layer_1900": [
+          "TV1021 MORRO CASTLE 2 — 1900 MONUMENTED CGS — described 1900 (SF)",
+          "TV1029 MORRO LIGHTHOUSE — 1900 FIRST OBSERVED CGS",
+          "Stehman Forney party — Jan-May 1900 triangulation Ponce→San Juan"
+        ]
+      },
+      "interpretation": "The official station histories support two temporally distinct control/observation layers. South Base belongs to the 1899 layer; 1900 is a later triangulation/observation layer.",
+      "remaining_open": "Whether Forney/SF actually occupied or incorporated TV1051 South Base in 1900 still requires a field/reconnaissance/angle/base-computation record."
     },
     {
       "id": "SB-1900-FORNEY-NETWORK",
-      "state": "PASS_CAMPAIGN",
-      "proposition": "Stehman Forney led triangulation from Ponce to San Juan between January and May 1900.",
+      "state": "PASS_CAMPAIGN_WITH_DISTINCT_1900_MORRO_CONTROL_LAYER",
+      "proposition": "Stehman Forney led triangulation from Ponce to San Juan Jan-May 1900; NGS independently records MORRO CASTLE 2 as a 1900 CGS station described by (SF) and MORRO LIGHTHOUSE as first observed by CGS in 1900.",
       "limits": [
-        "The assignment record does not say whether South Base was established, first occupied, or reoccupied.",
-        "Network integration in 1900 remains stronger than exact establishment in 1900."
+        "This does not yet prove that Forney/SF occupied TV1051 South Base.",
+        "The South Base monument itself already belongs to the verified 1899 WCH layer."
       ],
-      "effect": "1900 remains the leading network-integration hypothesis."
+      "effect": "1900 is now treated as a distinct extension/integration/observation campaign, not the origin of South Base."
     },
     {
       "id": "SB-ORIGIN-MODEL",
@@ -309,11 +392,10 @@
   ],
   "next_actions": [
     "Recover the GB/GBZ 1899 San Juan base-measurement/computation record linking TV1049 and TV1051.",
-    "Recover the GA-series original station-description card/image for TV1051 and, if possible, TV1049.",
-    "Recover 1899 field/reconnaissance observations to determine the exact role of WCH and the measured baseline workflow.",
-    "Use TV1051 current and superseded coordinates only with their explicit datum/status labels; do not relabel a later adjustment as the original 1899 coordinate.",
-    "Reconcile Forney 1900 as occupation/integration/reobservation rather than station origin unless primary field records show otherwise.",
-    "Recover the full station-history block for MORRO LIGHTHOUSE TV1029 to document the target epoch and structural-history semantics behind the 1909 bearing comparison."
+    "Recover the GA-series original station-description card/image for TV1051 and TV1049.",
+    "Recover 1900 GH/GAR/field records to determine whether SF/Forney occupied or incorporated TV1051 South Base.",
+    "Recover the 1936 U.S. Engineer map at sufficient resolution to derive the plotted South Base grid coordinate with uncertainty.",
+    "Preserve all current/superseded NGS coordinates with explicit datum/status labels."
   ],
   "source_register": [
     {
