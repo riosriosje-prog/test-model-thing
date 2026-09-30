@@ -14,6 +14,8 @@ CENTER_LON = -(66 + 7/60 + 26.371/3600)
 RADIUS_KM = 2.0
 
 API = "https://geodesy.noaa.gov/api/nde/radial"
+DATASHEET_URL = "https://www.ngs.noaa.gov/cgi-bin/ds_mark.prl?PidBox={pid}"
+PRIORITY_PIDS = ["TV1049", "TV1020", "TV1029", "TV1030", "TV1031", "TV1021", "DE5560"]
 
 
 def fetch_json(url: str):
@@ -26,6 +28,18 @@ def fetch_json(url: str):
     )
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)
+
+
+def fetch_text(url: str) -> str:
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "GALIA-SouthBase-NGS-Probe/0.2 (+read-only research validation)",
+            "Accept": "text/plain,text/html,*/*;q=0.8",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return r.read().decode("utf-8", errors="replace")
 
 
 def main() -> None:
@@ -91,6 +105,25 @@ def main() -> None:
                 candidates.append({**row, "name_match_score": score})
         candidates.sort(key=lambda x: (-x["name_match_score"], str(x.get("name"))))
         receipt["name_candidates"] = candidates
+
+        datasheets = {}
+        for pid in PRIORITY_PIDS:
+            try:
+                text_data = fetch_text(DATASHEET_URL.format(pid=pid))
+                datasheets[pid] = {
+                    "status": "FETCHED",
+                    "url": DATASHEET_URL.format(pid=pid),
+                    "contains_south_base": "SOUTH BASE" in text_data.upper(),
+                    "contains_north_base": "NORTH BASE" in text_data.upper(),
+                    "text": text_data[:120000],
+                }
+            except Exception as exc:
+                datasheets[pid] = {
+                    "status": "FETCH_FAILED",
+                    "url": DATASHEET_URL.format(pid=pid),
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+        receipt["priority_datasheets"] = datasheets
     except Exception as exc:
         receipt["error"] = f"{type(exc).__name__}: {exc}"
 
@@ -101,6 +134,22 @@ def main() -> None:
         print("NGS_ROW=" + json.dumps(row, sort_keys=True))
     for row in receipt.get("name_candidates", []):
         print("NGS_NAME_CANDIDATE=" + json.dumps(row, sort_keys=True))
+    for pid, ds in receipt.get("priority_datasheets", {}).items():
+        print("NGS_DATASHEET_STATUS=" + pid + ":" + ds.get("status", ""))
+        print("NGS_DATASHEET_SOUTH_BASE=" + pid + ":" + str(ds.get("contains_south_base")))
+        print("NGS_DATASHEET_NORTH_BASE=" + pid + ":" + str(ds.get("contains_north_base")))
+        if ds.get("status") == "FETCHED":
+            lines = ds.get("text", "").splitlines()
+            keep = [
+                line for line in lines
+                if any(term in line.upper() for term in (
+                    "PID", "DESIGNATION", "HISTORY", "RECOVERY", "STATION", "BASE",
+                    "MORRO", "AZIMUTH", "REFERENCE", "MONUMENT", "STAMP", "SETTING",
+                    "ESTABLISH", "189", "190", "191", "192", "193", "194"
+                ))
+            ]
+            for line in keep[:180]:
+                print("NGS_DATASHEET_LINE=" + pid + ":" + line[:1200])
 
 
 if __name__ == "__main__":
