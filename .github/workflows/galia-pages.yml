@@ -11,6 +11,7 @@ on:
       - "research/evidence/**"
       - "research/geospatial/**"
       - "tools/build_galia_dashboard.py"
+      - "tools/probe_south_base_ngs.py"
       - "tests/test_galia_dashboard_publisher.py"
       - ".github/workflows/galia-pages.yml"
   push:
@@ -22,6 +23,7 @@ on:
       - "research/evidence/**"
       - "research/geospatial/**"
       - "tools/build_galia_dashboard.py"
+      - "tools/probe_south_base_ngs.py"
       - "tests/test_galia_dashboard_publisher.py"
       - ".github/workflows/galia-pages.yml"
 
@@ -44,8 +46,10 @@ jobs:
           python-version: "3.13"
       - name: Validate static dashboard
         run: |
-          python -m pip install --disable-pip-version-check pytest
+          python -m pip install --disable-pip-version-check pytest pyshp
           python -m pytest -q tests/test_galia_dashboard_publisher.py
+      - name: Probe South Base NGS gate read-only
+        run: python tools/probe_south_base_ngs.py
       - name: Build site
         run: |
           python tools/build_galia_dashboard.py --output _site/index.html
