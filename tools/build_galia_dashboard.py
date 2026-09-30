@@ -355,7 +355,7 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict], geo: d
         if project["id"] in evidence_docs
     )
 
-    geo_payload = json.dumps(geo, separators=(",", ":")).replace("</", "<\\/")
+    geo_payload = json.dumps(geo, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
     promoted_geo_sheets = sum(
         1 for sheet in geo.get("sheets", [])
         if sheet.get("authority") == "PROMOTED_DERIVATION_BASELINE"
