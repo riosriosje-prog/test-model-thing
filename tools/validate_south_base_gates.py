@@ -27,6 +27,7 @@ def main() -> None:
         "SB-EXISTS-BY-1904",
         "SB-MAGNETIC-DISTINCTION",
         "SB-MORRO-BEARING",
+        "SB-NGS-MORRO-LIGHTHOUSE-BEARING-DIAGNOSTIC",
         "SB-1936-CORPS-MAP-SURVIVAL",
         "SB-1936-MAP-GRID-COORDINATE",
         "SB-ORIGIN-MODEL",
@@ -45,6 +46,16 @@ def main() -> None:
         fail("existence-by-1904 gate regressed")
     if gates["SB-MAGNETIC-DISTINCTION"]["state"] != "PASS":
         fail("magnetic distinction gate regressed")
+    diag = gates["SB-NGS-MORRO-LIGHTHOUSE-BEARING-DIAGNOSTIC"]
+    if diag.get("state") != "PASS_INDEPENDENT_GEOMETRIC_CORROBORATION":
+        fail("Morro lighthouse bearing diagnostic regressed")
+    comp = diag.get("computation", {})
+    if comp.get("source_positions", {}).get("from", {}).get("pid") != "TV1051":
+        fail("bearing diagnostic South Base PID changed")
+    if comp.get("source_positions", {}).get("to", {}).get("pid") != "TV1029":
+        fail("bearing diagnostic lighthouse PID changed")
+    if abs(float(comp.get("difference_arcsec", 999))) > 15:
+        fail("bearing diagnostic no longer agrees within 15 arcseconds")
     if gates["SB-1936-CORPS-MAP-SURVIVAL"]["state"] != "PASS_LABEL_PRESENT":
         fail("1936 map survival gate regressed")
     if gates["SB-1936-MAP-GRID-COORDINATE"]["state"] != "OPEN":
@@ -71,6 +82,7 @@ def main() -> None:
     print("SOUTH_BASE_GATE_VALIDATION=PASS")
     print("EXISTS_BY_1904=PASS")
     print("MAGNETIC_DISTINCTION=PASS")
+    print("MORRO_LIGHTHOUSE_BEARING_DIAGNOSTIC=PASS_WITHIN_15_ARCSEC")
     print("MAP_1936_LABEL=PASS")
     print("MAP_1936_GRID_COORDINATE=OPEN")
     print("ORIGINAL_STATION_DESCRIPTION=PASS_TEXT_RECOVERED_IN_OFFICIAL_NGS_DATASHEET")
