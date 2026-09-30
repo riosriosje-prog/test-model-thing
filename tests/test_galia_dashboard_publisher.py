@@ -93,7 +93,7 @@ def test_static_site_has_progress_and_filters(tmp_path):
     assert "Authority gates" in text
     assert "Research coverage" in text
     assert "Promotion coverage" in text
-    assert 'class="gate-ring"' in text
+    assert 'class="gate-ring ' in text
     assert 'data-filter="FACT"' in text
     assert 'data-filter="STRONG_HYPOTHESIS"' in text
     assert "visible claim" in text
@@ -118,3 +118,25 @@ def test_static_site_has_visible_svg_charts(tmp_path):
     assert "STRONG HYPOTHESIS" in text
     assert 'class="stacked-chart"' in text
     assert 'href="#charts"' in text
+
+
+def test_progress_colors_are_semantic_and_dynamic(tmp_path):
+    out = tmp_path / "index.html"
+    subprocess.run(
+        [sys.executable, "tools/build_galia_dashboard.py", "--output", str(out)],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    text = out.read_text(encoding="utf-8")
+    assert "--green:#16803a" in text
+    assert "--amber:#d97706" in text
+    assert "--red:#c62828" in text
+    assert "progress-high" in text
+    assert "progress-mid" in text
+    assert "progress-low" in text
+    assert "chart-fact" in text
+    assert "chart-hypothesis" in text
+    assert "chart-other" in text
+    assert "Green ≥70%" in text

@@ -118,6 +118,14 @@ def esc(value) -> str:
     return html.escape(str(value))
 
 
+def progress_class(percent: int) -> str:
+    if percent >= 70:
+        return "progress-high"
+    if percent >= 40:
+        return "progress-mid"
+    return "progress-low"
+
+
 def render_claims(evidence: dict) -> str:
     rows = []
     for claim in evidence.get("claims", []):
@@ -143,19 +151,19 @@ def render_claims(evidence: dict) -> str:
 
 def render_claim_status_chart(fact: int, hypothesis: int, other: int) -> str:
     items = [
-        ("FACT", fact),
-        ("STRONG HYPOTHESIS", hypothesis),
-        ("OTHER / PARTIAL", other),
+        ("FACT", fact, "chart-fact"),
+        ("STRONG HYPOTHESIS", hypothesis, "chart-hypothesis"),
+        ("OTHER / PARTIAL", other, "chart-other"),
     ]
-    maximum = max([value for _, value in items] + [1])
+    maximum = max([value for _, value, _ in items] + [1])
     rows = []
     y_values = [54, 118, 182]
-    for (label, value), y in zip(items, y_values):
+    for (label, value, css_class), y in zip(items, y_values):
         width = round((value / maximum) * 420)
         rows.append(
             f'<text x="18" y="{y + 5}" class="chart-label">{esc(label)}</text>'
             f'<rect x="190" y="{y - 16}" width="420" height="28" rx="8" class="chart-track"/>'
-            f'<rect x="190" y="{y - 16}" width="{width}" height="28" rx="8" class="chart-bar"/>'
+            f'<rect x="190" y="{y - 16}" width="{width}" height="28" rx="8" class="chart-bar {css_class}"/>'
             f'<text x="650" y="{y + 5}" class="chart-value">{value}</text>'
         )
     return (
@@ -164,7 +172,6 @@ def render_claim_status_chart(fact: int, hypothesis: int, other: int) -> str:
         + "".join(rows)
         + '</svg>'
     )
-
 
 def render_dossier_progress(project: dict, evidence: dict) -> str:
     claims = evidence.get("claims", [])
@@ -218,6 +225,10 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict]) -> str
     gate_open = gate_total - gate_pass
     evidence_coverage = round((len(evidence_docs) / len(projects)) * 100) if projects else 0
     promotion_coverage = round((promoted_dossiers / len(projects)) * 100) if projects else 0
+    authority_coverage = round((gate_pass / gate_total) * 100) if gate_total else 0
+    authority_progress_class = progress_class(authority_coverage)
+    evidence_progress_class = progress_class(evidence_coverage)
+    promotion_progress_class = progress_class(promotion_coverage)
     claim_status_counts = {}
     for evidence in evidence_docs.values():
         for claim in evidence.get("claims", []):
@@ -272,7 +283,7 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict]) -> str
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GALIA Authority Dashboard</title>
 <style>
-:root{{--navy:#071a33;--paper:#ffffff;--ink:#000000;--rule:#d7dce5;--muted:#4d5666;--link:#003b7a;--soft:#eef1f5}}
+:root{{--navy:#071a33;--paper:#ffffff;--ink:#000000;--rule:#d7dce5;--muted:#4d5666;--link:#003b7a;--soft:#eef1f5;--green:#16803a;--amber:#d97706;--red:#c62828;--slate:#7a8493}}
 *{{box-sizing:border-box}}
 html{{scroll-behavior:smooth}} html,body{{margin:0;min-height:100%;background:var(--navy)}}
 body{{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);line-height:1.48}}
@@ -293,21 +304,22 @@ th{{background:#f5f7fa;position:sticky;top:0}} .table-scroll{{overflow:auto;max-
 .chart-card{{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow:hidden}}
 .chart-card h2{{margin-bottom:4px}}
 .status-chart{{width:100%;height:auto;display:block;margin-top:8px}}
-.chart-track{{fill:#e8ecf2}}.chart-bar{{fill:var(--navy)}}
+.chart-track{{fill:#e8ecf2}}.chart-bar.chart-fact{{fill:var(--green)}}.chart-bar.chart-hypothesis{{fill:var(--amber)}}.chart-bar.chart-other{{fill:var(--slate)}}
 .chart-label,.chart-value{{font-family:system-ui,-apple-system,sans-serif;fill:#000;font-size:16px;font-weight:750}}
 .chart-value{{text-anchor:end;font-size:18px}}
 .dossier-progress{{padding:12px 0;border-bottom:1px solid var(--rule)}}.dossier-progress:last-child{{border-bottom:0}}
 .dossier-head{{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}}
 .dossier-head span{{color:var(--muted);font-size:.9rem}}
 .stacked-chart{{display:flex;width:100%;height:24px;border-radius:8px;overflow:hidden;background:#e8ecf2;margin:10px 0 8px}}
-.seg{{height:100%;display:block}}.seg.fact{{background:var(--navy)}}.seg.hypothesis{{background:#687489}}.seg.other{{background:#c7ced8}}
+.seg{{height:100%;display:block}}.seg.fact{{background:var(--green)}}.seg.hypothesis{{background:var(--amber)}}.seg.other{{background:var(--slate)}}
 .legend-row{{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}}
-.key{{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}}.key.fact{{background:var(--navy)}}.key.hypothesis{{background:#687489}}.key.other{{background:#c7ced8}}
+.key{{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}}.key.fact{{background:var(--green)}}.key.hypothesis{{background:var(--amber)}}.key.other{{background:var(--slate)}}
 .progress-card{{margin:0;min-width:0}}
 .progress-card .big{{font-size:1.8rem;font-weight:850;line-height:1}}
 .progress-track{{height:11px;border-radius:999px;background:var(--soft);overflow:hidden;margin:12px 0 7px}}
-.progress-fill{{height:100%;background:var(--navy);border-radius:inherit}}
-.gate-ring{{width:108px;height:108px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--navy) 0 calc(var(--p)*1%),var(--soft) calc(var(--p)*1%) 100%);margin:8px auto}}
+.progress-fill{{height:100%;background:var(--progress-color);border-radius:inherit;transition:width .45s ease,background-color .25s ease}}
+.progress-high{{--progress-color:var(--green)}}.progress-mid{{--progress-color:var(--amber)}}.progress-low{{--progress-color:var(--red)}}
+.gate-ring{{width:108px;height:108px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--progress-color) 0 calc(var(--p)*1%),var(--soft) calc(var(--p)*1%) 100%);margin:8px auto}}
 .gate-ring::after{{content:"";width:72px;height:72px;border-radius:50%;background:white;position:absolute}}
 .gate-ring span{{position:relative;z-index:1;font-weight:850;font-size:1.15rem}}
 .badge,.status-pill{{display:inline-block;padding:3px 8px;border:1px solid #9aa4b2;background:#f2f4f7;color:var(--ink);border-radius:999px;font-size:.76rem;font-weight:800;letter-spacing:.035em}}
@@ -349,6 +361,7 @@ ul{{line-height:1.55}}
 <div class="chart-card">
 <h2>Research status</h2>
 <p class="muted">Current claim distribution across embedded dossiers.</p>
+<div class="legend-row" aria-label="Chart color legend"><span><i class="key fact"></i>FACT</span><span><i class="key hypothesis"></i>Hypothesis</span><span><i class="key other"></i>Other / partial</span></div>
 {claim_status_chart}
 </div>
 <div class="chart-card">
@@ -362,23 +375,23 @@ ul{{line-height:1.55}}
 <div class="progress-grid">
 <div class="progress-card">
 <h2>Authority gates</h2>
-<div class="gate-ring" style="--p:{round((gate_pass/gate_total)*100) if gate_total else 0}"><span>{gate_pass}/{gate_total}</span></div>
+<div class="gate-ring {authority_progress_class}" style="--p:{authority_coverage}"><span>{gate_pass}/{gate_total}</span></div>
 <p><strong>{gate_pass} PASS</strong> · {gate_open} OPEN/other</p>
 <small>Distribution of currently tracked authority gate states.</small>
 </div>
 <div class="progress-card">
 <h2>Research coverage</h2>
 <div class="big">{evidence_coverage}%</div>
-<div class="progress-track" aria-label="Research evidence coverage"><div class="progress-fill" style="width:{evidence_coverage}%"></div></div>
+<div class="progress-track" aria-label="Research evidence coverage"><div class="progress-fill {evidence_progress_class}" style="width:{evidence_coverage}%"></div></div>
 <p>{len(evidence_docs)} of {len(projects)} registered dossiers have embedded evidence.</p>
 <small>{total_claims} claims · {fact_claims} FACT · {hypothesis_claims} STRONG_HYPOTHESIS</small>
 </div>
 <div class="progress-card">
 <h2>Promotion coverage</h2>
 <div class="big">{promotion_coverage}%</div>
-<div class="progress-track" aria-label="Promotion coverage"><div class="progress-fill" style="width:{promotion_coverage}%"></div></div>
+<div class="progress-track" aria-label="Promotion coverage"><div class="progress-fill {promotion_progress_class}" style="width:{promotion_coverage}%"></div></div>
 <p>{promoted_dossiers} of {len(projects)} research dossiers carry a human promotion receipt.</p>
-<small>This is coverage, not a quality score.</small>
+<small>This is coverage, not a quality score. Green ≥70% · amber 40–69% · red &lt;40%.</small>
 </div>
 </div>
 </section>
