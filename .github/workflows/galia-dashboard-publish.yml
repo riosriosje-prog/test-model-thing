@@ -9,6 +9,7 @@ on:
       - "governance/galia_dashboard_research_registry.v1.json"
       - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
       - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"
+      - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_5.json"
       - "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
       - "governance/safe_delete_execution_receipt.v1.json"
       - "governance/hf_final_release_candidate.v1.json"
@@ -16,6 +17,7 @@ on:
       - "publisher/gradio_lite/**"
       - "tools/build_galia_dashboard.py"
       - "tools/build_galia_gradio_lite_dashboard.py"
+      - "tools/vendor_patch_gradio_lite_worker.py"
       - "tests/test_galia_dashboard_publisher.py"
       - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
       - ".github/workflows/galia-dashboard-publish.yml"
@@ -26,6 +28,7 @@ on:
       - "governance/galia_dashboard_research_registry.v1.json"
       - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
       - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"
+      - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_5.json"
       - "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
       - "governance/safe_delete_execution_receipt.v1.json"
       - "governance/hf_final_release_candidate.v1.json"
@@ -33,6 +36,7 @@ on:
       - "publisher/gradio_lite/**"
       - "tools/build_galia_dashboard.py"
       - "tools/build_galia_gradio_lite_dashboard.py"
+      - "tools/vendor_patch_gradio_lite_worker.py"
       - "tests/test_galia_dashboard_publisher.py"
       - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
       - ".github/workflows/galia-dashboard-publish.yml"
@@ -59,8 +63,14 @@ jobs:
       - name: Build Gradio Lite dashboard from control plane
         run: |
           python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
+          python tools/vendor_patch_gradio_lite_worker.py --output dist/gradio-lite/assets/webworker-galia.js
           cp publisher/gradio_lite/README.md dist/gradio-lite/README.md
-          grep -q 'gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js' dist/gradio-lite/index.html
+          grep -q 'gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist' dist/gradio-lite/index.html
+          grep -q 'webworker-BsZ7XNFH.js' dist/gradio-lite/index.html
+          grep -q './assets/webworker-galia.js' dist/gradio-lite/index.html
+          test -f dist/gradio-lite/assets/webworker-galia.js
+          grep -q '_galia_wasm_os_link' dist/gradio-lite/assets/webworker-galia.js
+          ! grep -q 'os.link = lambda src, dst: None' dist/gradio-lite/assets/webworker-galia.js
           grep -q 'South Base · San Juan' dist/gradio-lite/index.html
           grep -q 'sdk: static' dist/gradio-lite/README.md
       - uses: actions/upload-artifact@v4
