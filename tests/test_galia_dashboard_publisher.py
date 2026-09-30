@@ -59,3 +59,22 @@ def test_south_base_promotion_receipt_preserves_hypothesis_boundary():
     assert receipt["scope"]["hypothesis_promoted_as_fact"] is False
     origin = next(c for c in evidence["claims"] if c["id"] == "SOUTHBASE-ORIGIN-1900")
     assert origin["status"] == "STRONG_HYPOTHESIS"
+
+
+def test_static_site_is_mobile_readable(tmp_path):
+    out = tmp_path / "index.html"
+    subprocess.run(
+        [sys.executable, "tools/build_galia_dashboard.py", "--output", str(out)],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    text = out.read_text(encoding="utf-8")
+    assert "📚 GALIA" in text
+    assert "--navy:#071a33" in text
+    assert "--paper:#ffffff" in text
+    assert "--ink:#000000" in text
+    assert "background:var(--paper);color:var(--ink)" in text
+    assert "@media (max-width:720px)" in text
+    assert "<script src=" not in text
