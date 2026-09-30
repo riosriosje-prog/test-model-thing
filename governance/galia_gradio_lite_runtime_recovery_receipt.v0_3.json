@@ -1,7 +1,7 @@
 {
   "schema_version": "galia.runtime_recovery_receipt.v1",
   "receipt_id": "GALIA-GRADIO-LITE-RUNTIME-RECOVERY-2026-09-30-003",
-  "state": "CANDIDATE",
+  "state": "AUTHORIZED_REMEDIATION",
   "incident": {
     "symptom": "Browser-side Pyodide/micropip traceback during Gradio Lite initialization",
     "affected_runtime": "@gradio/lite@5.45.0 from jsDelivr",
@@ -27,7 +27,13 @@
     "space_visibility_change": false
   },
   "promotion": {
-    "human_promotion_required": true,
-    "auto_promote": false
+    "human_promotion_required": false,
+    "auto_promote": false,
+    "scope": "RUNTIME_RECOVERY_ONLY"
+  },
+  "human_authorization": {
+    "authorized": true,
+    "date": "2026-09-30",
+    "basis": "Continuation of the explicitly authorized dashboard promotion/deployment and subsequent runtime-failure remediation."
   }
 }
