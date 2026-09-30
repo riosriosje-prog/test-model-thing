@@ -93,6 +93,21 @@ def validate_research(registry: dict) -> dict[str, dict]:
             claims = evidence.get("claims", [])
             if not claims:
                 fail(f"{project['id']} embedded evidence has no claims")
+            promotion = evidence.get("promotion")
+            if promotion:
+                receipt_path = promotion.get("receipt_path")
+                if promotion.get("state") != "PROMOTED" or not receipt_path:
+                    fail(f"{project['id']} promotion metadata is incomplete")
+                receipt = load(ROOT / receipt_path)
+                if receipt.get("state") != "PROMOTED":
+                    fail(f"{project['id']} promotion receipt is not PROMOTED")
+                if receipt.get("promoted_object", {}).get("evidence_path") != path:
+                    fail(f"{project['id']} promotion receipt evidence binding mismatch")
+                scope = receipt.get("scope", {})
+                if scope.get("global_master_mutation") is not False:
+                    fail(f"{project['id']} promotion receipt crosses global-master authority")
+                if scope.get("hypothesis_promoted_as_fact") is not False:
+                    fail(f"{project['id']} promotion receipt elevates hypothesis to fact")
             evidence_docs[project["id"]] = evidence
         elif path:
             fail(f"{project['id']} has evidence_path but is not EVIDENCE_EMBEDDED")
@@ -136,6 +151,13 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict]) -> str
     authority = pointer["authority"]
     gates = pointer["gates"]
     projects = registry["projects"]
+    promoted_dossiers = sum(
+        1 for evidence in evidence_docs.values()
+        if evidence.get("promotion", {}).get("state") == "PROMOTED"
+    )
+    open_research_gates = sum(
+        len(evidence.get("open_gates", [])) for evidence in evidence_docs.values()
+    )
 
     gate_rows = "".join(
         f"<tr><td>{esc(k)}</td><td>{esc(v)}</td></tr>"
@@ -155,6 +177,7 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict]) -> str
 <div class="card">
 <h2>{esc(project['title'])} — evidence ledger</h2>
 <p>{esc(project.get('summary',''))}</p>
+<p><span class="badge">{esc(evidence.get('promotion', {}).get('state', 'EVIDENCE'))}</span> · scope: {esc(evidence.get('scope',''))}</p>
 <table>
 <thead><tr><th>Date</th><th>Status</th><th>Claim / limits</th><th>Source</th></tr></thead>
 <tbody>{render_claims(evidence)}</tbody>
@@ -178,12 +201,22 @@ main{{max-width:1120px;margin:auto;padding:28px}}
 h1,h2{{margin-top:0}} code{{word-break:break-all}} table{{width:100%;border-collapse:collapse}}
 td,th{{padding:9px;border-bottom:1px solid #2a3555;text-align:left;vertical-align:top}}
 .ok{{font-weight:700}} .muted,small{{color:#aeb9d6}} a{{color:#8bd5ff}}
+.metrics{{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0}}
+.metric{{background:#11182a;border:1px solid #2a3555;border-radius:12px;padding:14px}}
+.metric strong{{display:block;font-size:1.65rem;margin-top:4px}}
+.badge{{display:inline-block;padding:3px 8px;border:1px solid #5571a8;border-radius:999px;font-size:.78rem;font-weight:700;letter-spacing:.04em}}
 ul{{line-height:1.55}}
 </style>
 </head>
 <body><main>
 <h1>GALIA — Read-Only Authority Dashboard</h1>
 <p class="ok">READ ONLY · authority mutation disabled</p>
+<div class="metrics">
+<div class="metric"><span class="muted">Registered dossiers</span><strong>{len(projects)}</strong></div>
+<div class="metric"><span class="muted">Evidence ledgers</span><strong>{len(evidence_docs)}</strong></div>
+<div class="metric"><span class="muted">Human-promoted dossiers</span><strong>{promoted_dossiers}</strong></div>
+<div class="metric"><span class="muted">Open research gates</span><strong>{open_research_gates}</strong></div>
+</div>
 <div class="card">
 <h2>Global authority</h2>
 <p>Release: <strong>{esc(authority['global_master_release'])}</strong> · v{esc(authority['semantic_version'])}</p>
