@@ -4,6 +4,9 @@ from __future__ import annotations
 import json
 import urllib.parse
 import urllib.request
+import zipfile
+import io
+import hashlib
 from pathlib import Path
 
 # H10076 historic-control listing for MORRO LIGHTHOUSE 1900, used only as
@@ -14,7 +17,7 @@ CENTER_LON = -(66 + 7/60 + 26.371/3600)
 RADIUS_KM = 2.0
 
 API = "https://geodesy.noaa.gov/api/nde/radial"
-DATASHEET_URL = "https://www.ngs.noaa.gov/cgi-bin/ds_mark.prl?PidBox={pid}"
+ARCHIVE_URL = "https://geodesy.noaa.gov/pub/DS_ARCHIVE/DataSheets/PR.ZIP"
 PRIORITY_PIDS = ["TV1049", "TV1020", "TV1029", "TV1030", "TV1031", "TV1021", "DE5560"]
 
 
@@ -28,18 +31,6 @@ def fetch_json(url: str):
     )
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)
-
-
-def fetch_text(url: str) -> str:
-    req = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "GALIA-SouthBase-NGS-Probe/0.2 (+read-only research validation)",
-            "Accept": "text/plain,text/html,*/*;q=0.8",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return r.read().decode("utf-8", errors="replace")
 
 
 def main() -> None:
@@ -106,22 +97,64 @@ def main() -> None:
         candidates.sort(key=lambda x: (-x["name_match_score"], str(x.get("name"))))
         receipt["name_candidates"] = candidates
 
+        # Monthly NGS state archive is deterministic and much more reliable than
+        # repeatedly querying the legacy CGI datasheet endpoint.
+        archive_req = urllib.request.Request(
+            ARCHIVE_URL,
+            headers={
+                "User-Agent": "GALIA-SouthBase-NGS-Probe/0.2 (+read-only research validation)",
+                "Accept": "application/zip,application/octet-stream,*/*;q=0.8",
+            },
+        )
+        with urllib.request.urlopen(archive_req, timeout=60) as r:
+            archive_bytes = r.read()
+        receipt["datasheet_archive"] = {
+            "url": ARCHIVE_URL,
+            "sha256": hashlib.sha256(archive_bytes).hexdigest(),
+            "byte_size": len(archive_bytes),
+        }
+
         datasheets = {}
-        for pid in PRIORITY_PIDS:
-            try:
-                text_data = fetch_text(DATASHEET_URL.format(pid=pid))
+        with zipfile.ZipFile(io.BytesIO(archive_bytes)) as zf:
+            receipt["datasheet_archive"]["member_count"] = len(zf.infolist())
+            member_names = [i.filename for i in zf.infolist()]
+            receipt["datasheet_archive"]["members_sample"] = member_names[:25]
+
+            # The archive can contain one statewide text stream or many files.
+            # Search all modest-size textual members for exact PID/designation strings.
+            searchable = []
+            for info in zf.infolist():
+                if info.is_dir() or info.file_size > 50_000_000:
+                    continue
+                try:
+                    raw = zf.read(info)
+                    text_data = raw.decode("utf-8", errors="replace")
+                except Exception:
+                    continue
+                searchable.append((info.filename, text_data))
+
+            corpus_upper = "\n".join(t for _, t in searchable).upper()
+            receipt["archive_contains_literal_south_base"] = "SOUTH BASE" in corpus_upper
+            receipt["archive_contains_literal_san_juan_north_base"] = "SAN JUAN NORTH BASE" in corpus_upper
+
+            for pid in PRIORITY_PIDS:
+                hits = []
+                for member, text_data in searchable:
+                    upper = text_data.upper()
+                    pos = upper.find(pid)
+                    if pos >= 0:
+                        start = max(0, pos - 12000)
+                        end = min(len(text_data), pos + 50000)
+                        excerpt = text_data[start:end]
+                        hits.append({
+                            "member": member,
+                            "contains_south_base": "SOUTH BASE" in excerpt.upper(),
+                            "contains_north_base": "NORTH BASE" in excerpt.upper(),
+                            "text": excerpt,
+                        })
                 datasheets[pid] = {
-                    "status": "FETCHED",
-                    "url": DATASHEET_URL.format(pid=pid),
-                    "contains_south_base": "SOUTH BASE" in text_data.upper(),
-                    "contains_north_base": "NORTH BASE" in text_data.upper(),
-                    "text": text_data[:120000],
-                }
-            except Exception as exc:
-                datasheets[pid] = {
-                    "status": "FETCH_FAILED",
-                    "url": DATASHEET_URL.format(pid=pid),
-                    "error": f"{type(exc).__name__}: {exc}",
+                    "status": "FOUND_IN_ARCHIVE" if hits else "NOT_FOUND_IN_ARCHIVE",
+                    "hits": hits,
                 }
         receipt["priority_datasheets"] = datasheets
     except Exception as exc:
@@ -134,12 +167,20 @@ def main() -> None:
         print("NGS_ROW=" + json.dumps(row, sort_keys=True))
     for row in receipt.get("name_candidates", []):
         print("NGS_NAME_CANDIDATE=" + json.dumps(row, sort_keys=True))
+    archive = receipt.get("datasheet_archive", {})
+    if archive:
+        print("NGS_PR_ARCHIVE_SHA256=" + archive.get("sha256", ""))
+        print("NGS_PR_ARCHIVE_BYTES=" + str(archive.get("byte_size", 0)))
+        print("NGS_PR_ARCHIVE_MEMBERS=" + str(archive.get("member_count", 0)))
+        print("NGS_PR_ARCHIVE_LITERAL_SOUTH_BASE=" + str(receipt.get("archive_contains_literal_south_base")))
+        print("NGS_PR_ARCHIVE_LITERAL_SAN_JUAN_NORTH_BASE=" + str(receipt.get("archive_contains_literal_san_juan_north_base")))
     for pid, ds in receipt.get("priority_datasheets", {}).items():
         print("NGS_DATASHEET_STATUS=" + pid + ":" + ds.get("status", ""))
-        print("NGS_DATASHEET_SOUTH_BASE=" + pid + ":" + str(ds.get("contains_south_base")))
-        print("NGS_DATASHEET_NORTH_BASE=" + pid + ":" + str(ds.get("contains_north_base")))
-        if ds.get("status") == "FETCHED":
-            lines = ds.get("text", "").splitlines()
+        for hit in ds.get("hits", []):
+            print("NGS_DATASHEET_MEMBER=" + pid + ":" + hit.get("member", ""))
+            print("NGS_DATASHEET_SOUTH_BASE=" + pid + ":" + str(hit.get("contains_south_base")))
+            print("NGS_DATASHEET_NORTH_BASE=" + pid + ":" + str(hit.get("contains_north_base")))
+            lines = hit.get("text", "").splitlines()
             keep = [
                 line for line in lines
                 if any(term in line.upper() for term in (
@@ -148,7 +189,7 @@ def main() -> None:
                     "ESTABLISH", "189", "190", "191", "192", "193", "194"
                 ))
             ]
-            for line in keep[:180]:
+            for line in keep[:240]:
                 print("NGS_DATASHEET_LINE=" + pid + ":" + line[:1200])
 
 
