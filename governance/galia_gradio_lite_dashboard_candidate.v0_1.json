@@ -16,8 +16,10 @@
     "python_runtime": "pyodide_in_browser",
     "server_required": false,
     "gradio_lite_runtime_id": "PINNED_HF_HUB",
-    "gradio_lite_runtime_base": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist",
-    "compatibility_shim": "STARLETTE_QUERY_STRING_BYTES"
+    "gradio_lite_runtime_base": "vendored:PINNED_HF_HUB",
+    "compatibility_shim": "STARLETTE_QUERY_STRING_BYTES + FILELOCK_OS_LINK_WASM",
+    "runtime_distribution": "SELF_HOSTED_STATIC_ASSETS",
+    "wasm_worker_patch": "OS_LINK_NOT_IMPLEMENTED_KWARGS_SAFE"
   },
   "publication_boundary": {
     "authority_mutation": false,
@@ -31,5 +33,5 @@
     "auto_promote": false,
     "deployment_receipt": "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
   },
-  "runtime_recovery_receipt": "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"
+  "runtime_recovery_receipt": "governance/galia_gradio_lite_runtime_recovery_receipt.v0_4.json"
 }

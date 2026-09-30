@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
 from tools import build_galia_dashboard as base
 
 PINNED_GRADIO_LITE = "PINNED_HF_HUB"
-PINNED_GRADIO_LITE_BASE = "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
+PINNED_GRADIO_LITE_BASE = "runtime"
 
 APP_PY = r"""
 import json
