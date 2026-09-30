@@ -93,7 +93,7 @@ def test_static_site_has_progress_and_filters(tmp_path):
     assert "Authority gates" in text
     assert "Research coverage" in text
     assert "Promotion coverage" in text
-    assert 'class="gate-ring"' in text
+    assert 'class="gate-ring ' in text
     assert 'data-filter="FACT"' in text
     assert 'data-filter="STRONG_HYPOTHESIS"' in text
     assert "visible claim" in text
