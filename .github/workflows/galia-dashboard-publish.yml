@@ -116,10 +116,22 @@ jobs:
             const browser = await chromium.launch({ headless: true });
             const page = await browser.newPage();
             const errors = [];
+            const failedRequests = [];
 
-            page.on("pageerror", err => errors.push(String(err)));
+            page.on("pageerror", err => {
+              const line = "PAGEERROR: " + String(err);
+              errors.push(line);
+              console.error(line);
+            });
             page.on("console", msg => {
-              if (msg.type() === "error") errors.push(msg.text());
+              const line = "CONSOLE[" + msg.type() + "]: " + msg.text();
+              console.log(line);
+              if (msg.type() === "error") errors.push(line);
+            });
+            page.on("requestfailed", req => {
+              const line = "REQUESTFAILED: " + req.url() + " :: " + (req.failure()?.errorText || "");
+              failedRequests.push(line);
+              console.error(line);
             });
 
             await page.goto("http://127.0.0.1:8765/", {
@@ -127,12 +139,26 @@ jobs:
               timeout: 60000
             });
 
-            await page.getByText("GALIA", { exact: false }).first().waitFor({
-              timeout: 180000
-            });
-            await page.getByText("South Base · San Juan", { exact: false }).first().waitFor({
-              timeout: 180000
-            });
+            try {
+              await page.getByText("GALIA", { exact: false }).first().waitFor({
+                timeout: 90000
+              });
+              await page.getByText("South Base · San Juan", { exact: false }).first().waitFor({
+                timeout: 90000
+              });
+            } catch (err) {
+              console.error("GALIA_BROWSER_RENDER_TIMEOUT");
+              console.error("BODY_TEXT_START");
+              console.error((await page.locator("body").innerText()).slice(0, 12000));
+              console.error("BODY_TEXT_END");
+              console.error("ERRORS_START");
+              console.error(errors.join("\n"));
+              console.error("ERRORS_END");
+              console.error("FAILED_REQUESTS_START");
+              console.error(failedRequests.join("\n"));
+              console.error("FAILED_REQUESTS_END");
+              throw err;
+            }
 
             const body = await page.locator("body").innerText();
             const bad = [
