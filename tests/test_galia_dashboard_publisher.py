@@ -76,5 +76,26 @@ def test_static_site_is_mobile_readable(tmp_path):
     assert "--paper:#ffffff" in text
     assert "--ink:#000000" in text
     assert "background:var(--paper);color:var(--ink)" in text
-    assert "@media (max-width:720px)" in text
+    assert "@media (max-width:760px)" in text
     assert "<script src=" not in text
+
+
+def test_static_site_has_progress_and_filters(tmp_path):
+    out = tmp_path / "index.html"
+    subprocess.run(
+        [sys.executable, "tools/build_galia_dashboard.py", "--output", str(out)],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    text = out.read_text(encoding="utf-8")
+    assert "Authority gates" in text
+    assert "Research coverage" in text
+    assert "Promotion coverage" in text
+    assert 'class="gate-ring"' in text
+    assert 'data-filter="FACT"' in text
+    assert 'data-filter="STRONG_HYPOTHESIS"' in text
+    assert "visible claim" in text
+    assert 'class="card dossier"' in text
+    assert "This is coverage, not a quality score." in text
