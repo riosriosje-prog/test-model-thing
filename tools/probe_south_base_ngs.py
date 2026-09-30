@@ -18,7 +18,7 @@ RADIUS_KM = 2.0
 
 API = "https://geodesy.noaa.gov/api/nde/radial"
 ARCHIVE_URL = "https://geodesy.noaa.gov/pub/DS_ARCHIVE/DataSheets/PR.ZIP"
-PRIORITY_PIDS = ["TV1049", "TV1020", "TV1029", "TV1030", "TV1031", "TV1021", "DE5560"]
+PRIORITY_PIDS = ["TV1051", "TV1049", "TV1020", "TV1029", "TV1030", "TV1031", "TV1021", "DE5560"]
 
 
 def fetch_json(url: str):
@@ -191,6 +191,10 @@ def main() -> None:
             ]
             for line in keep[:240]:
                 print("NGS_DATASHEET_LINE=" + pid + ":" + line[:1200])
+            if pid in {"TV1051", "TV1049"}:
+                for line in lines:
+                    if line.lstrip().startswith(pid):
+                        print("NGS_FULL_STATION_LINE=" + pid + ":" + line[:1600])
 
 
 if __name__ == "__main__":
