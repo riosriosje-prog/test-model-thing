@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PATH = ROOT / "research/gates/south_base_gates.v0_4.json"
+PATH = ROOT / "research/gates/south_base_gates.v0_5.json"
 
 
 def fail(msg: str) -> None:
@@ -81,10 +81,12 @@ def main() -> None:
         fail("1899/1900 campaign separation gate regressed")
     if gates["SB-1900-FORNEY-NETWORK"]["state"] != "PASS_CAMPAIGN_WITH_DISTINCT_1900_MORRO_CONTROL_LAYER":
         fail("1900 Forney network gate regressed")
-    if gates["SB-1936-CORPS-MAP-SURVIVAL"]["state"] != "OPEN_CONTEXT_UNVERIFIED":
-        fail("1936 label must remain context-unverified")
-    if gates["SB-1936-MAP-GRID-COORDINATE"]["state"] != "OPEN_CONTEXT_AND_GRID_UNVERIFIED":
-        fail("1936 exact grid coordinate/context must remain open")
+    if gates["SB-1936-CORPS-MAP-SURVIVAL"]["state"] != "REJECTED_FALSE_LEAD_ST_THOMAS":
+        fail("1936 St. Thomas false lead rejection regressed")
+    if gates["SB-1936-MAP-GRID-COORDINATE"]["state"] != "CLOSED_NOT_APPLICABLE_FALSE_LEAD":
+        fail("1936 St. Thomas grid gate must remain closed/not applicable")
+    if gates["SB-LATER-REOCCUPATION-CONTINUITY"]["state"] != "PASS":
+        fail("later South Base reoccupation-continuity gate regressed")
     if gates["SB-1899-UNT-SAN-JUAN-HARBOR-MAP"]["state"] != "PASS_SOURCE_RECOVERED_CONTEXT_ONLY":
         fail("1899 UNT chart-context gate regressed")
     if gates["SB-ORIGINAL-STATION-DESCRIPTION"]["state"] != "PASS_TEXT_RECOVERED_IN_OFFICIAL_NGS_DATASHEET":
@@ -124,8 +126,9 @@ def main() -> None:
     print("SF_1900_MORRO_CASTLE_2=PASS:TV1021")
     print("MORRO_LIGHTHOUSE_FIRST_OBSERVED=PASS:1900")
     print("CAMPAIGN_SEPARATION=PASS:1899_WCH__1900_SF")
-    print("MAP_1936_LABEL=OPEN_CONTEXT_UNVERIFIED")
-    print("MAP_1936_GRID_COORDINATE=OPEN_CONTEXT_AND_GRID_UNVERIFIED")
+    print("MAP_1936_LABEL=REJECTED_FALSE_LEAD_ST_THOMAS")
+    print("MAP_1936_GRID_COORDINATE=CLOSED_NOT_APPLICABLE_FALSE_LEAD")
+    print("LATER_REOCCUPATION_CONTINUITY=PASS")
     print("UNT_1899_MAP=PASS_SOURCE_RECOVERED_CONTEXT_ONLY")
     print("ORIGINAL_STATION_DESCRIPTION=PASS_TEXT_RECOVERED_IN_OFFICIAL_NGS_DATASHEET")
     print("NGS_PID=PASS:TV1051")
