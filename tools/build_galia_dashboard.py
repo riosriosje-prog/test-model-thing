@@ -195,22 +195,34 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict]) -> str
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GALIA Authority Dashboard</title>
 <style>
-body{{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#0b1020;color:#eef2ff}}
-main{{max-width:1120px;margin:auto;padding:28px}}
-.card{{background:#151c31;border:1px solid #2a3555;border-radius:14px;padding:18px;margin:16px 0;overflow:auto}}
-h1,h2{{margin-top:0}} code{{word-break:break-all}} table{{width:100%;border-collapse:collapse}}
-td,th{{padding:9px;border-bottom:1px solid #2a3555;text-align:left;vertical-align:top}}
-.ok{{font-weight:700}} .muted,small{{color:#aeb9d6}} a{{color:#8bd5ff}}
-.metrics{{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0}}
-.metric{{background:#11182a;border:1px solid #2a3555;border-radius:12px;padding:14px}}
-.metric strong{{display:block;font-size:1.65rem;margin-top:4px}}
-.badge{{display:inline-block;padding:3px 8px;border:1px solid #5571a8;border-radius:999px;font-size:.78rem;font-weight:700;letter-spacing:.04em}}
+:root{{--navy:#071a33;--paper:#ffffff;--ink:#000000;--rule:#d7dce5;--muted:#4d5666;--link:#003b7a}}
+*{{box-sizing:border-box}}
+html,body{{margin:0;min-height:100%;background:var(--navy)}}
+body{{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);line-height:1.48}}
+main{{max-width:1120px;margin:auto;padding:20px 14px 42px}}
+.card,.hero{{background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:16px;padding:18px;margin:14px 0;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)}}
+.hero{{padding:22px}}
+h1,h2,h3{{margin-top:0;color:var(--ink)}}
+h1{{font-size:clamp(1.7rem,5vw,2.5rem);margin-bottom:6px}}
+code{{word-break:break-all;color:var(--ink);background:#f3f5f8;padding:2px 4px;border-radius:4px}}
+table{{width:100%;border-collapse:collapse;color:var(--ink);background:var(--paper)}}
+td,th{{padding:10px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top;color:var(--ink)}}
+th{{background:#f5f7fa}}
+.ok{{font-weight:800;color:var(--ink)}} .muted,small{{color:var(--muted)}} a{{color:var(--link);text-decoration-thickness:1.5px}}
+.metrics{{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin:14px 0}}
+.metric{{background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(0,0,0,.10)}}
+.metric strong{{display:block;font-size:1.55rem;margin-top:4px;color:var(--ink)}}
+.badge{{display:inline-block;padding:3px 8px;border:1px solid #9aa4b2;background:#f2f4f7;color:var(--ink);border-radius:999px;font-size:.78rem;font-weight:800;letter-spacing:.04em}}
 ul{{line-height:1.55}}
+@media (max-width:720px){{main{{padding:10px 8px 30px}}.card,.hero{{padding:14px;border-radius:12px}}td,th{{padding:8px;font-size:.92rem}}}}
 </style>
 </head>
 <body><main>
-<h1>GALIA — Read-Only Authority Dashboard</h1>
+<div class="hero">
+<h1>📚 GALIA</h1>
+<p><strong>Read-Only Authority Dashboard</strong></p>
 <p class="ok">READ ONLY · authority mutation disabled</p>
+</div>
 <div class="metrics">
 <div class="metric"><span class="muted">Registered dossiers</span><strong>{len(projects)}</strong></div>
 <div class="metric"><span class="muted">Evidence ledgers</span><strong>{len(evidence_docs)}</strong></div>
