@@ -225,6 +225,66 @@ def render_dossier_progress(project: dict, evidence: dict) -> str:
     </article>
     """
 
+
+def render_geo_fallback_svg(geo: dict) -> str:
+    points = []
+    for sheet in geo.get("sheets", []):
+        points.extend(sheet.get("polygon", []))
+        for item in sheet.get("controls", []) + sheet.get("holdouts", []):
+            points.append([item["lat"], item["lon"]])
+    if not points:
+        return '<p class="muted">No geospatial display points available.</p>'
+    lats = [p[0] for p in points]
+    lons = [p[1] for p in points]
+    min_lat, max_lat = min(lats), max(lats)
+    min_lon, max_lon = min(lons), max(lons)
+    pad = 28
+    width, height = 760, 430
+
+    def xy(lat, lon):
+        x = pad + (lon - min_lon) / max(max_lon - min_lon, 1e-12) * (width - 2 * pad)
+        y = pad + (max_lat - lat) / max(max_lat - min_lat, 1e-12) * (height - 2 * pad)
+        return x, y
+
+    elements = [
+        f'<rect x="0" y="0" width="{width}" height="{height}" rx="12" fill="#f7f9fc"/>'
+    ]
+    for sheet in geo.get("sheets", []):
+        coords = " ".join(
+            f"{xy(lat, lon)[0]:.1f},{xy(lat, lon)[1]:.1f}"
+            for lat, lon in sheet.get("polygon", [])
+        )
+        diagnostic = "DIAGNOSTIC" in str(sheet.get("authority", ""))
+        stroke = "#d97706" if diagnostic else "#16803a"
+        dash = ' stroke-dasharray="8 7"' if diagnostic else ""
+        elements.append(
+            f'<polygon points="{coords}" fill="{stroke}" fill-opacity="0.07" '
+            f'stroke="{stroke}" stroke-width="3"{dash}/>'
+        )
+        for item in sheet.get("controls", []):
+            x, y = xy(item["lat"], item["lon"])
+            elements.append(
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" fill="#16803a" stroke="#fff" stroke-width="2"/>'
+            )
+        for item in sheet.get("holdouts", []):
+            x, y = xy(item["lat"], item["lon"])
+            elements.append(
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="#c62828" stroke="#fff" stroke-width="2"/>'
+            )
+    elements.append(
+        '<text x="18" y="412" font-family="system-ui" font-size="13" fill="#4d5666">'
+        'Static fallback control-network view · geographic display only'
+        '</text>'
+    )
+    return (
+        f'<svg class="geo-fallback" viewBox="0 0 {width} {height}" role="img" '
+        'aria-label="Fallback Santurce georeference control network">'
+        + "".join(elements)
+        + "</svg>"
+    )
+
+
+
 def render_open_gates(evidence: dict) -> str:
     return "".join(
         f"<li><strong>{esc(g['id'])}</strong> — {esc(g['state'])}: {esc(g['target'])}</li>"
@@ -288,6 +348,8 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict], geo: d
         for sheet in geo.get("sheets", [])
     )
 
+    geo_fallback_svg = render_geo_fallback_svg(geo)
+
     gate_rows = "".join(
         f"<tr><td>{esc(k)}</td><td>{esc(v)}</td></tr>"
         for k, v in gates.items()
@@ -348,6 +410,7 @@ th{{background:#f5f7fa;position:sticky;top:0}} .table-scroll{{overflow:auto;max-
 .chart-card{{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow:hidden}}
 .map-card{{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow:hidden}}
 #geo-map{{height:520px;width:100%;border-radius:12px;border:1px solid var(--rule);background:#e9edf3}}
+.geo-fallback{{width:100%;height:100%;display:block}}.map-fallback-note{{padding:8px 10px;background:#fff7ed;border-top:1px solid #f2c98b;font-size:.86rem}}
 .geo-grid{{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,.7fr);gap:14px;align-items:start}}
 .geo-legend{{display:grid;gap:9px;margin:10px 0 16px}}.geo-legend span{{display:flex;align-items:center;gap:8px}}
 .geo-dot{{width:12px;height:12px;border-radius:50%;display:inline-block}}.geo-dot.promoted{{background:var(--green)}}.geo-dot.holdout{{background:var(--red)}}.geo-dot.diagnostic{{background:var(--amber)}}
@@ -416,7 +479,7 @@ ul{{line-height:1.55}}
 <p>Promoted First/Second Section control geometry is shown on the modern basemap. Third Section is displayed only as a diagnostic chained footprint and is not an independently promoted absolute georeference.</p>
 <div class="geo-grid">
 <div>
-<div id="geo-map" aria-label="Santurce georeference control map"></div>
+<div id="geo-map" aria-label="Santurce georeference control map">{geo_fallback_svg}</div>
 </div>
 <div>
 <h3>Map status</h3>
@@ -511,8 +574,11 @@ ul{{line-height:1.55}}
 <script>
 (() => {{
   const geo = JSON.parse(document.getElementById('galia-geo-data').textContent);
-  const map = L.map('geo-map', {{scrollWheelZoom:false, zoomControl:true}});
-  L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+  const mapEl = document.getElementById('geo-map');
+  if (window.L && mapEl) {{
+    mapEl.innerHTML = '';
+    const map = L.map('geo-map', {{scrollWheelZoom:false, zoomControl:true}});
+    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
     maxZoom:19,
     attribution:'&copy; OpenStreetMap contributors'
   }}).addTo(map);
@@ -555,8 +621,11 @@ ul{{line-height:1.55}}
     }});
   }});
 
-  if (bounds.length) map.fitBounds(bounds, {{padding:[18,18]}});
-  else map.setView([18.45,-66.07],14);
+    if (bounds.length) map.fitBounds(bounds, {{padding:[18,18]}});
+    else map.setView([18.45,-66.07],14);
+  }} else if (mapEl) {{
+    mapEl.insertAdjacentHTML('beforeend','<div class="map-fallback-note">Interactive basemap unavailable; governed static control-network fallback shown.</div>');
+  }}
 }})();
 
 (() => {{
