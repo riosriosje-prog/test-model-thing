@@ -58,3 +58,10 @@ def test_builder_reuses_existing_fail_closed_authority_validation():
     source = (ROOT / "tools/build_galia_gradio_lite_dashboard.py").read_text(encoding="utf-8")
     assert "base.validate_authority(pointer)" in source
     assert "base.validate_research(registry)" in source
+
+
+def test_runtime_lock_is_explicit():
+    source = (ROOT / "tools/build_galia_gradio_lite_dashboard.py").read_text(encoding="utf-8")
+    assert 'PINNED_GRADIO_LITE = "5.45.0"' in source
+    assert 'PINNED_PYODIDE = "0.27.6"' in source
+    assert 'RUNTIME_JS = "./vendor/gradio-lite/lite.js"' in source
