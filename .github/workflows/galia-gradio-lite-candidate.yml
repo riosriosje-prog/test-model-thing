@@ -8,6 +8,7 @@ on:
       - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
       - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"
       - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_4.json"
+      - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_5.json"
       - "publisher/gradio_lite/**"
       - "tools/build_galia_gradio_lite_dashboard.py"
       - "tools/vendor_patch_gradio_lite_runtime.py"
@@ -36,6 +37,8 @@ jobs:
         run: |
           python tools/vendor_patch_gradio_lite_runtime.py --output dist/gradio-lite/runtime
           grep -R -q 'os.link unavailable in WASM' dist/gradio-lite/runtime
+          grep -R -q 'await E(s,a,\["huggingface-hub==0.35.0"\])' dist/gradio-lite/runtime/assets/webworker-*.js
+          grep -q 'hf_hub_preinstall_count=1' dist/gradio-lite/runtime/RUNTIME_PATCH.txt
       - name: Build candidate
         run: python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
       - name: Enforce promoted read-only boundary
