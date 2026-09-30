@@ -3,6 +3,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+from tools.vendor_patch_gradio_lite_worker import NEW_SHIM, OLD_SHIM, patch_worker
+
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
 
@@ -36,8 +40,12 @@ def test_promoted_manifest_is_read_only_and_deploy_bound():
 
 def test_gradio_lite_build_is_pinned_and_read_only(tmp_path):
     text = build(tmp_path)
-    assert "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js" in text
-    assert "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.css" in text
+    assert "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist" in text
+    assert "lite.css" in text
+    assert "webworker-BsZ7XNFH.js" in text
+    assert "./assets/webworker-galia.js" in text
+    assert "class GALIAWorker extends NativeWorker" in text
+    assert "await import(runtimeBase + \"/lite.js\")" in text
     assert "READ ONLY" in text
     assert "_galia_starlette_url_init" in text
     assert "query_string" in text
@@ -61,3 +69,17 @@ def test_builder_reuses_existing_fail_closed_authority_validation():
     source = (ROOT / "tools/build_galia_gradio_lite_dashboard.py").read_text(encoding="utf-8")
     assert "base.validate_authority(pointer)" in source
     assert "base.validate_research(registry)" in source
+
+
+def test_worker_patch_handles_modern_filelock_signature():
+    source = "before\n" + OLD_SHIM + "\nafter\n"
+    patched = patch_worker(source)
+    assert OLD_SHIM not in patched
+    assert NEW_SHIM in patched
+    assert "*args, **kwargs" in patched
+    assert "NotImplementedError" in patched
+
+
+def test_worker_patch_fails_closed_if_upstream_changes():
+    with pytest.raises(RuntimeError):
+        patch_worker("no legacy shim here")
