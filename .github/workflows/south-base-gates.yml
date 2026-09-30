@@ -9,6 +9,7 @@ on:
       - "research/evidence/south_base.v1.json"
       - "tools/probe_south_base_ngs.py"
       - "tools/validate_south_base_gates.py"
+      - "tools/probe_south_base_1899_map.py"
       - ".github/workflows/south-base-gates.yml"
 
 permissions:
@@ -28,6 +29,8 @@ jobs:
         run: python tools/validate_south_base_gates.py
       - name: Probe NGS read-only
         run: python tools/probe_south_base_ngs.py
+      - name: Recover 1899 San Juan Harbor map via IIIF read-only
+        run: python tools/probe_south_base_1899_map.py
       - name: Preserve probe receipt
         uses: actions/upload-artifact@v4
         with:

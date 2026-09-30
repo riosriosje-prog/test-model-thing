@@ -28,6 +28,10 @@ def main() -> None:
         "SB-MAGNETIC-DISTINCTION",
         "SB-MORRO-BEARING",
         "SB-NGS-MORRO-LIGHTHOUSE-BEARING-DIAGNOSTIC",
+        "SB-1899-WCH-MORRO-CASTLE",
+        "SB-1900-SF-MORRO-CASTLE-2",
+        "SB-1900-MORRO-LIGHTHOUSE-FIRST-OBSERVED",
+        "SB-1899-1900-CAMPAIGN-SEPARATION",
         "SB-1936-CORPS-MAP-SURVIVAL",
         "SB-1936-MAP-GRID-COORDINATE",
         "SB-ORIGIN-MODEL",
@@ -56,6 +60,24 @@ def main() -> None:
         fail("bearing diagnostic lighthouse PID changed")
     if abs(float(comp.get("difference_arcsec", 999))) > 15:
         fail("bearing diagnostic no longer agrees within 15 arcseconds")
+    if gates["SB-1899-SAN-JUAN-HARBOR-CONTROL"]["state"] != "PASS_CAMPAIGN_PLUS_OFFICIAL_1899_STATION_NETWORK":
+        fail("1899 San Juan station-network gate regressed")
+    if gates["SB-1899-WCH-MORRO-CASTLE"]["state"] != "PASS":
+        fail("1899 WCH Morro Castle gate regressed")
+    if gates["SB-1899-WCH-MORRO-CASTLE"].get("recovered", {}).get("pid") != "TV1031":
+        fail("1899 Morro Castle PID changed")
+    if gates["SB-1900-SF-MORRO-CASTLE-2"]["state"] != "PASS_STRONG_PERSONNEL_CORROBORATION":
+        fail("1900 SF Morro Castle 2 gate regressed")
+    if gates["SB-1900-SF-MORRO-CASTLE-2"].get("recovered", {}).get("pid") != "TV1021":
+        fail("1900 Morro Castle 2 PID changed")
+    if gates["SB-1900-MORRO-LIGHTHOUSE-FIRST-OBSERVED"]["state"] != "PASS":
+        fail("1900 Morro Lighthouse first-observed gate regressed")
+    if gates["SB-1900-MORRO-LIGHTHOUSE-FIRST-OBSERVED"].get("recovered", {}).get("pid") != "TV1029":
+        fail("Morro Lighthouse PID changed")
+    if gates["SB-1899-1900-CAMPAIGN-SEPARATION"]["state"] != "PASS":
+        fail("1899/1900 campaign separation gate regressed")
+    if gates["SB-1900-FORNEY-NETWORK"]["state"] != "PASS_CAMPAIGN_WITH_DISTINCT_1900_MORRO_CONTROL_LAYER":
+        fail("1900 Forney network gate regressed")
     if gates["SB-1936-CORPS-MAP-SURVIVAL"]["state"] != "PASS_LABEL_PRESENT":
         fail("1936 map survival gate regressed")
     if gates["SB-1936-MAP-GRID-COORDINATE"]["state"] != "OPEN":
@@ -83,6 +105,10 @@ def main() -> None:
     print("EXISTS_BY_1904=PASS")
     print("MAGNETIC_DISTINCTION=PASS")
     print("MORRO_LIGHTHOUSE_BEARING_DIAGNOSTIC=PASS_WITHIN_15_ARCSEC")
+    print("WCH_1899_MORRO_CASTLE=PASS:TV1031")
+    print("SF_1900_MORRO_CASTLE_2=PASS:TV1021")
+    print("MORRO_LIGHTHOUSE_FIRST_OBSERVED=PASS:1900")
+    print("CAMPAIGN_SEPARATION=PASS:1899_WCH__1900_SF")
     print("MAP_1936_LABEL=PASS")
     print("MAP_1936_GRID_COORDINATE=OPEN")
     print("ORIGINAL_STATION_DESCRIPTION=PASS_TEXT_RECOVERED_IN_OFFICIAL_NGS_DATASHEET")
