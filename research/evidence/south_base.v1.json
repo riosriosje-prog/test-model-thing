@@ -161,6 +161,34 @@
         "publication": "NOAA/NOS Hydrographic Survey H10076 descriptive report",
         "surrogate_url": "https://data.ngdc.noaa.gov/platforms/ocean/nos/coast/H10001-H12000/H10076/DR/H10076.pdf"
       }
+    },
+    {
+      "id": "SOUTHBASE-LATER-REOCCUPATION-1911-1912",
+      "date_range": "1911/1912",
+      "status": "FACT",
+      "claim": "A later Coast and Geodetic Survey annual report lists South Base, San Juan among Puerto Rico magnetic stations occupied by G. Hartnell and states that the stations other than specifically identified new stations had been occupied previously.",
+      "limits": [
+        "This demonstrates continued/repeated use of the South Base locality after 1909, not its original establishment date.",
+        "The annual-report passage is a magnetic-work summary and does not itself describe the South Base triangulation monument."
+      ],
+      "source": {
+        "publication": "Report of the Superintendent, U.S. Coast and Geodetic Survey, fiscal-year report containing field instructions dated August 30, 1911",
+        "surrogate_url": "https://www.govinfo.gov/content/pkg/SERIALSET-06441_00_00-002-0966-0000/pdf/SERIALSET-06441_00_00-002-0966-0000.pdf"
+      }
+    },
+    {
+      "id": "SOUTHBASE-STTHOMAS-1937-FALSE-LEAD",
+      "date": "1937",
+      "status": "REJECTED",
+      "claim": "The federal House Document map carrying the label 'STA. SOUTH BASE' is a St. Thomas Harbor, Virgin Islands map and is not the San Juan South Base triangulation station.",
+      "limits": [
+        "Do not use its plotted location, coordinate system, or associated U.S.C.&G.S. station references for the San Juan station.",
+        "The shared station name is non-unique."
+      ],
+      "source": {
+        "publication": "House Document No. 200, 75th Congress, 1st Session — St. Thomas Harbor, Virgin Islands",
+        "surrogate_url": "https://www.govinfo.gov/content/pkg/SERIALSET-10129_00_00-005-0200-0000/pdf/SERIALSET-10129_00_00-005-0200-0000.pdf"
+      }
     }
   ],
   "open_gates": [
@@ -214,6 +242,30 @@
       "kind": "official_ngs_reconciliation",
       "date": "2026-09-30",
       "note": "NGS Puerto Rico archive reproduced in GitHub CI; TV1051/TV1049 identity, 1899 monumentation, station-description text and later datum realizations separated from still-open original base-measurement/GA-card provenance gates."
+    },
+    {
+      "kind": "gate_reconciliation_pass",
+      "date": "2026-09-30",
+      "note": "Added later reoccupation evidence, rejected the St. Thomas 1937 South Base false lead, and kept the NGS PID gate open pending a verified San Juan station identity."
+    }
+  ],
+  "search_log": [
+    {
+      "date": "2026-09-30",
+      "route": "NGS/NOAA exact-designation web search",
+      "query_family": [
+        "\"SOUTH BASE\" Puerto Rico NGS",
+        "\"SAN JUAN SOUTH BASE\" NGS",
+        "\"MORRO LIGHTHOUSE\" NGS Puerto Rico"
+      ],
+      "result": "NO_VERIFIED_SAN_JUAN_SOUTH_BASE_PID",
+      "caution": "Web-index absence is not an exhaustive negative database result."
+    },
+    {
+      "date": "2026-09-30",
+      "route": "GovInfo federal map cross-check",
+      "result": "REJECTED_FALSE_LEAD_ST_THOMAS_1937",
+      "note": "House Doc. 200 map labeled STA. SOUTH BASE belongs to St. Thomas Harbor, Virgin Islands."
     }
   ]
 }
