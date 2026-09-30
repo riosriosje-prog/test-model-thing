@@ -7,8 +7,9 @@ on:
     paths:
       - "governance/galia_dashboard_authority_pointer.v1.json"
       - "governance/galia_dashboard_research_registry.v1.json"
-      - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
       - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"
+      - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_4.json"
+      - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
       - "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
       - "governance/safe_delete_execution_receipt.v1.json"
       - "governance/hf_final_release_candidate.v1.json"
@@ -24,8 +25,9 @@ on:
     paths:
       - "governance/galia_dashboard_authority_pointer.v1.json"
       - "governance/galia_dashboard_research_registry.v1.json"
-      - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
       - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"
+      - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_4.json"
+      - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
       - "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
       - "governance/safe_delete_execution_receipt.v1.json"
       - "governance/hf_final_release_candidate.v1.json"
@@ -47,15 +49,20 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+
       - name: Run dashboard tests
         run: |
           python -m pip install --disable-pip-version-check pytest
-          python -m pytest -q             tests/test_galia_dashboard_publisher.py             tests/test_galia_gradio_lite_dashboard_v0_1.py
+          python -m pytest -q \
+            tests/test_galia_dashboard_publisher.py \
+            tests/test_galia_gradio_lite_dashboard_v0_1.py
+
       - name: Build Gradio Lite dashboard from control plane
         run: |
           python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
@@ -63,6 +70,140 @@ jobs:
           grep -q 'gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js' dist/gradio-lite/index.html
           grep -q 'South Base · San Juan' dist/gradio-lite/index.html
           grep -q 'sdk: static' dist/gradio-lite/README.md
+
+      - name: Capture patched runtime hashes
+        run: |
+          PATCH_BASE="https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
+          curl -fsSL --retry 3 "$PATCH_BASE/lite.js" -o /tmp/galia-lite.js
+          curl -fsSL --retry 3 "$PATCH_BASE/lite.css" -o /tmp/galia-lite.css
+
+          JS_SHA256=$(sha256sum /tmp/galia-lite.js | awk '{print $1}')
+          CSS_SHA256=$(sha256sum /tmp/galia-lite.css | awk '{print $1}')
+          echo "GALIA_GRADIO_LITE_PATCH_JS_SHA256=$JS_SHA256"
+          echo "GALIA_GRADIO_LITE_PATCH_CSS_SHA256=$CSS_SHA256"
+
+          python - "$JS_SHA256" "$CSS_SHA256" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          payload = {
+              "runtime": "GRADIO_LITE_PINNED_HF_HUB",
+              "upstream_issue": "gradio-app/gradio#12262",
+              "upstream_patch_basis": "gradio-app/gradio#12162",
+              "js_url": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js",
+              "css_url": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.css",
+              "js_sha256": sys.argv[1],
+              "css_sha256": sys.argv[2],
+          }
+          Path("dist/gradio-lite/runtime-lock.json").write_text(
+              json.dumps(payload, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Browser smoke test Chromium and WebKit
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium webkit
+
+          python -m http.server 8765 --directory dist/gradio-lite >/tmp/galia-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+
+          node - <<'JS'
+          const { chromium, webkit } = require("playwright");
+
+          async function smoke(browserType, name) {
+            const browser = await browserType.launch({ headless: true });
+            const page = await browser.newPage({
+              viewport: { width: 390, height: 844 }
+            });
+            const errors = [];
+            const failedRequests = [];
+
+            page.on("pageerror", err => {
+              const line = name + " PAGEERROR: " + String(err);
+              errors.push(line);
+              console.error(line);
+            });
+            page.on("console", msg => {
+              const line = name + " CONSOLE[" + msg.type() + "]: " + msg.text();
+              if (msg.type() === "error") {
+                errors.push(line);
+                console.error(line);
+              }
+            });
+            page.on("requestfailed", req => {
+              const line = name + " REQUESTFAILED: " + req.url() + " :: " + (req.failure()?.errorText || "");
+              failedRequests.push(line);
+              console.error(line);
+            });
+
+            await page.goto("http://127.0.0.1:8765/", {
+              waitUntil: "domcontentloaded",
+              timeout: 60000
+            });
+
+            try {
+              await page.getByText("GALIA", { exact: false }).first().waitFor({
+                timeout: 120000
+              });
+              await page.getByText("South Base · San Juan", { exact: false }).first().waitFor({
+                timeout: 120000
+              });
+            } catch (err) {
+              console.error(name + " GALIA_BROWSER_RENDER_TIMEOUT");
+              console.error(name + " BODY_TEXT_START");
+              console.error((await page.locator("body").innerText()).slice(0, 12000));
+              console.error(name + " BODY_TEXT_END");
+              console.error(name + " ERRORS_START");
+              console.error(errors.join("\n"));
+              console.error(name + " ERRORS_END");
+              console.error(name + " FAILED_REQUESTS_START");
+              console.error(failedRequests.join("\n"));
+              console.error(name + " FAILED_REQUESTS_END");
+              await browser.close();
+              throw err;
+            }
+
+            const body = await page.locator("body").innerText();
+            const bad = [
+              "Can't find a pure Python 3 wheel",
+              "Traceback (most recent call last)",
+              "Requested 'huggingface-hub"
+            ];
+            for (const marker of bad) {
+              if (body.includes(marker)) {
+                await browser.close();
+                throw new Error(name + " runtime failure marker: " + marker);
+              }
+            }
+
+            const relevant = errors.filter(x =>
+              x.includes("micropip") ||
+              x.includes("huggingface-hub") ||
+              x.includes("PythonError") ||
+              x.includes("Traceback")
+            );
+            if (relevant.length) {
+              await browser.close();
+              throw new Error(relevant.join("\n"));
+            }
+
+            console.log("GALIA_GRADIO_LITE_BROWSER_SMOKE_" + name.toUpperCase() + "=PASS");
+            await browser.close();
+          }
+
+          (async () => {
+            await smoke(chromium, "chromium");
+            await smoke(webkit, "webkit");
+          })().catch(err => {
+            console.error(err);
+            process.exit(1);
+          });
+          JS
+
       - uses: actions/upload-artifact@v4
         with:
           name: galia-gradio-lite-dashboard
@@ -77,8 +218,10 @@ jobs:
         with:
           name: galia-gradio-lite-dashboard
           path: artifact
+
       - name: Install Hugging Face client
         run: python -m pip install --disable-pip-version-check "huggingface_hub>=1.19,<2"
+
       - name: Publish Gradio Lite package to Junitos/GALIA
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -98,7 +241,7 @@ jobs:
               folder_path="artifact",
               repo_id="Junitos/GALIA",
               repo_type="space",
-              commit_message="Publish GALIA Gradio Lite dashboard",
+              commit_message="Publish GALIA Gradio Lite dashboard with browser-validated runtime",
           )
           print("GALIA_GRADIO_LITE_HF_PUBLISH=PASS")
           print(info)
