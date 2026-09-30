@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install probe dependencies
-        run: python -m pip install --disable-pip-version-check pyproj
+        run: python -m pip install --disable-pip-version-check pyproj pillow
       - name: Validate gate state fail-closed
         run: python tools/validate_south_base_gates.py
       - name: Probe NGS read-only
