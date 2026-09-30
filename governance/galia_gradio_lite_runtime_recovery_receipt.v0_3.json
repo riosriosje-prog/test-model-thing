@@ -10,18 +10,23 @@
     "user_evidence": "mobile browser traceback in micropip package_manager/install/transaction during Gradio Lite initialization"
   },
   "root_cause": {
-    "upstream_runtime": "Gradio Lite 5.45.0",
-    "bundled_pyodide": "0.27.3",
-    "bundled_micropip": "0.8.0",
+    "upstream_runtime": "Gradio Lite npm release line",
     "known_upstream_issue": "gradio-app/gradio#12262",
-    "boundary": "failure occurs while Lite installs its own Gradio wheels, before GALIA app.py executes"
+    "upstream_status": "CLOSED_WITH_SPECIAL_PATCH",
+    "issue_pattern": "Gradio Lite can fail during micropip dependency resolution because its Gradio wheel requires huggingface-hub<1.0 while a 1.x huggingface-hub may already be present/resolved in Pyodide.",
+    "boundary": "failure occurs during Gradio Lite runtime dependency initialization before GALIA app.py becomes usable"
   },
   "candidate_fix": {
-    "gradio_lite": "5.45.0",
-    "runtime_distribution": "VENDORED_IN_SPACE",
-    "pyodide_from": "0.27.3",
-    "pyodide_to": "0.27.6",
+    "runtime_distribution": "UPSTREAM_SPECIAL_PATCH",
+    "patch_id": "PINNED_HF_HUB",
+    "js_url": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js",
+    "css_url": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.css",
     "browser_smoke_required": true,
+    "browser_gates": [
+      "chromium",
+      "webkit"
+    ],
+    "runtime_hashes": "PENDING_CI_CAPTURE",
     "canonical_authority_mutation": false,
     "research_data_mutation": false
   },
@@ -29,9 +34,10 @@
     "state": "PENDING_CI",
     "required_gates": [
       "unit tests",
-      "runtime asset patch exactly once",
-      "headless browser renders GALIA",
-      "South Base dossier visible",
+      "official upstream patch URLs reachable",
+      "runtime JS/CSS hashes captured",
+      "Chromium renders GALIA and South Base",
+      "WebKit renders GALIA and South Base",
       "no micropip/huggingface-hub traceback"
     ]
   }
