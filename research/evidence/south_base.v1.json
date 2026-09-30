@@ -1,0 +1,151 @@
+{
+  "schema_version": "galia.research.evidence.v1",
+  "project_id": "south-base",
+  "title": "South Base · San Juan",
+  "state": "EVIDENCE_EMBEDDED",
+  "scope": "RESEARCH_PRESENTATION_ONLY",
+  "authority_mutation": false,
+  "promotion": {
+    "state": "PROMOTED",
+    "receipt_path": "governance/galia_south_base_research_promotion_receipt.v1.json",
+    "date": "2026-09-30"
+  },
+  "claims": [
+    {
+      "id": "SOUTHBASE-HODGKINS-BLAKE-1899",
+      "date_range": "1899-01-11/1899-06-18",
+      "status": "FACT",
+      "claim": "The Coast and Geodetic Survey steamer Blake under W. C. Hodgkins worked in Puerto Rico in 1899; at Ponce it measured a 2,572.6-meter base line on the railroad southwest of the city and observed an astronomical azimuth at Cardona Island Lighthouse.",
+      "limits": [
+        "Does not identify South Base by name.",
+        "Does not establish that the Ponce base was geodetically identical to any San Juan baseline."
+      ],
+      "source": {
+        "publication": "Report of the Superintendent, U.S. Coast and Geodetic Survey, 1899",
+        "surrogate_url": "https://library.oarcloud.noaa.gov/docs.lib/htdocs/rescue/cgs/003_pdf/CSC-0102.PDF"
+      }
+    },
+    {
+      "id": "SOUTHBASE-SANJUAN-HARBOR-APR1899",
+      "date_range": "1899-04-01/1899-04-30",
+      "status": "FACT",
+      "claim": "During April 1899 Hodgkins's party surveyed the bar and anchorage of San Juan Harbor.",
+      "limits": [
+        "The report characterizes the San Juan work as a harbor survey and does not nominate South Base.",
+        "Local survey control may have been established, but that is not demonstrated by this source alone."
+      ],
+      "source": {
+        "publication": "Report of the Superintendent, U.S. Coast and Geodetic Survey, 1899",
+        "surrogate_url": "https://library.oarcloud.noaa.gov/docs.lib/htdocs/rescue/cgs/003_pdf/CSC-0102.PDF"
+      }
+    },
+    {
+      "id": "SOUTHBASE-FORNEY-PONCE-SANJUAN-1900",
+      "date_range": "1900-01-01/1900-05-31",
+      "status": "FACT",
+      "claim": "Stehman Forney led a Coast and Geodetic Survey triangulation party in Puerto Rico from Ponce to San Juan between January and May 1900.",
+      "limits": [
+        "The biographical field-assignment record does not name South Base.",
+        "It does not state whether a San Juan station was established, occupied, or reoccupied."
+      ],
+      "source": {
+        "publication": "Who's Who in the U.S. Coast & Geodetic Survey (1932)",
+        "surrogate_url": "https://library.oarcloud.noaa.gov/noaa_documents.lib/NOAA_historic_documents/C%26GS/CGS_whos-who_1932.pdf"
+      }
+    },
+    {
+      "id": "SOUTHBASE-ORIGIN-1900",
+      "date_range": "1900-01-01/1900-05-31",
+      "status": "STRONG_HYPOTHESIS",
+      "claim": "South Base was established or integrated into the island triangulation during Forney's 1900 Ponce-to-San Juan campaign.",
+      "limits": [
+        "Not promotable as an exact establishment fact until a station description, field record, computation sheet, or equivalent nominates South Base.",
+        "An alternative remains open: Hodgkins may have established local San Juan control in 1899 that Forney later occupied or integrated."
+      ]
+    },
+    {
+      "id": "SOUTHBASE-MAGNETIC-DISTINCTION-1904-1909",
+      "date_range": "1904/1909",
+      "status": "FACT",
+      "claim": "The magnetic observation point near South Base was distinct from the South Base triangulation station; in 1908 the magnetic station of 1904 was reoccupied between Morro Lighthouse and South Base, 20 paces from South Base, and in 1909 observations were made 50 feet from South Base toward Morro at a separately monumented cement stone.",
+      "limits": [
+        "The magnetic monument is not the South Base triangulation monument.",
+        "These records establish relative topology and reuse, not the original establishment date of South Base."
+      ],
+      "source": {
+        "publication": "Coast and Geodetic Survey Reports, magnetic observations 1908 and 1909",
+        "surrogate_url": "https://library.oarcloud.noaa.gov/docs.lib/htdocs/rescue/cgs/004_pdf/CSC-0113.PDF"
+      }
+    },
+    {
+      "id": "SOUTHBASE-MORRO-BEARING",
+      "date_range": "1908/1909",
+      "status": "FACT",
+      "claim": "The true bearing from the South Base vicinity to Morro Lighthouse was recorded as N 37°09.4′ E.",
+      "limits": [
+        "Bearing alone does not yield a unique modern coordinate without an authoritative origin and datum transformation."
+      ],
+      "source": {
+        "publication": "Coast and Geodetic Survey magnetic station descriptions",
+        "surrogate_url": "https://library.oarcloud.noaa.gov/docs.lib/htdocs/rescue/cgs/004_pdf/CSC-0113.PDF"
+      }
+    },
+    {
+      "id": "SOUTHBASE-MORRO-1983-HISTORIC-CONTROL",
+      "date_range": "1983-03-03/1983-04-06",
+      "status": "FACT",
+      "claim": "NOAA hydrographic survey H10076 used a visual signal named MORRO LIGHTHOUSE 1900 and listed the position 18°28′22.774″ N, 66°07′26.371″ W in the Puerto Rico Datum control system of that survey.",
+      "limits": [
+        "The listed position must not be treated as WGS84 without datum transformation.",
+        "This supports landmark/control continuity, not South Base identity by itself."
+      ],
+      "source": {
+        "publication": "NOAA/NOS Hydrographic Survey H10076 descriptive report",
+        "surrogate_url": "https://data.ngdc.noaa.gov/platforms/ocean/nos/coast/H10001-H12000/H10076/DR/H10076.pdf"
+      }
+    }
+  ],
+  "open_gates": [
+    {
+      "id": "SOUTHBASE-ORIGINAL-STATION-DESCRIPTION",
+      "state": "OPEN",
+      "target": "Locate the original Coast and Geodetic Survey triangulation station description naming South Base, preferably in GA station descriptions or associated field records."
+    },
+    {
+      "id": "SOUTHBASE-ESTABLISHING-PARTY",
+      "state": "OPEN",
+      "target": "Determine whether South Base was established by Hodgkins in 1899, by Forney in 1900, or established in 1899 and reoccupied/integrated in 1900."
+    },
+    {
+      "id": "SOUTHBASE-ORIGINAL-COORDINATE-MARK",
+      "state": "OPEN",
+      "target": "Recover original coordinate, datum, station mark description, witness ties, and first observation."
+    },
+    {
+      "id": "SOUTHBASE-NGS-PID",
+      "state": "OPEN",
+      "target": "Reconcile South Base with any modern NGS station record/PID without assuming identity from name or proximity."
+    }
+  ],
+  "archival_routes": [
+    {
+      "repository": "National Archives and Records Administration",
+      "record_group": "RG 23 — Records of the Coast and Geodetic Survey",
+      "priority": [
+        "GA — Triangulation Station Descriptions",
+        "GAR — Reconnaissance Notes",
+        "GH — Horizontal and Vertical Angle Observations",
+        "AA — Azimuth Observations",
+        "GB / GBZ — Base Measurements and Base Line Computations",
+        "Records of surveys in insular possessions, 1900–1906"
+      ]
+    }
+  ],
+  "source_lineage": [
+    {
+      "kind": "human_promoted_research_synthesis",
+      "date": "2026-09-30",
+      "note": "Promoted with explicit human authorization after separating verified campaign facts, the 1900 origin hypothesis, and unresolved station-identity gates."
+    }
+  ]
+}
