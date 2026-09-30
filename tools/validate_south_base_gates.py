@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PATH = ROOT / "research/gates/south_base_gates.v0_3.json"
+PATH = ROOT / "research/gates/south_base_gates.v0_4.json"
 
 
 def fail(msg: str) -> None:
@@ -41,6 +41,7 @@ def main() -> None:
         "SB-ORIGINAL-COORDINATE-MARK",
         "SB-NGS-PID",
         "SB-SAN-JUAN-NORTH-BASE-1899",
+        "SB-1899-OFFICIAL-FIELD-WORK-CLASSIFICATION",
         "SB-1899-BASELINE-MEASUREMENT",
         "SB-GA-ORIGINAL-CARD-IMAGE",
         "SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION",
@@ -100,8 +101,16 @@ def main() -> None:
         fail("North Base companion gate regressed")
     if gates["SB-SAN-JUAN-NORTH-BASE-1899"].get("resolved", {}).get("pid") != "TV1049":
         fail("North Base PID identity changed")
-    if gates["SB-1899-BASELINE-MEASUREMENT"]["state"] != "OPEN_PRIMARY_TARGET":
-        fail("baseline-measurement record must remain open")
+    fw = gates["SB-1899-OFFICIAL-FIELD-WORK-CLASSIFICATION"]
+    if fw.get("state") != "PASS_LIMITING_EVIDENCE":
+        fail("1899 field-work classification gate regressed")
+    ti = fw.get("recovered", {}).get("technical_index", {})
+    if ti.get("porto_rico_under_triangulation") is not True:
+        fail("1899 Porto Rico triangulation classification changed")
+    if ti.get("porto_rico_enumerated_under_base_lines") is not False:
+        fail("1899 Base-lines limiting evidence changed")
+    if gates["SB-1899-BASELINE-MEASUREMENT"]["state"] != "OPEN_FUNCTION_AND_MEASUREMENT_RECORD":
+        fail("baseline function/measurement record must remain open")
     if gates["SB-GA-ORIGINAL-CARD-IMAGE"]["state"] != "OPEN_PROVENANCE_DEPTH":
         fail("GA original-card gate must remain open")
     if gates["SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION"]["state"] != "OPEN_HUMAN_RECONCILIATION_REQUIRED":
@@ -123,7 +132,8 @@ def main() -> None:
     print("NORTH_BASE_PID=PASS:TV1049")
     print("MONUMENTATION=PASS:1899_CGS")
     print("ORIGIN_MODEL=PASS_1899_MONUMENTATION_WITH_1900_NETWORK_INTEGRATION_SEPARATE")
-    print("BASELINE_MEASUREMENT_RECORD=OPEN_PRIMARY_TARGET")
+    print("FIELD_WORK_CLASSIFICATION=PASS_LIMITING_EVIDENCE")
+    print("BASELINE_MEASUREMENT_RECORD=OPEN_FUNCTION_AND_MEASUREMENT_RECORD")
     print("GA_ORIGINAL_CARD=OPEN_PROVENANCE_DEPTH")
     print("PROMOTED_DOSSIER_RECONCILIATION=OPEN_HUMAN_RECONCILIATION_REQUIRED")
 
