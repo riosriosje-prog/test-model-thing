@@ -81,25 +81,46 @@
     },
     {
       "id": "SB-1936-CORPS-MAP-SURVIVAL",
-      "state": "PASS_LABEL_PRESENT",
-      "proposition": "A 1936 U.S. Engineer Office, Puerto Rico District map explicitly labels STA. SOUTH BASE.",
+      "state": "OPEN_CONTEXT_UNVERIFIED",
+      "proposition": "A govinfo/OCR search surface associated with Serial Set package SERIALSET-10129_00_00-005-0200-0000 contains the text 'STA. SOUTH BASE', but the currently recovered context is insufficient to prove that this label belongs to the San Juan map rather than a different Puerto Rico District / Virgin Islands plate.",
       "source": {
         "publication": "U.S. Serial Set / U.S. Engineer Office, Puerto Rico District, Oct. 1936",
         "govinfo_package": "SERIALSET-10129_00_00-005-0200-0000",
         "url": "https://www.govinfo.gov/content/pkg/SERIALSET-10129_00_00-005-0200-0000/pdf/SERIALSET-10129_00_00-005-0200-0000.pdf"
       },
       "limits": [
-        "The map label proves continued cartographic recognition of the station name in 1936.",
-        "The exact plotted grid coordinate has not yet been extracted from a verified image/scan.",
-        "A 1936 label does not prove establishment date or original station mark."
+        "The package contains Puerto Rico District material that also covers the U.S. Virgin Islands.",
+        "Search/OCR context alone is not enough to assign the station label to San Juan.",
+        "The underlying plate has not yet been visually inspected at sufficient resolution with its title/index context.",
+        "Do not use this item as survival evidence or as a coordinate source until the plate is identified."
       ],
-      "effect": "Adds a later independent cartographic survival anchor."
+      "effect": "1936 survival is not currently counted as PASS. Preserve as a lead only."
     },
     {
       "id": "SB-1936-MAP-GRID-COORDINATE",
-      "state": "OPEN",
-      "target": "Recover the 1936 map image at sufficient resolution, identify its grid reference/system, and read or derive the plotted South Base coordinate with an uncertainty budget.",
-      "rejection_rule": "Do not infer a precise coordinate solely from OCR fragments or a low-resolution text extraction."
+      "state": "OPEN_CONTEXT_AND_GRID_UNVERIFIED",
+      "target": "First identify the exact plate containing 'STA. SOUTH BASE' and verify that it is a San Juan/Puerto Rico plate; only then recover grid system and plotted coordinate with an uncertainty budget.",
+      "rejection_rule": "Reject any coordinate derivation from OCR snippets, plate fragments without title/index context, or a St. Thomas/other-island plate."
+    },
+    {
+      "id": "SB-1899-UNT-SAN-JUAN-HARBOR-MAP",
+      "state": "PASS_SOURCE_RECOVERED_CONTEXT_ONLY",
+      "proposition": "The Portal to Texas History preserves an 1899 U.S. Coast & Geodetic Survey / U.S. Fish Commission San Juan Harbor map product. The recovered front image states that it was adapted from C&GS Chart No. 908 with U.S. Fish Commission additions in 1899.",
+      "recovered": {
+        "repository": "The Portal to Texas History / University of Texas at Arlington Library",
+        "ark": "ark:/67531/metapth231585",
+        "manifest_url": "https://texashistory.unt.edu/ark:/67531/metapth231585/manifest/",
+        "title": "San Juan Harbor Porto Rico.",
+        "public_canvas_max_px": 1500,
+        "canvas_count": 2,
+        "visible_footer": "Adapted from chart No. 908 U.S. Coast & Geodetic Survey Washington D.C. / Additions by U.S. Fish Commission 1899"
+      },
+      "limits": [
+        "This is a derived/adapted chart product, not demonstrated to be Hodgkins's original April 1899 field/control sketch.",
+        "At the repository's public full-max derivative, a SOUTH BASE station label has not been read confidently.",
+        "The map therefore does not independently establish South Base monumentation; the official NGS station history does."
+      ],
+      "effect": "Useful 1899 cartographic context and chart-lineage evidence only. Do not use as a station-establishment record or precision coordinate source."
     },
     {
       "id": "SB-1899-SAN-JUAN-HARBOR-CONTROL",
@@ -391,10 +412,10 @@
     }
   ],
   "next_actions": [
-    "Recover the GB/GBZ 1899 San Juan base-measurement/computation record linking TV1049 and TV1051.",
+    "Recover the GB/GBZ 1899 San Juan base-measurement/computation record explicitly linking TV1049 and TV1051.",
     "Recover the GA-series original station-description card/image for TV1051 and TV1049.",
     "Recover 1900 GH/GAR/field records to determine whether SF/Forney occupied or incorporated TV1051 South Base.",
-    "Recover the 1936 U.S. Engineer map at sufficient resolution to derive the plotted South Base grid coordinate with uncertainty.",
+    "Visually identify the exact 1936 Serial Set plate containing 'STA. SOUTH BASE' before attributing it to San Juan.",
     "Preserve all current/superseded NGS coordinates with explicit datum/status labels."
   ],
   "source_register": [
@@ -411,8 +432,10 @@
       "label": "U.S. Serial Set 10129 — 1936 Puerto Rico District map",
       "url": "https://www.govinfo.gov/content/pkg/SERIALSET-10129_00_00-005-0200-0000/pdf/SERIALSET-10129_00_00-005-0200-0000.pdf",
       "supports": [
-        "SB-1936-CORPS-MAP-SURVIVAL"
-      ]
+        "SB-1936-CORPS-MAP-SURVIVAL",
+        "SB-1936-MAP-GRID-COORDINATE"
+      ],
+      "caution": "OCR/package lead only until exact plate context is visually verified."
     },
     {
       "label": "NARA RG 23 Guide",
@@ -440,6 +463,14 @@
         "SB-SAN-JUAN-NORTH-BASE-1899",
         "SB-ORIGIN-MODEL"
       ]
+    },
+    {
+      "label": "The Portal to Texas History — San Juan Harbor Porto Rico (1899)",
+      "url": "https://texashistory.unt.edu/ark:/67531/metapth231585/",
+      "supports": [
+        "SB-1899-UNT-SAN-JUAN-HARBOR-MAP"
+      ],
+      "caution": "Derived/adapted Chart 908 product; not an original South Base station record."
     }
   ]
 }
