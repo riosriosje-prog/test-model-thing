@@ -43,6 +43,7 @@ def main() -> None:
         "SB-SAN-JUAN-NORTH-BASE-1899",
         "SB-1899-BASELINE-MEASUREMENT",
         "SB-GA-ORIGINAL-CARD-IMAGE",
+        "SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION",
     }
     if not required.issubset(gates):
         fail("required gates missing")
@@ -103,6 +104,8 @@ def main() -> None:
         fail("baseline-measurement record must remain open")
     if gates["SB-GA-ORIGINAL-CARD-IMAGE"]["state"] != "OPEN_PROVENANCE_DEPTH":
         fail("GA original-card gate must remain open")
+    if gates["SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION"]["state"] != "OPEN_HUMAN_RECONCILIATION_REQUIRED":
+        fail("promoted-dossier reconciliation must remain explicitly human-gated")
 
     print("SOUTH_BASE_GATE_VALIDATION=PASS")
     print("EXISTS_BY_1904=PASS")
@@ -122,6 +125,7 @@ def main() -> None:
     print("ORIGIN_MODEL=PASS_1899_MONUMENTATION_WITH_1900_NETWORK_INTEGRATION_SEPARATE")
     print("BASELINE_MEASUREMENT_RECORD=OPEN_PRIMARY_TARGET")
     print("GA_ORIGINAL_CARD=OPEN_PROVENANCE_DEPTH")
+    print("PROMOTED_DOSSIER_RECONCILIATION=OPEN_HUMAN_RECONCILIATION_REQUIRED")
 
 
 if __name__ == "__main__":
