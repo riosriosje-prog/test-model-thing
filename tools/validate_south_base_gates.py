@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PATH = ROOT / "research/gates/south_base_gates.v0_2.json"
+PATH = ROOT / "research/gates/south_base_gates.v0_3.json"
 
 
 def fail(msg: str) -> None:
@@ -34,6 +34,7 @@ def main() -> None:
         "SB-1899-1900-CAMPAIGN-SEPARATION",
         "SB-1936-CORPS-MAP-SURVIVAL",
         "SB-1936-MAP-GRID-COORDINATE",
+        "SB-1899-UNT-SAN-JUAN-HARBOR-MAP",
         "SB-ORIGIN-MODEL",
         "SB-ORIGINAL-STATION-DESCRIPTION",
         "SB-ESTABLISHING-PARTY",
@@ -42,6 +43,7 @@ def main() -> None:
         "SB-SAN-JUAN-NORTH-BASE-1899",
         "SB-1899-BASELINE-MEASUREMENT",
         "SB-GA-ORIGINAL-CARD-IMAGE",
+        "SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION",
     }
     if not required.issubset(gates):
         fail("required gates missing")
@@ -78,10 +80,12 @@ def main() -> None:
         fail("1899/1900 campaign separation gate regressed")
     if gates["SB-1900-FORNEY-NETWORK"]["state"] != "PASS_CAMPAIGN_WITH_DISTINCT_1900_MORRO_CONTROL_LAYER":
         fail("1900 Forney network gate regressed")
-    if gates["SB-1936-CORPS-MAP-SURVIVAL"]["state"] != "PASS_LABEL_PRESENT":
-        fail("1936 map survival gate regressed")
-    if gates["SB-1936-MAP-GRID-COORDINATE"]["state"] != "OPEN":
-        fail("1936 exact grid coordinate must remain open")
+    if gates["SB-1936-CORPS-MAP-SURVIVAL"]["state"] != "OPEN_CONTEXT_UNVERIFIED":
+        fail("1936 label must remain context-unverified")
+    if gates["SB-1936-MAP-GRID-COORDINATE"]["state"] != "OPEN_CONTEXT_AND_GRID_UNVERIFIED":
+        fail("1936 exact grid coordinate/context must remain open")
+    if gates["SB-1899-UNT-SAN-JUAN-HARBOR-MAP"]["state"] != "PASS_SOURCE_RECOVERED_CONTEXT_ONLY":
+        fail("1899 UNT chart-context gate regressed")
     if gates["SB-ORIGINAL-STATION-DESCRIPTION"]["state"] != "PASS_TEXT_RECOVERED_IN_OFFICIAL_NGS_DATASHEET":
         fail("original station-description content gate regressed")
     if gates["SB-NGS-PID"]["state"] != "PASS":
@@ -100,6 +104,8 @@ def main() -> None:
         fail("baseline-measurement record must remain open")
     if gates["SB-GA-ORIGINAL-CARD-IMAGE"]["state"] != "OPEN_PROVENANCE_DEPTH":
         fail("GA original-card gate must remain open")
+    if gates["SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION"]["state"] != "OPEN_HUMAN_RECONCILIATION_REQUIRED":
+        fail("promoted-dossier reconciliation must remain explicitly human-gated")
 
     print("SOUTH_BASE_GATE_VALIDATION=PASS")
     print("EXISTS_BY_1904=PASS")
@@ -109,8 +115,9 @@ def main() -> None:
     print("SF_1900_MORRO_CASTLE_2=PASS:TV1021")
     print("MORRO_LIGHTHOUSE_FIRST_OBSERVED=PASS:1900")
     print("CAMPAIGN_SEPARATION=PASS:1899_WCH__1900_SF")
-    print("MAP_1936_LABEL=PASS")
-    print("MAP_1936_GRID_COORDINATE=OPEN")
+    print("MAP_1936_LABEL=OPEN_CONTEXT_UNVERIFIED")
+    print("MAP_1936_GRID_COORDINATE=OPEN_CONTEXT_AND_GRID_UNVERIFIED")
+    print("UNT_1899_MAP=PASS_SOURCE_RECOVERED_CONTEXT_ONLY")
     print("ORIGINAL_STATION_DESCRIPTION=PASS_TEXT_RECOVERED_IN_OFFICIAL_NGS_DATASHEET")
     print("NGS_PID=PASS:TV1051")
     print("NORTH_BASE_PID=PASS:TV1049")
@@ -118,6 +125,7 @@ def main() -> None:
     print("ORIGIN_MODEL=PASS_1899_MONUMENTATION_WITH_1900_NETWORK_INTEGRATION_SEPARATE")
     print("BASELINE_MEASUREMENT_RECORD=OPEN_PRIMARY_TARGET")
     print("GA_ORIGINAL_CARD=OPEN_PROVENANCE_DEPTH")
+    print("PROMOTED_DOSSIER_RECONCILIATION=OPEN_HUMAN_RECONCILIATION_REQUIRED")
 
 
 if __name__ == "__main__":
