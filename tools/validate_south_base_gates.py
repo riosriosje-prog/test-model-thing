@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PATH = ROOT / "research/gates/south_base_gates.v0_6.json"
+PATH = ROOT / "research/gates/south_base_gates.v0_7.json"
 
 
 def fail(msg: str) -> None:
@@ -49,6 +49,9 @@ def main() -> None:
         "SB-1899-SAN-JUAN-EXAMINATION-BLUEPRINT",
         "SB-1900-FORNEY-TV1051-OCCUPATION",
         "SB-NAVY-HYDROGRAPHIC-OFFICE-1899-MAP-CHECK",
+        "SB-WCH-NOMINAL-IDENTITY",
+        "SB-1899-IIIF-CANVAS-RECOVERY",
+        "SB-GA-CARD-DIGITAL-SEARCH",
     }
     if not required.issubset(gates):
         fail("required gates missing")
@@ -129,6 +132,19 @@ def main() -> None:
         fail("Forney/TV1051 occupation must remain open without a direct station tie")
     if gates["SB-NAVY-HYDROGRAPHIC-OFFICE-1899-MAP-CHECK"]["state"] != "PASS_LIMITING_EVIDENCE":
         fail("Hydrographic Office 1899 limiting-evidence gate regressed")
+    if gates["SB-WCH-NOMINAL-IDENTITY"]["state"] != "PASS_CROSS_SOURCE_CORROBORATION":
+        fail("WCH nominal-identity gate regressed")
+    if gates["SB-1899-IIIF-CANVAS-RECOVERY"]["state"] != "PASS_SOURCE_PIXELS_INSPECTED_LIMITING_EVIDENCE":
+        fail("1899 IIIF map-inspection gate regressed")
+    iiif = gates["SB-1899-IIIF-CANVAS-RECOVERY"].get("recovered", {})
+    if iiif.get("canvas_count") != 2:
+        fail("1899 IIIF canvas count changed")
+    if gates["SB-GA-CARD-DIGITAL-SEARCH"]["state"] != "PASS_SEARCH_SATURATION_CARD_IMAGE_NOT_RECOVERED":
+        fail("GA-card digital-search saturation gate regressed")
+    if gates["SB-GA-ORIGINAL-CARD-IMAGE"]["state"] != "OPEN_ARCHIVAL_REQUIRED":
+        fail("GA original-card gate must remain archival-open")
+    if gates["SB-ESTABLISHING-PARTY"]["state"] != "PASS_AGENCY_YEAR_AND_DESCRIPTOR_NOMINAL_IDENTITY":
+        fail("establishing-party nominal identity gate regressed")
 
     print("SOUTH_BASE_GATE_VALIDATION=PASS")
     print("EXISTS_BY_1904=PASS")
@@ -155,6 +171,10 @@ def main() -> None:
     print("SAN_JUAN_1899_BLUEPRINT=OPEN_ARCHIVAL_LEAD")
     print("FORNEY_TV1051_1900=OPEN_NO_DIRECT_STATION_TIE")
     print("HYDROGRAPHIC_OFFICE_1899_MAP=PASS_LIMITING_EVIDENCE")
+    print("WCH_NOMINAL_IDENTITY=PASS_CROSS_SOURCE_CORROBORATION")
+    print("IIIF_1899_MAP=PASS_SOURCE_PIXELS_INSPECTED_LIMITING_EVIDENCE")
+    print("GA_CARD_DIGITAL_SEARCH=PASS_SEARCH_SATURATION_CARD_IMAGE_NOT_RECOVERED")
+    print("GA_ORIGINAL_CARD=OPEN_ARCHIVAL_REQUIRED")
 
 
 if __name__ == "__main__":
