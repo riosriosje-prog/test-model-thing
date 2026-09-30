@@ -226,8 +226,8 @@ def render(pointer, registry, evidence_docs):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GALIA — Gradio Lite</title>
 <meta name="description" content="Read-only GALIA authority and research dashboard">
-<script type="module" crossorigin src="https://cdn.jsdelivr.net/npm/@gradio/lite@VERSION/dist/lite.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gradio/lite@VERSION/dist/lite.css">
+<script type="module" crossorigin src="RUNTIME_JS"></script>
+<link rel="stylesheet" href="RUNTIME_CSS">
 <style>html,body{margin:0;padding:0;min-height:100%;background:#0b1020}</style>
 </head>
 <body>
