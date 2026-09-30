@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PATH = ROOT / "research/gates/south_base_gates.v0_5.json"
+PATH = ROOT / "research/gates/south_base_gates.v0_6.json"
 
 
 def fail(msg: str) -> None:
@@ -45,6 +45,10 @@ def main() -> None:
         "SB-1899-BASELINE-MEASUREMENT",
         "SB-GA-ORIGINAL-CARD-IMAGE",
         "SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION",
+        "SB-1899-BASELINE-DIGITAL-SEARCH-SATURATION",
+        "SB-1899-SAN-JUAN-EXAMINATION-BLUEPRINT",
+        "SB-1900-FORNEY-TV1051-OCCUPATION",
+        "SB-NAVY-HYDROGRAPHIC-OFFICE-1899-MAP-CHECK",
     }
     if not required.issubset(gates):
         fail("required gates missing")
@@ -117,6 +121,14 @@ def main() -> None:
         fail("GA original-card gate must remain open")
     if gates["SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION"]["state"] != "OPEN_HUMAN_RECONCILIATION_REQUIRED":
         fail("promoted-dossier reconciliation must remain explicitly human-gated")
+    if gates["SB-1899-BASELINE-DIGITAL-SEARCH-SATURATION"]["state"] != "PASS_SEARCH_SATURATION_NO_PRIMARY_MEASUREMENT_FOUND":
+        fail("baseline digital-search saturation state regressed")
+    if gates["SB-1899-SAN-JUAN-EXAMINATION-BLUEPRINT"]["state"] != "OPEN_ARCHIVAL_LEAD":
+        fail("1899 San Juan blueprint gate must remain an archival lead")
+    if gates["SB-1900-FORNEY-TV1051-OCCUPATION"]["state"] != "OPEN_NO_DIRECT_STATION_TIE":
+        fail("Forney/TV1051 occupation must remain open without a direct station tie")
+    if gates["SB-NAVY-HYDROGRAPHIC-OFFICE-1899-MAP-CHECK"]["state"] != "PASS_LIMITING_EVIDENCE":
+        fail("Hydrographic Office 1899 limiting-evidence gate regressed")
 
     print("SOUTH_BASE_GATE_VALIDATION=PASS")
     print("EXISTS_BY_1904=PASS")
@@ -139,6 +151,10 @@ def main() -> None:
     print("BASELINE_MEASUREMENT_RECORD=OPEN_FUNCTION_AND_MEASUREMENT_RECORD")
     print("GA_ORIGINAL_CARD=OPEN_PROVENANCE_DEPTH")
     print("PROMOTED_DOSSIER_RECONCILIATION=OPEN_HUMAN_RECONCILIATION_REQUIRED")
+    print("BASELINE_DIGITAL_SEARCH=PASS_SEARCH_SATURATION_NO_PRIMARY_MEASUREMENT_FOUND")
+    print("SAN_JUAN_1899_BLUEPRINT=OPEN_ARCHIVAL_LEAD")
+    print("FORNEY_TV1051_1900=OPEN_NO_DIRECT_STATION_TIE")
+    print("HYDROGRAPHIC_OFFICE_1899_MAP=PASS_LIMITING_EVIDENCE")
 
 
 if __name__ == "__main__":
