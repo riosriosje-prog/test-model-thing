@@ -38,6 +38,8 @@ def test_gradio_lite_build_is_pinned_and_read_only(tmp_path):
     text = build(tmp_path)
     assert "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js" in text
     assert "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.css" in text
+    assert "GALIA_GRADIO_LITE_WORKER_REDIRECT=ACTIVE" in text
+    assert "galia-gradio-lite-webworker.js" in text
     assert "READ ONLY" in text
     assert "_galia_starlette_url_init" in text
     assert "query_string" in text
@@ -61,3 +63,11 @@ def test_builder_reuses_existing_fail_closed_authority_validation():
     source = (ROOT / "tools/build_galia_gradio_lite_dashboard.py").read_text(encoding="utf-8")
     assert "base.validate_authority(pointer)" in source
     assert "base.validate_research(registry)" in source
+
+
+def test_worker_redirect_is_scoped_to_pinned_runtime():
+    source = (ROOT / "tools/build_galia_gradio_lite_dashboard.py").read_text(encoding="utf-8")
+    assert 'PATCHED_WORKER_PATH = "./galia-gradio-lite-webworker.js"' in source
+    assert 'class GaliaBlob extends NativeBlob' in source
+    assert 'PINNED_HF_HUB' in source
+    assert 'webworker-' in source
