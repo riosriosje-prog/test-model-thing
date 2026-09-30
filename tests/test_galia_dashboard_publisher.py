@@ -16,7 +16,7 @@ def test_direct_dashboard_build(tmp_path):
         text=True,
     )
     assert "GALIA_DASHBOARD_VALIDATION=PASS" in p.stdout
-    assert "GALIA_RESEARCH_EVIDENCE_DOCS=1" in p.stdout
+    assert "GALIA_RESEARCH_EVIDENCE_DOCS=2" in p.stdout
     text = out.read_text(encoding="utf-8")
     assert "READ ONLY" in text
     assert "RC-GALIA-2026-09-13-004" in text
@@ -24,6 +24,11 @@ def test_direct_dashboard_build(tmp_path):
     assert "Avenida MacLeary. Parada 44" in text
     assert "sale de Taft" in text
     assert "MCLEARY-NAMING-ACT-19140105-19151121" in text
+    assert "South Base · San Juan" in text
+    assert "2,572.6-meter base line" in text
+    assert "SOUTHBASE-ORIGINAL-STATION-DESCRIPTION" in text
+    assert "STRONG_HYPOTHESIS" in text
+    assert "Human-promoted dossiers" in text
     assert "<script src=" not in text
 
 
@@ -40,3 +45,17 @@ def test_embedded_research_is_non_authoritative():
     assert evidence["scope"] == "RESEARCH_PRESENTATION_ONLY"
     assert evidence["authority_mutation"] is False
     assert evidence["project_id"] == "mcleary"
+
+
+def test_south_base_promotion_receipt_preserves_hypothesis_boundary():
+    registry = json.loads((ROOT / "governance/galia_dashboard_research_registry.v1.json").read_text())
+    project = next(p for p in registry["projects"] if p["id"] == "south-base")
+    evidence = json.loads((ROOT / project["evidence_path"]).read_text())
+    receipt = json.loads((ROOT / evidence["promotion"]["receipt_path"]).read_text())
+    assert receipt["state"] == "PROMOTED"
+    assert receipt["promoted_object"]["evidence_path"] == project["evidence_path"]
+    assert receipt["scope"]["global_master_mutation"] is False
+    assert receipt["scope"]["canonical_database_write"] is False
+    assert receipt["scope"]["hypothesis_promoted_as_fact"] is False
+    origin = next(c for c in evidence["claims"] if c["id"] == "SOUTHBASE-ORIGIN-1900")
+    assert origin["status"] == "STRONG_HYPOTHESIS"
