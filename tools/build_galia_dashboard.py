@@ -140,6 +140,61 @@ def render_claims(evidence: dict) -> str:
         )
     return "".join(rows)
 
+
+def render_claim_status_chart(fact: int, hypothesis: int, other: int) -> str:
+    items = [
+        ("FACT", fact),
+        ("STRONG HYPOTHESIS", hypothesis),
+        ("OTHER / PARTIAL", other),
+    ]
+    maximum = max([value for _, value in items] + [1])
+    rows = []
+    y_values = [54, 118, 182]
+    for (label, value), y in zip(items, y_values):
+        width = round((value / maximum) * 420)
+        rows.append(
+            f'<text x="18" y="{y + 5}" class="chart-label">{esc(label)}</text>'
+            f'<rect x="190" y="{y - 16}" width="420" height="28" rx="8" class="chart-track"/>'
+            f'<rect x="190" y="{y - 16}" width="{width}" height="28" rx="8" class="chart-bar"/>'
+            f'<text x="650" y="{y + 5}" class="chart-value">{value}</text>'
+        )
+    return (
+        '<svg class="status-chart" viewBox="0 0 680 220" role="img" '
+        'aria-label="Current research claim status distribution">'
+        + "".join(rows)
+        + '</svg>'
+    )
+
+
+def render_dossier_progress(project: dict, evidence: dict) -> str:
+    claims = evidence.get("claims", [])
+    total = len(claims)
+    facts = sum(1 for c in claims if c.get("status") == "FACT")
+    hypotheses = sum(1 for c in claims if c.get("status") == "STRONG_HYPOTHESIS")
+    other = total - facts - hypotheses
+    open_gates = len(evidence.get("open_gates", []))
+    fact_pct = round((facts / total) * 100) if total else 0
+    hypothesis_pct = round((hypotheses / total) * 100) if total else 0
+    other_pct = max(0, 100 - fact_pct - hypothesis_pct) if total else 0
+    return f"""
+    <article class="dossier-progress">
+      <div class="dossier-head">
+        <strong>{esc(project['title'])}</strong>
+        <span>{total} claims · {open_gates} open gates</span>
+      </div>
+      <div class="stacked-chart" role="img" aria-label="{esc(project['title'])}: {facts} facts, {hypotheses} strong hypotheses, {other} other claims">
+        <span class="seg fact" style="width:{fact_pct}%" title="FACT: {facts}"></span>
+        <span class="seg hypothesis" style="width:{hypothesis_pct}%" title="STRONG_HYPOTHESIS: {hypotheses}"></span>
+        <span class="seg other" style="width:{other_pct}%" title="Other: {other}"></span>
+      </div>
+      <div class="legend-row">
+        <span><i class="key fact"></i>FACT {facts}</span>
+        <span><i class="key hypothesis"></i>Hypothesis {hypotheses}</span>
+        <span><i class="key other"></i>Other {other}</span>
+      </div>
+    </article>
+    """
+
 def render_open_gates(evidence: dict) -> str:
     return "".join(
         f"<li><strong>{esc(g['id'])}</strong> — {esc(g['state'])}: {esc(g['target'])}</li>"
@@ -171,6 +226,13 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict]) -> str
     fact_claims = claim_status_counts.get("FACT", 0)
     hypothesis_claims = claim_status_counts.get("STRONG_HYPOTHESIS", 0)
     total_claims = sum(claim_status_counts.values())
+    other_claims = total_claims - fact_claims - hypothesis_claims
+    claim_status_chart = render_claim_status_chart(fact_claims, hypothesis_claims, other_claims)
+    dossier_progress_html = "".join(
+        render_dossier_progress(project, evidence_docs[project["id"]])
+        for project in projects
+        if project["id"] in evidence_docs
+    )
 
     gate_rows = "".join(
         f"<tr><td>{esc(k)}</td><td>{esc(v)}</td></tr>"
@@ -227,6 +289,20 @@ th{{background:#f5f7fa;position:sticky;top:0}} .table-scroll{{overflow:auto;max-
 .metric{{background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(0,0,0,.10)}}
 .metric strong{{display:block;font-size:1.55rem;margin-top:4px;color:var(--ink)}}
 .progress-grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}}
+.chart-grid{{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.8fr);gap:14px;margin:14px 0}}
+.chart-card{{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow:hidden}}
+.chart-card h2{{margin-bottom:4px}}
+.status-chart{{width:100%;height:auto;display:block;margin-top:8px}}
+.chart-track{{fill:#e8ecf2}}.chart-bar{{fill:var(--navy)}}
+.chart-label,.chart-value{{font-family:system-ui,-apple-system,sans-serif;fill:#000;font-size:16px;font-weight:750}}
+.chart-value{{text-anchor:end;font-size:18px}}
+.dossier-progress{{padding:12px 0;border-bottom:1px solid var(--rule)}}.dossier-progress:last-child{{border-bottom:0}}
+.dossier-head{{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}}
+.dossier-head span{{color:var(--muted);font-size:.9rem}}
+.stacked-chart{{display:flex;width:100%;height:24px;border-radius:8px;overflow:hidden;background:#e8ecf2;margin:10px 0 8px}}
+.seg{{height:100%;display:block}}.seg.fact{{background:var(--navy)}}.seg.hypothesis{{background:#687489}}.seg.other{{background:#c7ced8}}
+.legend-row{{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}}
+.key{{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}}.key.fact{{background:var(--navy)}}.key.hypothesis{{background:#687489}}.key.other{{background:#c7ced8}}
 .progress-card{{margin:0;min-width:0}}
 .progress-card .big{{font-size:1.8rem;font-weight:850;line-height:1}}
 .progress-track{{height:11px;border-radius:999px;background:var(--soft);overflow:hidden;margin:12px 0 7px}}
@@ -244,7 +320,7 @@ summary span:first-of-type{{flex:1}}
 ul{{line-height:1.55}}
 .claim-row[hidden]{{display:none}}
 .navline{{display:flex;gap:8px;flex-wrap:wrap}}
-@media (max-width:760px){{main{{padding:10px 8px 30px}}.card,.hero,.progress-card{{padding:14px;border-radius:12px}}td,th{{padding:8px;font-size:.91rem}}.progress-grid{{grid-template-columns:1fr}}.hero{{align-items:flex-start}}.gate-ring{{margin-left:0}}}}
+@media (max-width:760px){{main{{padding:10px 8px 30px}}.card,.hero,.progress-card,.chart-card{{padding:14px;border-radius:12px}}td,th{{padding:8px;font-size:.91rem}}.progress-grid,.chart-grid{{grid-template-columns:1fr}}.hero{{align-items:flex-start}}.gate-ring{{margin-left:0}}.chart-label{{font-size:14px}}.chart-value{{font-size:16px}}}}
 </style>
 </head>
 <body><main>
@@ -255,6 +331,7 @@ ul{{line-height:1.55}}
 <p class="ok">READ ONLY · authority mutation disabled</p>
 </div>
 <nav class="navline" aria-label="Dashboard sections">
+<a class="jump" href="#charts">Charts</a>
 <a class="jump" href="#progress">Progress</a>
 <a class="jump" href="#authority">Authority</a>
 <a class="jump" href="#research">Research</a>
@@ -266,6 +343,19 @@ ul{{line-height:1.55}}
 <div class="metric"><span class="muted">Evidence ledgers</span><strong>{len(evidence_docs)}</strong></div>
 <div class="metric"><span class="muted">Human-promoted dossiers</span><strong>{promoted_dossiers}</strong></div>
 <div class="metric"><span class="muted">Open research gates</span><strong>{open_research_gates}</strong></div>
+</section>
+
+<section id="charts" class="chart-grid" aria-label="Research charts">
+<div class="chart-card">
+<h2>Research status</h2>
+<p class="muted">Current claim distribution across embedded dossiers.</p>
+{claim_status_chart}
+</div>
+<div class="chart-card">
+<h2>Dossier progress</h2>
+<p class="muted">Claim mix and unresolved-gate count by dossier.</p>
+{dossier_progress_html}
+</div>
 </section>
 
 <section id="progress">
