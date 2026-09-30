@@ -99,3 +99,22 @@ def test_static_site_has_progress_and_filters(tmp_path):
     assert "visible claim" in text
     assert 'class="card dossier"' in text
     assert "This is coverage, not a quality score." in text
+
+
+def test_static_site_has_visible_svg_charts(tmp_path):
+    out = tmp_path / "index.html"
+    subprocess.run(
+        [sys.executable, "tools/build_galia_dashboard.py", "--output", str(out)],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    text = out.read_text(encoding="utf-8")
+    assert 'id="charts"' in text
+    assert 'class="status-chart"' in text
+    assert "Research status" in text
+    assert "Dossier progress" in text
+    assert "STRONG HYPOTHESIS" in text
+    assert 'class="stacked-chart"' in text
+    assert 'href="#charts"' in text
