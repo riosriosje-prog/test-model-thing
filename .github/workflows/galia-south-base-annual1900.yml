@@ -19,7 +19,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Probe Internet Archive copy of C&GS 1900 annual report
+      - name: Install PDF extraction dependency
+        run: python -m pip install --disable-pip-version-check pymupdf
+      - name: Probe NOAA/Internet Archive copy of C&GS 1900 annual report
         run: python tools/probe_cgs_annual_report_1900.py
       - uses: actions/upload-artifact@v4
         with:
