@@ -58,6 +58,7 @@ def main() -> None:
         "mode": "READ_ONLY_REMOTE_SOURCE_RECOVERY",
         "status": "FETCH_FAILED",
         "manifest_url": MANIFEST_URL,
+        "retrieval_strategy": "IIIF_PRESENTATION_MANIFEST_PLUS_8000PX_DERIVATIVE",
         "source_identity": {
             "title": "San Juan Harbor Porto Rico.",
             "creator": "U.S. Coast and Geodetic Survey",
@@ -86,11 +87,11 @@ def main() -> None:
         if service.lower().endswith((".jpg", ".jpeg", ".png")):
             image_url = service
         else:
-            image_url = service.rstrip("/") + "/full/4000,/0/default.jpg"
+            image_url = service.rstrip("/") + "/full/8000,/0/default.jpg"
         receipt["image_request_url"] = image_url
 
         image, final_image, image_type = fetch(image_url, timeout=120)
-        image_path = out / "san-juan-harbor-1899-iiif-4000.jpg"
+        image_path = out / "san-juan-harbor-1899-iiif-8000.jpg"
         image_path.write_bytes(image)
         receipt.update({
             "status": "FETCHED",
