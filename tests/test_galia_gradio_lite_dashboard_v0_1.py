@@ -51,7 +51,8 @@ def test_build_embeds_bound_data_and_no_remote_control_plane_fetch(tmp_path):
     text = build(tmp_path)
     assert "raw.githubusercontent.com" not in text
     assert "githubusercontent.com" not in text
-    assert "cdn.jsdelivr.net/npm/@gradio/lite@5.45.0" not in text\n    assert "gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js" not in text
+    assert "cdn.jsdelivr.net/npm/@gradio/lite@5.45.0" not in text
+    assert "gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js" not in text
     assert '<gradio-file name="authority.json">' in text
     assert '<gradio-file name="research_registry.json">' in text
     assert '<gradio-file name="evidence_mcleary.json">' in text
