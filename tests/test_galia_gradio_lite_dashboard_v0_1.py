@@ -77,3 +77,36 @@ def test_runtime_worker_patch_converts_broken_os_link_to_not_implemented():
     assert "lambda *args, **kwargs" in patched
     assert "NotImplementedError" in patched
     assert "lambda src, dst: None" not in patched
+
+
+def test_runtime_worker_preinstalls_hf_hub_before_gradio_wheels():
+    import importlib.util
+    path = ROOT / "tools/vendor_patch_gradio_lite_runtime.py"
+    spec = importlib.util.spec_from_file_location("galia_vendor_runtime_hf", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    source = (
+        'prefix '
+        + module.HF_PREINSTALL_NEEDLE
+        + ' suffix'
+    )
+    patched, count = module.patch_hf_preinstall_text(source)
+    assert count == 1
+    assert module.HF_PREINSTALL_NEEDLE not in patched
+    assert 'await E(s,a,["huggingface-hub==0.35.0"])' in patched
+    assert patched.index('huggingface-hub==0.35.0') < patched.index('await E(s,a,n)')
+
+
+def test_runtime_worker_hf_preinstall_patch_fails_closed_on_unknown_shape():
+    import importlib.util
+    path = ROOT / "tools/vendor_patch_gradio_lite_runtime.py"
+    spec = importlib.util.spec_from_file_location("galia_vendor_runtime_hf_fail", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    patched, count = module.patch_hf_preinstall_text("upstream changed")
+    assert patched == "upstream changed"
+    assert count == 0
