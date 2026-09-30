@@ -76,7 +76,7 @@ def test_static_site_is_mobile_readable(tmp_path):
     assert "--paper:#ffffff" in text
     assert "--ink:#000000" in text
     assert "background:var(--paper);color:var(--ink)" in text
-    assert "@media (max-width:720px)" in text
+    assert "@media (max-width:760px)" in text
     assert "<script src=" not in text
 
 
