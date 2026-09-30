@@ -38,6 +38,61 @@ _sd.URL.__init__ = _galia_starlette_url_init
 
 import gradio as gr
 
+GALIA_CSS = """
+html, body, .gradio-container {
+    background: #071a33 !important;
+}
+.gradio-container {
+    color: #000000 !important;
+}
+.gradio-container .block,
+.gradio-container .panel,
+.gradio-container .form,
+.gradio-container .prose,
+.gradio-container .table-wrap,
+.gradio-container [role="tabpanel"],
+.gradio-container .wrap,
+.gradio-container .dropdown {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+.gradio-container .prose,
+.gradio-container .prose *,
+.gradio-container label,
+.gradio-container span,
+.gradio-container p,
+.gradio-container h1,
+.gradio-container h2,
+.gradio-container h3,
+.gradio-container h4,
+.gradio-container th,
+.gradio-container td,
+.gradio-container input,
+.gradio-container textarea,
+.gradio-container select,
+.gradio-container button {
+    color: #000000 !important;
+}
+.gradio-container input,
+.gradio-container textarea,
+.gradio-container select,
+.gradio-container .dropdown,
+.gradio-container .table-wrap {
+    background: #ffffff !important;
+}
+.gradio-container button,
+.gradio-container [role="tab"] {
+    background: #f2f4f7 !important;
+    color: #000000 !important;
+}
+.gradio-container button.selected,
+.gradio-container [role="tab"][aria-selected="true"] {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+}
+"""
+
 def load_json(name):
     return json.loads(Path(name).read_text(encoding="utf-8"))
 
@@ -102,7 +157,7 @@ registry_rows = [
     for p in projects
 ]
 
-with gr.Blocks(title="GALIA — Read-Only Dashboard") as demo:
+with gr.Blocks(title="GALIA — Read-Only Dashboard", css=GALIA_CSS) as demo:
     gr.Markdown(
         "# 📚 GALIA\n"
         "**READ ONLY · authority mutation disabled · browser-executed Gradio Lite**"
@@ -245,10 +300,10 @@ def render(pointer, registry, evidence_docs):
 <meta name="description" content="Read-only GALIA authority and research dashboard">
 <script type="module" crossorigin src="RUNTIME_BASE/lite.js"></script>
 <link rel="stylesheet" href="RUNTIME_BASE/lite.css">
-<style>html,body{margin:0;padding:0;min-height:100%;background:#0b1020}</style>
+<style>html,body{margin:0;padding:0;min-height:100%;background:#071a33}</style>
 </head>
 <body>
-<gradio-lite theme="dark">
+<gradio-lite theme="light">
 FILES
 </gradio-lite>
 </body>
