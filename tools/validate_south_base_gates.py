@@ -102,7 +102,7 @@ def main() -> None:
         fail("NGS PID gate regressed")
     if gates["SB-NGS-PID"].get("resolved", {}).get("pid") != "TV1051":
         fail("South Base PID identity changed")
-    if gates["SB-ESTABLISHING-PARTY"]["state"] != "PASS_AGENCY_AND_1899_DESCRIPTOR_INITIALS":
+    if gates["SB-ESTABLISHING-PARTY"]["state"] != "PASS_AGENCY_YEAR_AND_DESCRIPTOR_NOMINAL_IDENTITY":
         fail("1899 monumenting agency/descriptor gate regressed")
     if gates["SB-ORIGIN-MODEL"]["state"] != "PASS_1899_MONUMENTATION_WITH_1900_NETWORK_INTEGRATION_SEPARATE":
         fail("1899 monumentation / 1900 integration distinction regressed")
@@ -120,7 +120,7 @@ def main() -> None:
         fail("1899 Base-lines limiting evidence changed")
     if gates["SB-1899-BASELINE-MEASUREMENT"]["state"] != "OPEN_FUNCTION_AND_MEASUREMENT_RECORD":
         fail("baseline function/measurement record must remain open")
-    if gates["SB-GA-ORIGINAL-CARD-IMAGE"]["state"] != "OPEN_PROVENANCE_DEPTH":
+    if gates["SB-GA-ORIGINAL-CARD-IMAGE"]["state"] != "OPEN_ARCHIVAL_REQUIRED":
         fail("GA original-card gate must remain open")
     if gates["SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION"]["state"] != "OPEN_HUMAN_RECONCILIATION_REQUIRED":
         fail("promoted-dossier reconciliation must remain explicitly human-gated")
