@@ -1,0 +1,211 @@
+{
+  "schema_version": "galia.research.gate_closeout_candidate.v1",
+  "candidate_id": "GALIA-SOUTH-BASE-GATE-CLOSEOUT-v1.1",
+  "state": "RESEARCH_CANDIDATE_NOT_PROMOTED",
+  "promotion": "NO",
+  "publication": "NO_AUTOMATIC_PUBLICATION",
+  "created_local": "2026-09-30",
+  "project_id": "south-base",
+  "supersedes_hypothesis": "SOUTHBASE-ORIGIN-1900",
+  "disposition_summary": {
+    "origin_year": "1899",
+    "origin_state": "PASS_MONUMENTED_CGS",
+    "ngs_pid": "TV1051",
+    "north_base_pid": "TV1049",
+    "forney_1900_role": "NETWORK_INTEGRATION_OR_REOCCUPATION_SUPPORTED_NOT_ORIGIN",
+    "remaining_primary_gap": "ORIGINAL_1899_OBSERVATION_COMPUTATION_RECORD_AND_EXPLICIT_BASE_MEASUREMENT_RECORD"
+  },
+  "gates": [
+    {
+      "id": "SOUTHBASE-NGS-PID",
+      "state": "PASS",
+      "result": "SAN JUAN SOUTH BASE = NGS PID TV1051",
+      "evidence": [
+        "NGS archived Puerto Rico shapefile NAME=SAN JUAN SOUTH BASE, PID=TV1051.",
+        "Official TV1051 datasheet designation is SAN JUAN SOUTH BASE.",
+        "Historical South Base to Morro Lighthouse bearing independently reconciles with TV1051 to TV1029 geometry."
+      ]
+    },
+    {
+      "id": "SOUTHBASE-ORIGIN-YEAR",
+      "state": "PASS",
+      "result": "1899",
+      "evidence": [
+        "TV1051 HISTORY: 1899 MONUMENTED CGS.",
+        "TV1051 DESCRIPTION: DESCRIBED BY COAST AND GEODETIC SURVEY 1899 (WCH).",
+        "NGS FIRST_RECV=1899; archived-shapefile field semantics define FIRST_RECV as the date first monumented, or first observed for landmarks."
+      ]
+    },
+    {
+      "id": "SOUTHBASE-ORIGINAL-STATION-DESCRIPTION",
+      "state": "PASS",
+      "result": {
+        "location": "Low land on the SW side of the harbor; no characteristic neighborhood features.",
+        "monument": "2-inch iron pipe set vertically in the ground and secured by cement.",
+        "described_by_literal": "COAST AND GEODETIC SURVEY 1899 (WCH)"
+      }
+    },
+    {
+      "id": "SOUTHBASE-ESTABLISHING-PARTY",
+      "state": "PASS_CORROBORATED_IDENTITY",
+      "literal_attribution": "WCH",
+      "resolved_identity": "W. C. Hodgkins",
+      "reasoning": [
+        "TV1051 and TV1049 were both described by C&GS in 1899 with initials WCH.",
+        "The official 1898-99 C&GS report places W. C. Hodgkins and the BLAKE party in San Juan Harbor in April 1899.",
+        "The identification expands initials by independent personnel/field-assignment evidence; the datasheet itself does not spell out Hodgkins's name."
+      ]
+    },
+    {
+      "id": "SANJUAN-BASE-PAIR",
+      "state": "PASS",
+      "result": {
+        "south": {
+          "designation": "SAN JUAN SOUTH BASE",
+          "pid": "TV1051",
+          "first_recv": "1899"
+        },
+        "north": {
+          "designation": "SAN JUAN NORTH BASE",
+          "pid": "TV1049",
+          "first_recv": "1899"
+        },
+        "shared_description_author": "WCH",
+        "shared_monument_type": "2-inch iron pipe set vertically in ground and secured by cement",
+        "nad83_1997_geodesic_length_m": 1094.8559929353935,
+        "puerto_rico_datum_clarke1866_geodesic_length_m": 1094.823694988757,
+        "puerto_rico_datum_forward_azimuth_deg": 6.944932582995309
+      },
+      "interpretation": "The paired 1899 North Base/South Base designations and matching monument descriptions support a literal San Juan local baseline pair.",
+      "limit": "A base-measurement field sheet/computation is still required before asserting the measured 1899 base length or measurement method as a primary fact."
+    },
+    {
+      "id": "SOUTHBASE-1901-RECOVERY",
+      "state": "PASS",
+      "result": "Recovered GOOD by CGS in 1901; a 20-foot tripod and scaffold signal was erected over TV1051.",
+      "evidence_source": "TV1051 official NGS datasheet"
+    },
+    {
+      "id": "SOUTHBASE-PUERTO-RICO-DATUM-POSITION",
+      "state": "PASS_SURVEY_CONTROL_VALUE",
+      "coordinate": {
+        "datum": "PR",
+        "latitude": "18 27 14.59585 N",
+        "longitude": "066 08 20.51227 W",
+        "horizontal_order": "THIRD",
+        "status_in_ngs": "SUPERSEDED_SURVEY_CONTROL"
+      },
+      "limit": "This is NGS's superseded Puerto Rico Datum control value; it is not represented as the unreduced raw 1899 field coordinate."
+    },
+    {
+      "id": "SOUTHBASE-NAD83-POSITION",
+      "state": "PASS_CURRENT_NGS_CONTROL_VALUE",
+      "coordinate": {
+        "datum": "NAD 83(1997)",
+        "latitude": "18 27 07.43134 N",
+        "longitude": "066 08 19.12378 W",
+        "source": "ADJUSTED",
+        "horizontal_order": "THIRD"
+      }
+    },
+    {
+      "id": "SOUTHBASE-MORRO-BEARING-RECONCILIATION",
+      "state": "PASS_STRONG_IDENTITY_CHECK",
+      "historical": {
+        "target": "Morro Lighthouse",
+        "bearing": "N 37°09.4′ E",
+        "decimal_deg": 37.156666666666666
+      },
+      "ngs_geometry_nad83_1997": {
+        "from_pid": "TV1051",
+        "to_pid": "TV1029",
+        "forward_azimuth_deg": 37.154158396903554,
+        "distance_m": 2630.118939518387,
+        "bearing_difference_arcsec": 9.029771147203292
+      },
+      "ngs_geometry_pr_datum": {
+        "from": {
+          "latitude": "18 27 14.59585 N",
+          "longitude": "066 08 20.51227 W"
+        },
+        "to": {
+          "latitude": "18 28 22.77427 N",
+          "longitude": "066 07 26.37128 W"
+        },
+        "forward_azimuth_deg": 37.15426511815056,
+        "distance_m": 2630.0370249818748,
+        "bearing_difference_arcsec": 8.645574657975885
+      },
+      "interpretation": "Name, chronology and independent Morro bearing geometry all reconcile TV1051 with the historical South Base triangulation station."
+    },
+    {
+      "id": "FORNEY-1900-ORIGIN-HYPOTHESIS",
+      "state": "REJECT_AS_ORIGIN_SUPERSEDED",
+      "basis": [
+        "South Base was already monumented in 1899.",
+        "SAN JUAN NORTH BASE TV1049 was also monumented in 1899 and described by WCH.",
+        "MORRO CASTLE 2 TV1021 was monumented/described in 1900 by C&GS initials SF and later serves as TV1051's primary azimuth mark."
+      ],
+      "replacement_interpretation": "Forney's 1900 Ponce-to-San Juan triangulation is best treated as network integration/reoccupation/extension rather than establishment of South Base."
+    },
+    {
+      "id": "FORNEY-1900-MORRO-INTEGRATION",
+      "state": "PASS_CORROBORATED",
+      "evidence": [
+        "TV1021 MORRO CASTLE 2: HISTORY 1900 MONUMENTED CGS; DESCRIBED BY C&GS 1900 (SF).",
+        "Official C&GS personnel history records Stehman Forney's Jan-May 1900 triangulation party from Ponce to San Juan.",
+        "TV1051 lists MORRO CASTLE 2 as its primary azimuth mark in current NGS control."
+      ],
+      "limit": "The initials SF are expanded to Stehman Forney by contextual corroboration; the TV1021 datasheet itself prints only SF."
+    },
+    {
+      "id": "SOUTHBASE-ORIGINAL-FIELD-OBSERVATION-COMPUTATION",
+      "state": "OPEN",
+      "target": "Recover 1899 base-measurement, angle-observation, computation, reconnaissance or field-record sheets documenting the measured San Juan base and first observation sequence."
+    },
+    {
+      "id": "SOUTHBASE-WITNESS-TIES",
+      "state": "OPEN",
+      "target": "Recover any original witness/reference ties beyond the generalized 1899 location description."
+    }
+  ],
+  "source_records": [
+    {
+      "id": "NGS-TV1051",
+      "authority": "NOAA National Geodetic Survey",
+      "url": "https://geodesy.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1051",
+      "designation": "SAN JUAN SOUTH BASE"
+    },
+    {
+      "id": "NGS-TV1049",
+      "authority": "NOAA National Geodetic Survey",
+      "url": "https://geodesy.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1049",
+      "designation": "SAN JUAN NORTH BASE"
+    },
+    {
+      "id": "NGS-TV1021",
+      "authority": "NOAA National Geodetic Survey",
+      "url": "https://geodesy.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1021",
+      "designation": "MORRO CASTLE 2"
+    },
+    {
+      "id": "NGS-TV1029",
+      "authority": "NOAA National Geodetic Survey",
+      "url": "https://geodesy.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1029",
+      "designation": "MORRO LIGHTHOUSE"
+    },
+    {
+      "id": "NGS-PR-SHAPEFILE",
+      "authority": "NOAA National Geodetic Survey",
+      "url": "https://geodesy.noaa.gov/pub/DS_ARCHIVE/ShapeFiles/PR.zip",
+      "data_date": "20260926"
+    }
+  ],
+  "governance": {
+    "human_review_required": true,
+    "automatic_promotion": false,
+    "canonical_evidence_mutation": false,
+    "dashboard_publication": false,
+    "next_gate": "RECOVER_1899_SAN_JUAN_BASE_MEASUREMENT_OR_OBSERVATION_RECORDS"
+  }
+}
