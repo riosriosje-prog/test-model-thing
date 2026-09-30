@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 POINTER = ROOT / "governance/galia_dashboard_authority_pointer.v1.json"
 REGISTRY = ROOT / "governance/galia_dashboard_research_registry.v1.json"
+GEO = ROOT / "research/geospatial/santurce_georef_presentation.v1.json"
 
 
 def load(path: Path):
@@ -114,6 +115,28 @@ def validate_research(registry: dict) -> dict[str, dict]:
     return evidence_docs
 
 
+def validate_geo(geo: dict):
+    if geo.get("state") != "READ_ONLY_PRESENTATION":
+        fail("geospatial presentation snapshot is not read-only")
+    if geo.get("authority_mutation") is not False:
+        fail("geospatial presentation snapshot crosses authority boundary")
+    source = geo.get("source", {})
+    if source.get("repository") != "riosriosje-prog/galia-mlx-validation":
+        fail("unexpected geospatial authority repository")
+    if source.get("commit_sha") != "1f8d25d66188476d8bf376b644a1a222100828f7":
+        fail("geospatial source commit binding changed")
+    sheets = geo.get("sheets", [])
+    if len(sheets) != 3:
+        fail("expected three Santurce georeference sheets")
+    promoted = [s for s in sheets if s.get("authority") == "PROMOTED_DERIVATION_BASELINE"]
+    diagnostic = [s for s in sheets if "DIAGNOSTIC" in str(s.get("authority", ""))]
+    if len(promoted) != 2 or len(diagnostic) != 1:
+        fail("geospatial authority state separation changed")
+    for sheet in sheets:
+        if len(sheet.get("polygon", [])) != 4:
+            fail(f"{sheet.get('id')} sheet footprint must have four corners")
+
+
 def esc(value) -> str:
     return html.escape(str(value))
 
@@ -202,6 +225,66 @@ def render_dossier_progress(project: dict, evidence: dict) -> str:
     </article>
     """
 
+
+def render_geo_fallback_svg(geo: dict) -> str:
+    points = []
+    for sheet in geo.get("sheets", []):
+        points.extend(sheet.get("polygon", []))
+        for item in sheet.get("controls", []) + sheet.get("holdouts", []):
+            points.append([item["lat"], item["lon"]])
+    if not points:
+        return '<p class="muted">No geospatial display points available.</p>'
+    lats = [p[0] for p in points]
+    lons = [p[1] for p in points]
+    min_lat, max_lat = min(lats), max(lats)
+    min_lon, max_lon = min(lons), max(lons)
+    pad = 28
+    width, height = 760, 430
+
+    def xy(lat, lon):
+        x = pad + (lon - min_lon) / max(max_lon - min_lon, 1e-12) * (width - 2 * pad)
+        y = pad + (max_lat - lat) / max(max_lat - min_lat, 1e-12) * (height - 2 * pad)
+        return x, y
+
+    elements = [
+        f'<rect x="0" y="0" width="{width}" height="{height}" rx="12" fill="#f7f9fc"/>'
+    ]
+    for sheet in geo.get("sheets", []):
+        coords = " ".join(
+            f"{xy(lat, lon)[0]:.1f},{xy(lat, lon)[1]:.1f}"
+            for lat, lon in sheet.get("polygon", [])
+        )
+        diagnostic = "DIAGNOSTIC" in str(sheet.get("authority", ""))
+        stroke = "#d97706" if diagnostic else "#16803a"
+        dash = ' stroke-dasharray="8 7"' if diagnostic else ""
+        elements.append(
+            f'<polygon points="{coords}" fill="{stroke}" fill-opacity="0.07" '
+            f'stroke="{stroke}" stroke-width="3"{dash}/>'
+        )
+        for item in sheet.get("controls", []):
+            x, y = xy(item["lat"], item["lon"])
+            elements.append(
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" fill="#16803a" stroke="#fff" stroke-width="2"/>'
+            )
+        for item in sheet.get("holdouts", []):
+            x, y = xy(item["lat"], item["lon"])
+            elements.append(
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="#c62828" stroke="#fff" stroke-width="2"/>'
+            )
+    elements.append(
+        '<text x="18" y="412" font-family="system-ui" font-size="13" fill="#4d5666">'
+        'Static fallback control-network view · geographic display only'
+        '</text>'
+    )
+    return (
+        f'<svg class="geo-fallback" viewBox="0 0 {width} {height}" role="img" '
+        'aria-label="Fallback Santurce georeference control network">'
+        + "".join(elements)
+        + "</svg>"
+    )
+
+
+
 def render_open_gates(evidence: dict) -> str:
     return "".join(
         f"<li><strong>{esc(g['id'])}</strong> — {esc(g['state'])}: {esc(g['target'])}</li>"
@@ -209,7 +292,7 @@ def render_open_gates(evidence: dict) -> str:
     )
 
 
-def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict]) -> str:
+def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict], geo: dict) -> str:
     authority = pointer["authority"]
     gates = pointer["gates"]
     projects = registry["projects"]
@@ -244,6 +327,28 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict]) -> str
         for project in projects
         if project["id"] in evidence_docs
     )
+
+    geo_payload = json.dumps(geo, separators=(",", ":")).replace("</", "<\\/")
+    promoted_geo_sheets = sum(
+        1 for sheet in geo.get("sheets", [])
+        if sheet.get("authority") == "PROMOTED_DERIVATION_BASELINE"
+    )
+    promoted_gcps = sum(
+        len(sheet.get("controls", []))
+        for sheet in geo.get("sheets", [])
+        if sheet.get("authority") == "PROMOTED_DERIVATION_BASELINE"
+    )
+    geo_sheet_rows = "".join(
+        "<tr>"
+        f"<td>{esc(sheet['title'])}</td>"
+        f"<td>{esc(sheet['authority'])}</td>"
+        f"<td>{esc(sheet.get('internal_rms_m', sheet.get('overlap_registration', {}).get('rms_px', '')))}</td>"
+        f"<td>{len(sheet.get('controls', []))}</td>"
+        "</tr>"
+        for sheet in geo.get("sheets", [])
+    )
+
+    geo_fallback_svg = render_geo_fallback_svg(geo)
 
     gate_rows = "".join(
         f"<tr><td>{esc(k)}</td><td>{esc(v)}</td></tr>"
@@ -282,6 +387,7 @@ def render(pointer: dict, registry: dict, evidence_docs: dict[str, dict]) -> str
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GALIA Authority Dashboard</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{{--navy:#071a33;--paper:#ffffff;--ink:#000000;--rule:#d7dce5;--muted:#4d5666;--link:#003b7a;--soft:#eef1f5;--green:#16803a;--amber:#d97706;--red:#c62828;--slate:#7a8493}}
 *{{box-sizing:border-box}}
@@ -302,6 +408,14 @@ th{{background:#f5f7fa;position:sticky;top:0}} .table-scroll{{overflow:auto;max-
 .progress-grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}}
 .chart-grid{{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.8fr);gap:14px;margin:14px 0}}
 .chart-card{{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow:hidden}}
+.map-card{{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 8px 24px rgba(0,0,0,.12);overflow:hidden}}
+#geo-map{{height:520px;width:100%;border-radius:12px;border:1px solid var(--rule);background:#e9edf3}}
+.geo-fallback{{width:100%;height:100%;display:block}}.map-fallback-note{{padding:8px 10px;background:#fff7ed;border-top:1px solid #f2c98b;font-size:.86rem}}
+.geo-grid{{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,.7fr);gap:14px;align-items:start}}
+.geo-legend{{display:grid;gap:9px;margin:10px 0 16px}}.geo-legend span{{display:flex;align-items:center;gap:8px}}
+.geo-dot{{width:12px;height:12px;border-radius:50%;display:inline-block}}.geo-dot.promoted{{background:var(--green)}}.geo-dot.holdout{{background:var(--red)}}.geo-dot.diagnostic{{background:var(--amber)}}
+.geo-note{{border-left:4px solid var(--amber);padding:10px 12px;background:#fff7ed;border-radius:8px}}
+.leaflet-popup-content{{font-family:system-ui,-apple-system,sans-serif;line-height:1.35}}
 .chart-card h2{{margin-bottom:4px}}
 .status-chart{{width:100%;height:auto;display:block;margin-top:8px}}
 .chart-track{{fill:#e8ecf2}}.chart-bar.chart-fact{{fill:var(--green)}}.chart-bar.chart-hypothesis{{fill:var(--amber)}}.chart-bar.chart-other{{fill:var(--slate)}}
@@ -332,7 +446,7 @@ summary span:first-of-type{{flex:1}}
 ul{{line-height:1.55}}
 .claim-row[hidden]{{display:none}}
 .navline{{display:flex;gap:8px;flex-wrap:wrap}}
-@media (max-width:760px){{main{{padding:10px 8px 30px}}.card,.hero,.progress-card,.chart-card{{padding:14px;border-radius:12px}}td,th{{padding:8px;font-size:.91rem}}.progress-grid,.chart-grid{{grid-template-columns:1fr}}.hero{{align-items:flex-start}}.gate-ring{{margin-left:0}}.chart-label{{font-size:14px}}.chart-value{{font-size:16px}}}}
+@media (max-width:760px){{main{{padding:10px 8px 30px}}.card,.hero,.progress-card,.chart-card,.map-card{{padding:14px;border-radius:12px}}td,th{{padding:8px;font-size:.91rem}}.progress-grid,.chart-grid,.geo-grid{{grid-template-columns:1fr}}.hero{{align-items:flex-start}}.gate-ring{{margin-left:0}}#geo-map{{height:430px}}.chart-label{{font-size:14px}}.chart-value{{font-size:16px}}}}
 </style>
 </head>
 <body><main>
@@ -343,6 +457,7 @@ ul{{line-height:1.55}}
 <p class="ok">READ ONLY · authority mutation disabled</p>
 </div>
 <nav class="navline" aria-label="Dashboard sections">
+<a class="jump" href="#map">Map</a>
 <a class="jump" href="#charts">Charts</a>
 <a class="jump" href="#progress">Progress</a>
 <a class="jump" href="#authority">Authority</a>
@@ -355,6 +470,31 @@ ul{{line-height:1.55}}
 <div class="metric"><span class="muted">Evidence ledgers</span><strong>{len(evidence_docs)}</strong></div>
 <div class="metric"><span class="muted">Human-promoted dossiers</span><strong>{promoted_dossiers}</strong></div>
 <div class="metric"><span class="muted">Open research gates</span><strong>{open_research_gates}</strong></div>
+<div class="metric"><span class="muted">Promoted geo sheets</span><strong>{promoted_geo_sheets}</strong></div>
+<div class="metric"><span class="muted">Promoted GCPs</span><strong>{promoted_gcps}</strong></div>
+</section>
+
+<section id="map" class="map-card">
+<h2>Georeferences & map control</h2>
+<p>Promoted First/Second Section control geometry is shown on the modern basemap. Third Section is displayed only as a diagnostic chained footprint and is not an independently promoted absolute georeference.</p>
+<div class="geo-grid">
+<div>
+<div id="geo-map" aria-label="Santurce georeference control map">{geo_fallback_svg}</div>
+</div>
+<div>
+<h3>Map status</h3>
+<div class="geo-legend">
+<span><i class="geo-dot promoted"></i>Promoted fit control / promoted sheet footprint</span>
+<span><i class="geo-dot holdout"></i>Failed temporal-alignment holdout — not a GCP</span>
+<span><i class="geo-dot diagnostic"></i>Diagnostic-only Third Section footprint</span>
+</div>
+<div class="table-scroll">
+<table><thead><tr><th>Sheet</th><th>Authority</th><th>RMS</th><th>GCPs</th></tr></thead><tbody>{geo_sheet_rows}</tbody></table>
+</div>
+<p class="geo-note"><strong>Third Section:</strong> 101 overlap-registration inliers; RMS 1.1859701 px. Its footprint is diagnostic only. Historical raster overlays are not yet embedded in this dashboard repository.</p>
+<small>Geospatial source binding: <code>{esc(geo['source']['repository'])}@{esc(geo['source']['commit_sha'][:12])}</code></small>
+</div>
+</div>
 </section>
 
 <section id="charts" class="chart-grid" aria-label="Research charts">
@@ -429,7 +569,65 @@ ul{{line-height:1.55}}
 <small>Built from explicit control-plane pointers and bound machine-readable receipts. No latest-file inference.</small>
 </section>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script id="galia-geo-data" type="application/json">{geo_payload}</script>
 <script>
+(() => {{
+  const geo = JSON.parse(document.getElementById('galia-geo-data').textContent);
+  const mapEl = document.getElementById('geo-map');
+  if (window.L && mapEl) {{
+    mapEl.innerHTML = '';
+    const map = L.map('geo-map', {{scrollWheelZoom:false, zoomControl:true}});
+    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+    maxZoom:19,
+    attribution:'&copy; OpenStreetMap contributors'
+  }}).addTo(map);
+
+  const bounds = [];
+  const styleForSheet = sheet => {{
+    const diagnostic = String(sheet.authority).includes('DIAGNOSTIC');
+    return {{
+      color: diagnostic ? '#d97706' : '#16803a',
+      weight: diagnostic ? 2 : 3,
+      dashArray: diagnostic ? '8 7' : null,
+      fillColor: diagnostic ? '#d97706' : '#16803a',
+      fillOpacity: diagnostic ? 0.06 : 0.08
+    }};
+  }};
+
+  geo.sheets.forEach(sheet => {{
+    const poly = L.polygon(sheet.polygon, styleForSheet(sheet)).addTo(map);
+    poly.bindPopup('<strong>'+sheet.title+'</strong><br>'+sheet.authority);
+    sheet.polygon.forEach(p => bounds.push(p));
+
+    (sheet.controls || []).forEach(gcp => {{
+      L.circleMarker([gcp.lat,gcp.lon], {{
+        radius:7, color:'#ffffff', weight:2, fillColor:'#16803a', fillOpacity:1
+      }}).addTo(map).bindPopup(
+        '<strong>'+gcp.label+'</strong><br>'+
+        'PROMOTED FIT CONTROL<br>Residual: '+Number(gcp.residual_m).toFixed(3)+' m'
+      );
+      bounds.push([gcp.lat,gcp.lon]);
+    }});
+
+    (sheet.holdouts || []).forEach(gcp => {{
+      L.circleMarker([gcp.lat,gcp.lon], {{
+        radius:7, color:'#ffffff', weight:2, fillColor:'#c62828', fillOpacity:1
+      }}).addTo(map).bindPopup(
+        '<strong>'+gcp.label+'</strong><br>'+
+        'FAILED HOLDOUT — NOT A GCP<br>Residual: '+Number(gcp.residual_m).toFixed(3)+' m'
+      );
+      bounds.push([gcp.lat,gcp.lon]);
+    }});
+  }});
+
+    if (bounds.length) map.fitBounds(bounds, {{padding:[18,18]}});
+    else map.setView([18.45,-66.07],14);
+  }} else if (mapEl) {{
+    mapEl.insertAdjacentHTML('beforeend','<div class="map-fallback-note">Interactive basemap unavailable; governed static control-network fallback shown.</div>');
+  }}
+}})();
+
 (() => {{
   const buttons = [...document.querySelectorAll('.filter-btn')];
   const rows = [...document.querySelectorAll('.claim-row')];
@@ -465,13 +663,16 @@ def main():
     registry = load(REGISTRY)
     validate_authority(pointer)
     evidence_docs = validate_research(registry)
+    geo = load(GEO)
+    validate_geo(geo)
 
     out = ROOT / args.output
     out.parent.mkdir(parents=True, exist_ok=True)
-    data = render(pointer, registry, evidence_docs)
+    data = render(pointer, registry, evidence_docs, geo)
     out.write_text(data, encoding="utf-8")
     print("GALIA_DASHBOARD_VALIDATION=PASS")
     print("GALIA_RESEARCH_EVIDENCE_DOCS=" + str(len(evidence_docs)))
+    print("GALIA_GEO_SHEETS=" + str(len(geo.get("sheets", []))))
     print("GALIA_DASHBOARD_SHA256=" + hashlib.sha256(data.encode()).hexdigest())
 
 

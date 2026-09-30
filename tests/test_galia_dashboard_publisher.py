@@ -29,7 +29,10 @@ def test_direct_dashboard_build(tmp_path):
     assert "SOUTHBASE-ORIGINAL-STATION-DESCRIPTION" in text
     assert "STRONG_HYPOTHESIS" in text
     assert "Human-promoted dossiers" in text
-    assert "<script src=" not in text
+    external_scripts = [line.strip() for line in text.splitlines() if "<script src=" in line]
+    assert external_scripts == ['<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>']
+    assert "pyodide" not in text.lower()
+    assert "gradio" not in text.lower()
 
 
 def test_pointer_is_non_mutating():
@@ -77,7 +80,10 @@ def test_static_site_is_mobile_readable(tmp_path):
     assert "--ink:#000000" in text
     assert "background:var(--paper);color:var(--ink)" in text
     assert "@media (max-width:760px)" in text
-    assert "<script src=" not in text
+    external_scripts = [line.strip() for line in text.splitlines() if "<script src=" in line]
+    assert external_scripts == ['<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>']
+    assert "pyodide" not in text.lower()
+    assert "gradio" not in text.lower()
 
 
 def test_static_site_has_progress_and_filters(tmp_path):
@@ -140,3 +146,39 @@ def test_progress_colors_are_semantic_and_dynamic(tmp_path):
     assert "chart-hypothesis" in text
     assert "chart-other" in text
     assert "Green ≥70%" in text
+
+
+def test_static_site_has_governed_geospatial_map(tmp_path):
+    out = tmp_path / "index.html"
+    p = subprocess.run(
+        [sys.executable, "tools/build_galia_dashboard.py", "--output", str(out)],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert p.returncode == 0, p.stderr
+    text = out.read_text(encoding="utf-8")
+    assert "GALIA_GEO_SHEETS=3" in p.stdout
+    assert 'id="geo-map"' in text
+    assert 'id="galia-geo-data"' in text
+    assert "leaflet@1.9.4" in text
+    assert "Promoted First/Second Section control geometry" in text
+    assert "Third Section" in text
+    assert "101 overlap-registration inliers" in text
+    assert "FAILED HOLDOUT — NOT A GCP" in text
+    assert "riosriosje-prog/galia-mlx-validation" in text
+    assert "1f8d25d66188" in text
+    assert 'class="geo-fallback"' in text
+    assert "Interactive basemap unavailable; governed static control-network fallback shown." in text
+
+
+def test_geospatial_snapshot_preserves_authority_separation():
+    geo = json.loads((ROOT / "research/geospatial/santurce_georef_presentation.v1.json").read_text())
+    sheets = {s["id"]: s for s in geo["sheets"]}
+    assert sheets["first-section-1917"]["authority"] == "PROMOTED_DERIVATION_BASELINE"
+    assert sheets["second-section-1918"]["authority"] == "PROMOTED_DERIVATION_BASELINE"
+    assert sheets["third-section-1918"]["authority"] == "DIAGNOSTIC_CHAIN_NOT_PROMOTED_ABSOLUTE"
+    assert len(sheets["first-section-1917"]["controls"]) == 5
+    assert len(sheets["second-section-1918"]["controls"]) == 5
+    assert sheets["second-section-1918"]["holdouts"][0]["status"] == "FAIL_TEMPORAL_ALIGNMENT_DO_NOT_USE_AS_GCP"
