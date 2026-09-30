@@ -45,6 +45,7 @@ def main() -> None:
         with urllib.request.urlopen(UPSTREAM_WORKER_URL, timeout=30) as response:
             source = response.read().decode("utf-8", "strict")
 
+    source_digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
     patched = patch_worker(source)
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -52,6 +53,7 @@ def main() -> None:
 
     digest = hashlib.sha256(patched.encode("utf-8")).hexdigest()
     print("GALIA_GRADIO_LITE_WORKER_PATCH=PASS")
+    print("GALIA_GRADIO_LITE_UPSTREAM_WORKER_SHA256=" + source_digest)
     print("GALIA_GRADIO_LITE_WORKER_SHA256=" + digest)
     print("GALIA_GRADIO_LITE_WORKER_OUTPUT=" + str(out))
 
