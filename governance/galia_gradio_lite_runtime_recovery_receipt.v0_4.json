@@ -1,45 +1,43 @@
 {
   "schema_version": "galia.runtime_recovery_receipt.v1",
   "receipt_id": "GALIA-GRADIO-LITE-RUNTIME-RECOVERY-2026-09-30-004",
-  "state": "RECOVERED_DEPLOYED",
+  "state": "AUTHORIZED_REMEDIATION",
   "incident": {
-    "symptom": "Browser-side Pyodide/micropip failure during Gradio Lite initialization",
-    "root_cause_class": "UPSTREAM_GRADIO_LITE_HUGGINGFACE_HUB_DEPENDENCY_RESOLUTION",
+    "symptom": "filelock import crashes inside Pyodide because Gradio Lite replaces os.link with a two-argument lambda and filelock probes follow_symlinks=False",
+    "trace_signature": "TypeError: <lambda>() got an unexpected keyword argument 'follow_symlinks'",
+    "affected_layer": "GRADIO_LITE_WASM_WORKER",
     "canonical_data_impact": false,
     "authority_impact": false
   },
-  "upstream_basis": {
-    "issue": "gradio-app/gradio#12127",
-    "fix_pr": "gradio-app/gradio#12162",
-    "fix_merge_commit": "81278c41110b94e7bee9b4fe493b5df72afd4b13",
-    "patched_runtime": "PINNED_HF_HUB"
+  "root_cause": {
+    "gradio_lite_worker_behavior": "os.link = lambda src, dst: None",
+    "filelock_behavior": "os.link(source, destination, follow_symlinks=False)",
+    "result": "signature mismatch during filelock import before app.py executes"
   },
-  "recovery_binding": {
-    "candidate_head_sha": "8b2df82b0ec82bc53ee353728554b9e1946f3e46",
-    "promotion_merge_sha": "89bf137bb00f2c4bc2028f59373025e97284f675",
-    "workflow_run_id": 36723441610,
-    "artifact_name": "galia-gradio-lite-dashboard",
-    "artifact_sha256": "47670dfb757e695fde2a5aba3228f1cf89d7b855da219a10c31a7905652385ff",
-    "hugging_face_space": "Junitos/GALIA",
-    "hugging_face_space_sha": "988a679e575b905907405769d37830bcb227f366",
-    "hugging_face_sdk": "static",
-    "hugging_face_stage": "RUNNING",
-    "hugging_face_subdomain": "junitos-galia",
-    "hugging_face_private": true
+  "prior_recovery": {
+    "upstream_issue": "gradio-app/gradio#12127 / #12262",
+    "upstream_patch": "PINNED_HF_HUB",
+    "limitation": "The upstream one-off patch resolves huggingface-hub dependency installation but does not fix the newer filelock/os.link WASM incompatibility."
   },
-  "validation": {
-    "gradio_lite_candidate": "PASS",
-    "dashboard_publisher": "PASS",
-    "python_3_12": "PASS",
-    "python_3_13": "PASS",
-    "deploy": "PASS"
+  "remediation": {
+    "upstream_runtime": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/",
+    "distribution": "vendored_into_space_at_build_time",
+    "worker_patch": "os.link accepts arbitrary args/kwargs and raises NotImplementedError so filelock detects hard links as unsupported",
+    "fail_closed": true,
+    "broken_pattern_must_be_absent": "os.link = lambda src, dst: None"
   },
   "scope": {
     "runtime_recovery_only": true,
     "presentation_plane": "READ_ONLY",
     "authority_mutation": false,
     "canonical_writes": false,
+    "research_claim_mutation": false,
     "space_visibility_changed": false,
     "canonical_authority_transferred": false
+  },
+  "human_authorization": {
+    "authorized": true,
+    "date": "2026-09-30",
+    "basis": "Continuation of the already-authorized GALIA dashboard deployment and runtime remediation."
   }
 }
