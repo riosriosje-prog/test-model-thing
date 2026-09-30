@@ -1,4 +1,4 @@
-name: GALIA direct dashboard publisher
+name: GALIA Gradio Lite dashboard publisher
 
 on:
   workflow_dispatch:
@@ -7,29 +7,39 @@ on:
     paths:
       - "governance/galia_dashboard_authority_pointer.v1.json"
       - "governance/galia_dashboard_research_registry.v1.json"
+      - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
+      - "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
       - "governance/safe_delete_execution_receipt.v1.json"
       - "governance/hf_final_release_candidate.v1.json"
       - "research/evidence/**"
+      - "publisher/gradio_lite/**"
       - "tools/build_galia_dashboard.py"
+      - "tools/build_galia_gradio_lite_dashboard.py"
       - "tests/test_galia_dashboard_publisher.py"
+      - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
       - ".github/workflows/galia-dashboard-publish.yml"
   push:
     branches: [main]
     paths:
       - "governance/galia_dashboard_authority_pointer.v1.json"
       - "governance/galia_dashboard_research_registry.v1.json"
+      - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
+      - "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
       - "governance/safe_delete_execution_receipt.v1.json"
       - "governance/hf_final_release_candidate.v1.json"
       - "research/evidence/**"
+      - "publisher/gradio_lite/**"
       - "tools/build_galia_dashboard.py"
+      - "tools/build_galia_gradio_lite_dashboard.py"
       - "tests/test_galia_dashboard_publisher.py"
+      - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
       - ".github/workflows/galia-dashboard-publish.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: galia-direct-dashboard-publisher
+  group: galia-gradio-lite-dashboard-publisher
   cancel-in-progress: false
 
 jobs:
@@ -40,16 +50,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Run focused publisher tests
+      - name: Run dashboard tests
         run: |
           python -m pip install --disable-pip-version-check pytest
-          python -m pytest -q tests/test_galia_dashboard_publisher.py
-      - name: Build read-only dashboard from control plane
-        run: python tools/build_galia_dashboard.py --output dist/index.html
+          python -m pytest -q             tests/test_galia_dashboard_publisher.py             tests/test_galia_gradio_lite_dashboard_v0_1.py
+      - name: Build Gradio Lite dashboard from control plane
+        run: |
+          python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
+          cp publisher/gradio_lite/README.md dist/gradio-lite/README.md
+          grep -q '@gradio/lite@5.45.0' dist/gradio-lite/index.html
+          grep -q 'South Base · San Juan' dist/gradio-lite/index.html
+          grep -q 'sdk: static' dist/gradio-lite/README.md
       - uses: actions/upload-artifact@v4
         with:
-          name: galia-direct-dashboard
-          path: dist/index.html
+          name: galia-gradio-lite-dashboard
+          path: dist/gradio-lite/
 
   deploy:
     if: github.ref == 'refs/heads/main'
@@ -58,29 +73,45 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: galia-direct-dashboard
+          name: galia-gradio-lite-dashboard
           path: artifact
       - name: Install Hugging Face client
         run: python -m pip install --disable-pip-version-check "huggingface_hub>=1.19,<2"
-      - name: Publish to Junitos/GALIA
+      - name: Publish Gradio Lite package to Junitos/GALIA
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python - <<'PY'
+          import json
           import os
-          from pathlib import Path
+          import urllib.request
           from huggingface_hub import HfApi
-          token=os.environ.get("HF_TOKEN")
+
+          token = os.environ.get("HF_TOKEN")
           if not token:
               raise SystemExit("HF_TOKEN repository secret is missing")
-          html=next(Path("artifact").rglob("index.html"))
-          info=HfApi(token=token).upload_file(
-              path_or_fileobj=str(html),
-              path_in_repo="index.html",
+
+          api = HfApi(token=token)
+          info = api.upload_folder(
+              folder_path="artifact",
               repo_id="Junitos/GALIA",
               repo_type="space",
-              commit_message="Auto-publish GALIA dashboard from canonical control plane",
+              commit_message="Publish GALIA Gradio Lite dashboard",
           )
-          print("GALIA_DIRECT_HF_PUBLISH=PASS")
+          print("GALIA_GRADIO_LITE_HF_PUBLISH=PASS")
           print(info)
+
+          req = urllib.request.Request(
+              "https://huggingface.co/api/spaces/Junitos/GALIA",
+              headers={"Authorization": "Bearer " + token},
+          )
+          with urllib.request.urlopen(req, timeout=30) as response:
+              meta = json.load(response)
+
+          runtime = meta.get("runtime") or {}
+          print("HF_SPACE_PRIVATE=" + str(meta.get("private")))
+          print("HF_SPACE_SDK=" + str(meta.get("sdk")))
+          print("HF_SPACE_SUBDOMAIN=" + str(meta.get("subdomain")))
+          print("HF_SPACE_STAGE=" + str(runtime.get("stage")))
+          print("HF_SPACE_SHA=" + str(meta.get("sha")))
           PY
