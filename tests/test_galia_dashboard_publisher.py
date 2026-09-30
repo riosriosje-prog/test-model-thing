@@ -63,8 +63,8 @@ def test_south_base_promotion_receipt_preserves_hypothesis_boundary():
     assert receipt["scope"]["global_master_mutation"] is False
     assert receipt["scope"]["canonical_database_write"] is False
     assert receipt["scope"]["hypothesis_promoted_as_fact"] is False
-    origin = next(c for c in evidence["claims"] if c["id"] == "SOUTHBASE-ORIGIN-1900")
-    assert origin["status"] == "SUPERSEDED"
+    origin = next(c for c in evidence["claims"] if c["id"] == "SOUTHBASE-FORNEY-1900-ORIGIN-REJECTED")
+    assert origin["status"] == "REJECTED"
     ngs_fact = next(c for c in evidence["claims"] if c["id"] == "SOUTHBASE-NGS-TV1051-1899")
     assert ngs_fact["status"] == "FACT"
     assert "PID TV1051" in ngs_fact["claim"]
@@ -176,6 +176,11 @@ def test_static_site_has_governed_geospatial_map(tmp_path):
     assert "FAILED HOLDOUT — NOT A GCP" in text
     assert "riosriosje-prog/galia-mlx-validation" in text
     assert "1f8d25d66188" in text
+    assert "1f71e2c2fa66" in text
+    assert "SAN JUAN SOUTH BASE · TV1051" in text
+    assert "MORRO LIGHTHOUSE · TV1029" in text
+    assert "South Base → Morro bearing check" in text
+    assert "does not represent the separate 1904/1909 magnetic observation points" in text
     assert 'class="geo-fallback"' in text
     assert "Interactive basemap unavailable; governed static control-network fallback shown." in text
 
@@ -189,3 +194,24 @@ def test_geospatial_snapshot_preserves_authority_separation():
     assert len(sheets["first-section-1917"]["controls"]) == 5
     assert len(sheets["second-section-1918"]["controls"]) == 5
     assert sheets["second-section-1918"]["holdouts"][0]["status"] == "FAIL_TEMPORAL_ALIGNMENT_DO_NOT_USE_AS_GCP"
+    controls = {x["id"]: x for x in geo["geodetic_controls"]}
+    assert controls["ngs-tv1051-san-juan-south-base"]["status"] == "PASS_VERIFIED_NGS_PID"
+    assert controls["ngs-tv1051-san-juan-south-base"]["datum"] == "NAD83(1997)"
+    assert controls["ngs-tv1029-morro-lighthouse"]["datum"] == "NAD83(1997)"
+    rel = geo["geodetic_relationships"][0]
+    assert rel["status"] == "PASS_STRONG_CORROBORATION"
+    assert abs(rel["angular_difference_arcsec"]) < 10
+
+
+def test_south_base_open_gates_reflect_first_observation_boundary():
+    evidence = json.loads((ROOT / "research/evidence/south_base.v1.json").read_text())
+    gates = {g["id"]: g for g in evidence["open_gates"]}
+    assert "SOUTHBASE-NGS-PID" not in gates
+    assert "SOUTHBASE-ORIGINAL-STATION-DESCRIPTION" not in gates
+    assert "SOUTHBASE-FIRST-OBSERVATION" in gates
+    assert gates["SOUTHBASE-FIRST-OBSERVATION"]["state"] == "OPEN_PRIMARY_TARGET"
+    assert "SOUTHBASE-1899-BASELINE-MEASUREMENT" in gates
+    network = next(c for c in evidence["claims"] if c["id"] == "SOUTHBASE-1899-NETWORK-STATUS-DISTINCTION")
+    assert network["status"] == "FACT"
+    assert "MONUMENTED" in network["claim"]
+    assert "FIRST OBSERVED" in network["claim"]
