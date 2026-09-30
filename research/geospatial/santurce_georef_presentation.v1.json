@@ -6,7 +6,9 @@
     "repository": "riosriosje-prog/galia-mlx-validation",
     "commit_sha": "1f8d25d66188476d8bf376b644a1a222100828f7",
     "first_section_path": "publisher/sources/first_section_georef_closeout_v0_1.json",
-    "second_section_path": "publisher/sources/second_section_georef_transfer_v0_1.json"
+    "second_section_path": "publisher/sources/second_section_georef_transfer_v0_1.json",
+    "south_base_gate_commit_sha": "1f71e2c2fa66867953cbc53be8c2ba6e7d50a9cb",
+    "south_base_gate_path": "publisher/sources/south_base_gate_v0_1.json"
   },
   "crs": {
     "target": "EPSG:32161",
@@ -211,6 +213,42 @@
     "No automatic historical feature publication.",
     "No retroprojection of modern geometry as historical geometry.",
     "Third Section is diagnostic only until independently validated/promoted.",
-    "Historical raster overlays are not embedded in the dashboard repository yet."
+    "Historical raster overlays are not embedded in the dashboard repository yet.",
+    "NAD83(1997) NGS control coordinates are plotted for visualization with their datum explicitly retained; no silent WGS84 survey-equivalence claim."
+  ],
+  "geodetic_controls": [
+    {
+      "id": "ngs-tv1051-san-juan-south-base",
+      "label": "SAN JUAN SOUTH BASE · TV1051",
+      "lat": 18.4520642611,
+      "lon": -66.1386454944,
+      "datum": "NAD83(1997)",
+      "status": "PASS_VERIFIED_NGS_PID",
+      "history": "1899 MONUMENTED CGS; described C&GS 1899 (WCH)",
+      "display_note": "Leaflet display uses the published NAD83(1997) latitude/longitude directly for visualization; this is not a WGS84 survey transformation."
+    },
+    {
+      "id": "ngs-tv1029-morro-lighthouse",
+      "label": "MORRO LIGHTHOUSE · TV1029",
+      "lat": 18.4710023333,
+      "lon": -66.1236058528,
+      "datum": "NAD83(1997)",
+      "status": "NGS_CONTROL",
+      "history": "NGS control used to reconcile the historical South Base→Morro bearing.",
+      "display_note": "Leaflet display uses the published NAD83(1997) latitude/longitude directly for visualization; this is not a WGS84 survey transformation."
+    }
+  ],
+  "geodetic_relationships": [
+    {
+      "id": "south-base-to-morro-bearing-check",
+      "from": "ngs-tv1051-san-juan-south-base",
+      "to": "ngs-tv1029-morro-lighthouse",
+      "status": "PASS_STRONG_CORROBORATION",
+      "historical_bearing": "N 37°09.4′ E",
+      "computed_pr_datum_azimuth_deg": 37.15426511815056,
+      "angular_difference_arcsec": -8.645574657975885,
+      "distance_m": 2630.0370249818748,
+      "caution": "Historical magnetic observation point was 20 paces from South Base and collinear toward Morro; line shown is a diagnostic identity relation, not the 1904/1909 magnetic-station location."
+    }
   ]
 }
