@@ -1,0 +1,72 @@
+name: GALIA static site
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "governance/galia_dashboard_authority_pointer.v1.json"
+      - "governance/galia_dashboard_research_registry.v1.json"
+      - "governance/galia_south_base_research_promotion_receipt.v1.json"
+      - "research/evidence/**"
+      - "tools/build_galia_dashboard.py"
+      - "tests/test_galia_dashboard_publisher.py"
+      - ".github/workflows/galia-pages.yml"
+  push:
+    branches: [main]
+    paths:
+      - "governance/galia_dashboard_authority_pointer.v1.json"
+      - "governance/galia_dashboard_research_registry.v1.json"
+      - "governance/galia_south_base_research_promotion_receipt.v1.json"
+      - "research/evidence/**"
+      - "tools/build_galia_dashboard.py"
+      - "tests/test_galia_dashboard_publisher.py"
+      - ".github/workflows/galia-pages.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: galia-static-site
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate static dashboard
+        run: |
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q tests/test_galia_dashboard_publisher.py
+      - name: Build site
+        run: |
+          python tools/build_galia_dashboard.py --output _site/index.html
+          touch _site/.nojekyll
+          grep -q '📚 GALIA' _site/index.html
+          grep -q -- '--navy:#071a33' _site/index.html
+          grep -q -- '--paper:#ffffff' _site/index.html
+          grep -q -- '--ink:#000000' _site/index.html
+          ! grep -q '<script src=' _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
