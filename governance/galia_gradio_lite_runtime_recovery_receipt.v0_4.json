@@ -1,0 +1,45 @@
+{
+  "schema_version": "galia.runtime_recovery_receipt.v1",
+  "receipt_id": "GALIA-GRADIO-LITE-RUNTIME-RECOVERY-2026-09-30-004",
+  "state": "RECOVERED_DEPLOYED",
+  "incident": {
+    "symptom": "Browser-side Pyodide/micropip failure during Gradio Lite initialization",
+    "root_cause_class": "UPSTREAM_GRADIO_LITE_HUGGINGFACE_HUB_DEPENDENCY_RESOLUTION",
+    "canonical_data_impact": false,
+    "authority_impact": false
+  },
+  "upstream_basis": {
+    "issue": "gradio-app/gradio#12127",
+    "fix_pr": "gradio-app/gradio#12162",
+    "fix_merge_commit": "81278c41110b94e7bee9b4fe493b5df72afd4b13",
+    "patched_runtime": "PINNED_HF_HUB"
+  },
+  "recovery_binding": {
+    "candidate_head_sha": "8b2df82b0ec82bc53ee353728554b9e1946f3e46",
+    "promotion_merge_sha": "89bf137bb00f2c4bc2028f59373025e97284f675",
+    "workflow_run_id": 36723441610,
+    "artifact_name": "galia-gradio-lite-dashboard",
+    "artifact_sha256": "47670dfb757e695fde2a5aba3228f1cf89d7b855da219a10c31a7905652385ff",
+    "hugging_face_space": "Junitos/GALIA",
+    "hugging_face_space_sha": "988a679e575b905907405769d37830bcb227f366",
+    "hugging_face_sdk": "static",
+    "hugging_face_stage": "RUNNING",
+    "hugging_face_subdomain": "junitos-galia",
+    "hugging_face_private": true
+  },
+  "validation": {
+    "gradio_lite_candidate": "PASS",
+    "dashboard_publisher": "PASS",
+    "python_3_12": "PASS",
+    "python_3_13": "PASS",
+    "deploy": "PASS"
+  },
+  "scope": {
+    "runtime_recovery_only": true,
+    "presentation_plane": "READ_ONLY",
+    "authority_mutation": false,
+    "canonical_writes": false,
+    "space_visibility_changed": false,
+    "canonical_authority_transferred": false
+  }
+}
