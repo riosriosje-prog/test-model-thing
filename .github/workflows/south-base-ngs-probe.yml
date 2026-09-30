@@ -19,13 +19,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Install probe dependency
-        run: python -m pip install --disable-pip-version-check pyshp
+      - name: Install probe dependencies
+        run: python -m pip install --disable-pip-version-check pyshp pillow
       - name: Probe archived NGS Puerto Rico control shapefile
         run: python tools/probe_south_base_ngs_archive.py
+      - name: Probe 1899 San Juan Harbor IIIF chart
+        run: python tools/probe_south_base_1899_chart.py
       - name: Validate South Base gate closeout candidate
         run: python tools/validate_south_base_gate_closeout.py
       - uses: actions/upload-artifact@v4
         with:
           name: south-base-ngs-archive-probe
-          path: artifacts/south-base-ngs-archive-probe.json
+          path: |
+            artifacts/south-base-ngs-archive-probe.json
+            artifacts/south-base-1899-chart/
