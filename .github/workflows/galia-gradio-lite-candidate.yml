@@ -34,7 +34,7 @@ jobs:
       - name: Enforce promoted read-only boundary
         run: |
           test -f dist/gradio-lite/index.html
-          grep -q '@gradio/lite@5.45.0' dist/gradio-lite/index.html
+          grep -q 'gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js' dist/gradio-lite/index.html
           grep -q 'READ ONLY' dist/gradio-lite/index.html
           grep -q 'PROMOTED_DEPLOY_AUTHORIZED' governance/galia_gradio_lite_dashboard_candidate.v0_1.json
       - uses: actions/upload-artifact@v4
