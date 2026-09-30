@@ -63,9 +63,9 @@
         "The initials WCH are preserved exactly as NGS reports them; expansion to William C. Hodgkins is corroborated by his independently documented command of the 1899 Blake party but is not spelled out in this datasheet."
       ],
       "source": {
-        "publication": "National Geodetic Survey — Puerto Rico monthly datasheet archive, PID TV1051 SAN JUAN SOUTH BASE",
-        "surrogate_url": "https://geodesy.noaa.gov/pub/DS_ARCHIVE/DataSheets/PR.ZIP",
-        "snapshot_sha256": "d92e00e1aeec923424234b164bf87271431a9cb139b1254b3da4efd84faa7086"
+        "publication": "National Geodetic Survey — datasheet PID TV1051 SAN JUAN SOUTH BASE",
+        "surrogate_url": "https://geodesy.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1051",
+        "snapshot_sha256": "860985fa3b7694077da2ab62ddb3df3f7de1cb83ab40bc570d2b4c129ecf2c2e"
       }
     },
     {
@@ -78,9 +78,8 @@
         "Do not infer that TV1049–TV1051 was a formally measured base line, or substitute their modern adjusted separation for an original measured base length, until a GB/GBZ or equivalent primary record explicitly links them."
       ],
       "source": {
-        "publication": "National Geodetic Survey — Puerto Rico monthly datasheet archive, PID TV1049 SAN JUAN NORTH BASE",
-        "surrogate_url": "https://geodesy.noaa.gov/pub/DS_ARCHIVE/DataSheets/PR.ZIP",
-        "snapshot_sha256": "d92e00e1aeec923424234b164bf87271431a9cb139b1254b3da4efd84faa7086"
+        "publication": "National Geodetic Survey — datasheet PID TV1049 SAN JUAN NORTH BASE",
+        "surrogate_url": "https://geodesy.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1049"
       }
     },
     {
@@ -98,10 +97,10 @@
       }
     },
     {
-      "id": "SOUTHBASE-ORIGIN-1900",
+      "id": "SOUTHBASE-FORNEY-1900-ORIGIN-REJECTED",
       "date_range": "1900-01-01/1900-05-31",
-      "status": "SUPERSEDED",
-      "claim": "Earlier working hypothesis: South Base may have been established during Forney's 1900 Ponce-to-San Juan triangulation campaign. Official NGS station history now supersedes the establishment portion: SAN JUAN SOUTH BASE was monumented by CGS in 1899. Forney's 1900 role remains a network-integration/occupation question.",
+      "status": "REJECTED",
+      "claim": "Earlier working hypothesis: South Base may have originated during Forney's 1900 Ponce-to-San Juan triangulation. NGS now records SAN JUAN SOUTH BASE (TV1051) as MONUMENTED by CGS in 1899 and preserves a C&GS 1899 station description, so 1900 is rejected as the station's initial establishment year. Forney's exact 1900 role remains an occupation/network-integration question.",
       "limits": [
         "Do not delete the superseded hypothesis; it documents the earlier research state.",
         "The 1900 campaign remains independently verified, but it is no longer a candidate origin year for the monument."
@@ -161,33 +160,62 @@
         "publication": "NOAA/NOS Hydrographic Survey H10076 descriptive report",
         "surrogate_url": "https://data.ngdc.noaa.gov/platforms/ocean/nos/coast/H10001-H12000/H10076/DR/H10076.pdf"
       }
+    },
+    {
+      "id": "SOUTHBASE-1899-NETWORK-STATUS-DISTINCTION",
+      "date_range": "1899 / NGS surviving station histories",
+      "status": "FACT",
+      "claim": "A controlled review of 15 nearby NGS records whose archive FIRST_RECV is 1899 found nine stations explicitly classified HISTORY - 1899 FIRST OBSERVED CGS, while SAN JUAN SOUTH BASE (TV1051) and SAN JUAN NORTH BASE (TV1049) are classified HISTORY - 1899 MONUMENTED CGS. The surviving NGS record therefore distinguishes monumentation from first observation and does not support rewriting TV1051's 1899 monumentation as an 1899 observation.",
+      "limits": [
+        "Absence of a FIRST OBSERVED entry in the NGS datasheet does not prove the station was not observed in 1899.",
+        "The first occupation/angle-observation date remains a field-book/GH-series archival question."
+      ],
+      "source": {
+        "publication": "NGS Puerto Rico control archive and individual datasheets; GALIA 1899-network probe",
+        "surrogate_url": "https://geodesy.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1051"
+      }
+    },
+    {
+      "id": "SOUTHBASE-NORTHBASE-PAIR-GEOMETRY",
+      "date_range": "1899 / later adjusted Puerto Rico Datum positions",
+      "status": "FACT",
+      "claim": "NGS preserves companion stations SAN JUAN NORTH BASE (TV1049) and SAN JUAN SOUTH BASE (TV1051), both monumented/described by CGS in 1899. Using their superseded adjusted Puerto Rico Datum positions on Clarke 1866 gives a separation of approximately 1,094.824 m and South-to-North azimuth 6.94493°.",
+      "limits": [
+        "The paired names and geometry do not prove that TV1049–TV1051 was formally measured as a geodetic base line.",
+        "Neither NGS datasheet contains explicit BASE LINE, BASELINE, MEASURED BASE, or BASE MEASUREMENT language.",
+        "GB/GBZ records remain the controlling source for any formal baseline claim."
+      ],
+      "source": {
+        "publication": "NGS datasheets TV1049 and TV1051; GALIA read-only base-pair computation",
+        "surrogate_url": "https://geodesy.noaa.gov/cgi-bin/ds_mark.prl?PidBox=TV1051"
+      }
     }
   ],
   "open_gates": [
     {
+      "id": "SOUTHBASE-FIRST-OBSERVATION",
+      "state": "OPEN_PRIMARY_TARGET",
+      "target": "Recover RG 23 GH horizontal-angle observations, field books, or equivalent records that explicitly date the first occupation/observation of SAN JUAN SOUTH BASE (TV1051). NGS records 1899 MONUMENTED, not FIRST OBSERVED."
+    },
+    {
       "id": "SOUTHBASE-1899-BASELINE-MEASUREMENT",
       "state": "OPEN_PRIMARY_TARGET",
-      "target": "Recover the 1899 C&GS base-measurement/computation record explicitly linking SAN JUAN NORTH BASE (TV1049) and SAN JUAN SOUTH BASE (TV1051), including measured length, method, corrections, date and personnel."
+      "target": "Recover RG 23 GB/GBZ base-measurement or base-line-computation records to determine whether SAN JUAN NORTH BASE (TV1049) and SAN JUAN SOUTH BASE (TV1051) were formally measured as a base line, including length, corrections, date and personnel."
+    },
+    {
+      "id": "SOUTHBASE-ORIGINAL-1899-FIELD-COORDINATE",
+      "state": "OPEN",
+      "target": "Recover the raw/original 1899 field position/computation and distinguish it from the later superseded adjusted Puerto Rico Datum coordinate retained by NGS."
+    },
+    {
+      "id": "SOUTHBASE-FORNEY-1900-ROLE",
+      "state": "OPEN",
+      "target": "Recover Forney's 1900 observation/reoccupation records to determine how the already-existing 1899 South Base was used in the Ponce-to-San Juan triangulation."
     },
     {
       "id": "SOUTHBASE-GA-ORIGINAL-CARD-IMAGE",
       "state": "OPEN_PROVENANCE_DEPTH",
-      "target": "Recover the original or microfilmed GA-series station-description card/image for TV1051 and, if possible, TV1049. The NGS datasheet has already recovered the substantive text."
-    },
-    {
-      "id": "SOUTHBASE-ORIGINAL-1899-COORDINATE-OBSERVATION",
-      "state": "OPEN_PARTIAL",
-      "target": "Recover the actual 1899 field coordinate/computation, datum lineage, first observation and witness/reference ties. The monument description and later adjusted/superseded coordinates are already recovered."
-    },
-    {
-      "id": "SOUTHBASE-WCH-IDENTITY",
-      "state": "OPEN_NARROW",
-      "target": "Recover a primary personnel/field record that explicitly expands the 1899 descriptor initials WCH for TV1051/TV1049. W. C. Hodgkins is strongly corroborated by the independent 1899 Blake assignment but the NGS datasheet itself gives initials only."
-    },
-    {
-      "id": "SOUTHBASE-1936-MAP-GRID-COORDINATE",
-      "state": "OPEN",
-      "target": "Recover the 1936 U.S. Engineer Office map image at sufficient resolution and extract the plotted STA. SOUTH BASE grid coordinate/system with an uncertainty budget."
+      "target": "Recover the original/microfilmed GA-series station-description card/image for TV1051 and TV1049. The substantive station-description text is already recovered from NGS."
     }
   ],
   "archival_routes": [
@@ -214,6 +242,11 @@
       "kind": "official_ngs_reconciliation",
       "date": "2026-09-30",
       "note": "NGS Puerto Rico archive reproduced in GitHub CI; TV1051/TV1049 identity, 1899 monumentation, station-description text and later datum realizations separated from still-open original base-measurement/GA-card provenance gates."
+    },
+    {
+      "kind": "south_base_gate_sync_v0_2",
+      "date": "2026-09-30",
+      "note": "Aligned public research presentation with GALIA NGS/network gates: TV1051 PID and 1899 monumentation/description closed; Forney-1900 origin rejected; MONUMENTED versus FIRST OBSERVED distinction preserved; GH and GB/GBZ remain primary targets."
     }
   ]
 }
