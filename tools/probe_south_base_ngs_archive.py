@@ -136,7 +136,7 @@ def main():
         else:
             receipt["status"] = "ZIP_RECOVERED_BUT_SHAPEFILE_INCOMPLETE"
 
-    for pid in ("TV1051", "TV1049"):
+    for pid in ("TV1051", "TV1049", "TV1029", "TV1021"):
         match = next((x for x in receipt.get("matches", []) if x.get("pid") == pid), None)
         if not match:
             continue
