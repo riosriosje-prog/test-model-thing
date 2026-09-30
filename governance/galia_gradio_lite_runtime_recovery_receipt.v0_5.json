@@ -1,0 +1,44 @@
+{
+  "schema_version": "galia.runtime_recovery_receipt.v1",
+  "receipt_id": "GALIA-GRADIO-LITE-RUNTIME-RECOVERY-2026-09-30-005",
+  "state": "AUTHORIZED_REMEDIATION",
+  "incident": {
+    "symptom": "Fresh WebKit/Pyodide cold start fails while resolving Gradio's huggingface-hub<1.0,>=0.33.5 dependency.",
+    "trace_signature": "ValueError: Can't find a pure Python 3 wheel for: 'huggingface-hub<1.0,>=0.33.5'",
+    "failure_phase": "micropip dependency resolution before Gradio import and before app.py",
+    "canonical_data_impact": false,
+    "authority_impact": false
+  },
+  "root_cause": {
+    "pinned_runtime_behavior": "PINNED_HF_HUB adds huggingface-hub==0.35.0 to the same micropip transaction as the Gradio wheels.",
+    "cold_start_behavior": "micropip recursively resolves Gradio's range requirement before the exact pin is installed.",
+    "gradio_requirement": "huggingface-hub<1.0,>=0.33.5",
+    "selected_browser_pin": "huggingface-hub==0.35.0"
+  },
+  "remediation": {
+    "strategy": "Install huggingface-hub==0.35.0 in a separate micropip transaction before installing the Gradio and gradio_client wheels.",
+    "runtime_distribution": "SELF_HOSTED_STATIC_ASSETS",
+    "retain_filelock_worker_patch": true,
+    "webkit_cold_start_gate": true,
+    "fail_closed": true
+  },
+  "evidence": {
+    "webkit_run_id": 36727408408,
+    "webkit_failure_artifact_id": 11103098847,
+    "prior_runtime_deploy_sha": "9c2276d8fe2e03a5334cf4bbcc94ce41f3e56e57"
+  },
+  "human_authorization": {
+    "authorized": true,
+    "date": "2026-09-30",
+    "basis": "Continuation of the already-authorized GALIA dashboard deployment and runtime remediation; user directed continued repair."
+  },
+  "scope": {
+    "runtime_recovery_only": true,
+    "presentation_plane": "READ_ONLY",
+    "authority_mutation": false,
+    "canonical_writes": false,
+    "research_claim_mutation": false,
+    "space_visibility_changed": false,
+    "canonical_authority_transferred": false
+  }
+}
