@@ -1,0 +1,34 @@
+name: South Base research gates
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/gates/south_base_gates.v0_2.json"
+      - "research/evidence/south_base.v1.json"
+      - "tools/probe_south_base_ngs.py"
+      - "tools/validate_south_base_gates.py"
+      - ".github/workflows/south-base-gates.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate gate state fail-closed
+        run: python tools/validate_south_base_gates.py
+      - name: Probe NGS read-only
+        run: python tools/probe_south_base_ngs.py
+      - name: Preserve probe receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: south-base-ngs-probe
+          path: research/gates/derived/
+          if-no-files-found: error
