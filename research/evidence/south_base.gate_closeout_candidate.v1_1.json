@@ -139,6 +139,36 @@
       "interpretation": "Name, chronology and independent Morro bearing geometry all reconcile TV1051 with the historical South Base triangulation station."
     },
     {
+      "id": "SOUTHBASE-1899-HARBOR-CHART-CONTEXT",
+      "state": "PASS_DIAGNOSTIC_POSITIONAL_CONTEXT",
+      "source": {
+        "title": "San Juan Harbor Porto Rico",
+        "repository": "The Portal to Texas History / University of Texas at Arlington Library",
+        "date": "1899",
+        "creator": "U.S. Coast and Geodetic Survey",
+        "ark": "ark:/67531/metapth231585",
+        "manifest_url": "https://texashistory.unt.edu/ark:/67531/metapth231585/manifest/",
+        "manifest_sha256": "0f6a1b3508ec6f22c076d140c5fbac02fa60b29261dc7476b6daf5683d73d984",
+        "inspected_image_sha256": "05bf614278e4e11bf16eb4cedbb88b49a18c7b14035123affd672a8925ba3325",
+        "inspected_image_dimensions": {
+          "width": 1500,
+          "height": 1482
+        },
+        "map_note": "Adapted from chart No. 908 U.S. Coast & Geodetic Survey; additions by U.S. Fish Commission, 1899."
+      },
+      "result": "A diagnostic graticule projection of the NGS Puerto Rico Datum positions for TV1049/TV1051 falls on the mapped low-land southwest side of San Juan Harbor, consistent with the 1899 NGS station descriptions.",
+      "limits": [
+        "The 1899 chart predates formal publication of the Puerto Rico Datum; the projection is contextual, not an independent survey-coordinate validation.",
+        "No legible North Base/South Base station labels were found in the 1500-pixel IIIF scan.",
+        "Absence of a legible label in this derivative chart does not imply absence of the station from the underlying survey control."
+      ]
+    },
+    {
+      "id": "SOUTHBASE-1899-CHART-EXPLICIT-STATION-LABEL",
+      "state": "NOT_FOUND_IN_INSPECTED_SCAN",
+      "target": "Recover a chart/source diagram or higher-resolution control manuscript that explicitly labels SAN JUAN NORTH BASE and/or SAN JUAN SOUTH BASE."
+    },
+    {
       "id": "FORNEY-1900-ORIGIN-HYPOTHESIS",
       "state": "REJECT_AS_ORIGIN_SUPERSEDED",
       "basis": [
@@ -206,6 +236,6 @@
     "automatic_promotion": false,
     "canonical_evidence_mutation": false,
     "dashboard_publication": false,
-    "next_gate": "RECOVER_1899_SAN_JUAN_BASE_MEASUREMENT_OR_OBSERVATION_RECORDS"
+    "next_gate": "RECOVER_1899_SAN_JUAN_BASE_MEASUREMENT_OR_OBSERVATION_RECORDS_GB_GBZ_GH_GAR"
   }
 }
