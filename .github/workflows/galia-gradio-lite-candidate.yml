@@ -52,11 +52,13 @@ jobs:
           url="https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/assets/webworker-BsZ7XNFH.js"
           worker=urllib.request.urlopen(url, timeout=30).read().decode("utf-8","replace")
           print("WORKER_BYTES", len(worker))
+          import base64
           for needle in ("os.link", "lambda src", "Mocking os module methods", "follow_symlinks"):
               pos=worker.find(needle)
               print("WORKER_NEEDLE", repr(needle), pos)
               if pos >= 0:
                   print("WORKER_SNIPPET", worker[max(0,pos-500):pos+1000])
+          print("WORKER_B64="+base64.b64encode(worker.encode()).decode())
           PY
       - name: Build candidate
         run: python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
