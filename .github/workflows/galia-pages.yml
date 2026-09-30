@@ -12,6 +12,8 @@ on:
       - "research/gates/**"
       - "research/geospatial/**"
       - "tools/build_galia_dashboard.py"
+      - "tools/validate_south_base_gates.py"
+      - "tools/probe_south_base_ngs.py"
       - "tests/test_galia_dashboard_publisher.py"
       - ".github/workflows/galia-pages.yml"
   push:
@@ -24,6 +26,8 @@ on:
       - "research/gates/**"
       - "research/geospatial/**"
       - "tools/build_galia_dashboard.py"
+      - "tools/validate_south_base_gates.py"
+      - "tools/probe_south_base_ngs.py"
       - "tests/test_galia_dashboard_publisher.py"
       - ".github/workflows/galia-pages.yml"
 
@@ -52,6 +56,11 @@ jobs:
         run: |
           if [ -f research/gates/south_base_gates.v0_2.json ]; then
             python tools/validate_south_base_gates.py
+          fi
+      - name: Probe NGS control near South Base read-only
+        run: |
+          if [ -f tools/probe_south_base_ngs.py ]; then
+            python tools/probe_south_base_ngs.py
           fi
       - name: Build site
         run: |
