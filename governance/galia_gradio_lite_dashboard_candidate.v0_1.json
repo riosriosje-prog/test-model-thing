@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "candidate_id": "GALIA-GRADIO-LITE-DASHBOARD-CANDIDATE-v0.1",
-  "state": "CANDIDATE_NOT_PROMOTED",
+  "state": "PROMOTED_DEPLOY_AUTHORIZED",
   "scope": "READ_ONLY_PRESENTATION_PLANE_ONLY",
   "source_control_plane": {
     "repository": "riosriosje-prog/test-model-thing",
@@ -20,10 +20,12 @@
     "authority_mutation": false,
     "canonical_writes": false,
     "remote_write": false,
-    "target_space": "UNBOUND_PENDING_HUMAN_SELECTION"
+    "target_space": "Junitos/GALIA",
+    "deployment_authorized": true
   },
   "promotion": {
-    "human_promotion_required": true,
-    "auto_promote": false
+    "human_promotion_required": false,
+    "auto_promote": false,
+    "deployment_receipt": "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
   }
 }
