@@ -448,7 +448,7 @@
     },
     {
       "id": "SB-1899-BASELINE-MEASUREMENT",
-      "state": "OPEN_FUNCTION_AND_MEASUREMENT_RECORD",
+      "state": "OPEN_ARCHIVAL_REQUIRED_STRONG_LIMITING_EVIDENCE",
       "target": "Determine whether SAN JUAN NORTH BASE (TV1049) and SAN JUAN SOUTH BASE (TV1051) were explicitly used as endpoints of a formally measured C&GS base line in 1899, and if so recover the original measured length, method, corrections, date and personnel.",
       "priority_series": [
         "GB — Base Measurements, 1833–1935",
@@ -458,7 +458,7 @@
         "GH — Horizontal and Vertical Angle Observations, 1817–1948",
         "Partial geographic and subject indexes, 1899–1913"
       ],
-      "close_rule": "Do not infer formal measured-base status or substitute the ~1094.856 m modern adjusted geodesic separation for an original 1899 measured length. Close only with GB/GBZ or equivalent primary field/computation evidence explicitly linking TV1049 and TV1051.",
+      "close_rule": "Do not infer formal measured-base status or substitute the ~1094.856 m modern adjusted geodesic separation for an original 1899 measured length. Current official summary strongly indicates the single reported measured base was Ponce. Close the San Juan question only with GB/GBZ or equivalent primary evidence explicitly linking TV1049 and TV1051, or with a primary record explicitly stating their functional status was not a measured base.",
       "archival_locator": {
         "repository": "National Archives and Records Administration",
         "record_group": "RG 23 — Records of the Coast and Geodetic Survey",
@@ -473,9 +473,19 @@
         ]
       },
       "negative_or_limiting_evidence": [
-        "1898-99 Appendix No. 2 lists operation 82, San Juan Harbor, as Hydrography.",
-        "The technical index lists Porto Rico under Triangulation and Astronomical determination but does not enumerate Porto Rico under Base lines."
-      ]
+        "1898-99 Hodgkins/Blake SUMMARY OF OPERATIONS reports exactly 1 base line measured.",
+        "The narrative explicitly identifies the Ponce base: 2,572.6 m on the railroad southwest of Ponce, with triangulation developed from it.",
+        "The April San Juan work is described as a survey of the bar and anchorage.",
+        "The technical index lists Porto Rico under Triangulation and Astronomical determination but does not enumerate Porto Rico under Base lines beyond the reported operation summary.",
+        "TV1049 and TV1051 modern NGS datasheets do not list one another as reference objects."
+      ],
+      "official_annual_report_constraint": {
+        "summary": "Hodgkins/Blake summary reports exactly 1 base line measured for the reported operations.",
+        "identified_base": "Narrative identifies the base measured at Ponce as 2,572.6 meters long on the railroad southwest of Ponce; triangulation was developed from it.",
+        "san_juan_narrative": "April 1899 San Juan work is described as a survey of the bar and anchorage.",
+        "interpretation": "The one explicitly reported C&GS base line is the Ponce base. This is strong limiting evidence against treating SAN JUAN NORTH BASE↔SAN JUAN SOUTH BASE as a second formally measured 1899 base solely from their designations.",
+        "source_url": "https://library.oarcloud.noaa.gov/docs.lib/htdocs/rescue/cgs/003_pdf/CSC-0102.PDF"
+      }
     },
     {
       "id": "SB-GA-ORIGINAL-CARD-IMAGE",
@@ -507,7 +517,7 @@
     },
     {
       "id": "SB-1899-BASELINE-DIGITAL-SEARCH-SATURATION",
-      "state": "PASS_SEARCH_SATURATION_NO_PRIMARY_MEASUREMENT_FOUND",
+      "state": "PASS_SEARCH_SATURATION_WITH_STRONG_OFFICIAL_LIMITING_EVIDENCE",
       "proposition": "A targeted digital search did not recover a primary GB/GBZ-equivalent record explicitly stating that SAN JUAN NORTH BASE (TV1049) and SAN JUAN SOUTH BASE (TV1051) were the endpoints of a formally measured C&GS base line in 1899.",
       "search_scope": [
         "Exact paired designations SAN JUAN NORTH BASE / SAN JUAN SOUTH BASE",
@@ -521,9 +531,10 @@
         "TV1051 datasheet does not list TV1049 as a reference object.",
         "TV1049 datasheet does not list TV1051 as a reference object.",
         "The 1898-99 technical index lists Porto Rico under Triangulation and Astronomical determination but not under Base lines.",
-        "Searches of indexed digital C&GS/NOAA/NARA surfaces did not return a San Juan 1899 base-measurement computation or measured length."
+        "Searches of indexed digital C&GS/NOAA/NARA surfaces did not return a San Juan 1899 base-measurement computation or measured length.",
+        "The 1898-99 Hodgkins/Blake summary reports exactly one base line measured, while the narrative explicitly identifies the measured line at Ponce as 2,572.6 m."
       ],
-      "effect": "Digital-source saturation is documented, but the baseline-function gate remains OPEN because the relevant GB/GBZ or equivalent archival record may be undigitized.",
+      "effect": "Digital search is saturated with strong official limiting evidence that Ponce was the single reported measured base. The San Juan North/South formal-baseline question remains archival-open only to guard against an unreported local/secondary measurement record.",
       "caution": "Absence from web/indexed digital sources is not proof that no local or secondary base was measured."
     },
     {
@@ -713,7 +724,7 @@
   "parent_gate_set": "research/gates/south_base_gates.v0_6.json",
   "open_gate_summary": {
     "remaining_material": [
-      "SB-1899-BASELINE-MEASUREMENT — formal measured-base function/length/method remains OPEN_ARCHIVAL_REQUIRED",
+      "SB-1899-BASELINE-MEASUREMENT — OPEN_ARCHIVAL_REQUIRED_STRONG_LIMITING_EVIDENCE; official 1898-99 summary reports one measured base and identifies it at Ponce",
       "SB-1899-SAN-JUAN-EXAMINATION-BLUEPRINT — recover C&GS examination blueprint/field-sheet antecedent",
       "SB-1900-FORNEY-TV1051-OCCUPATION — direct 1900 station tie remains OPEN_NO_DIRECT_STATION_TIE",
       "SB-GA-ORIGINAL-CARD-IMAGE — OPEN_ARCHIVAL_REQUIRED after digital-search saturation",
