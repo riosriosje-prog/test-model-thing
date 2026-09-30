@@ -17,9 +17,11 @@
     "server_required": false,
     "gradio_lite_runtime_id": "PINNED_HF_HUB",
     "gradio_lite_runtime_base": "vendored:PINNED_HF_HUB",
-    "compatibility_shim": "STARLETTE_QUERY_STRING_BYTES + FILELOCK_OS_LINK_WASM",
+    "compatibility_shim": "STARLETTE_QUERY_STRING_BYTES + FILELOCK_OS_LINK_WASM + HF_HUB_COLD_START_PREINSTALL",
     "runtime_distribution": "SELF_HOSTED_STATIC_ASSETS",
-    "wasm_worker_patch": "OS_LINK_NOT_IMPLEMENTED_KWARGS_SAFE"
+    "wasm_worker_patch": "OS_LINK_NOT_IMPLEMENTED_KWARGS_SAFE",
+    "huggingface_hub_preinstall": "0.35.0",
+    "huggingface_hub_install_order": "PREINSTALL_BEFORE_GRADIO_WHEELS"
   },
   "publication_boundary": {
     "authority_mutation": false,
@@ -33,5 +35,5 @@
     "auto_promote": false,
     "deployment_receipt": "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
   },
-  "runtime_recovery_receipt": "governance/galia_gradio_lite_runtime_recovery_receipt.v0_4.json"
+  "runtime_recovery_receipt": "governance/galia_gradio_lite_runtime_recovery_receipt.v0_5.json"
 }
