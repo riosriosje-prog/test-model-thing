@@ -125,6 +125,14 @@ def validate_geo(geo: dict):
         fail("unexpected geospatial authority repository")
     if source.get("commit_sha") != "1f8d25d66188476d8bf376b644a1a222100828f7":
         fail("geospatial source commit binding changed")
+    if source.get("south_base_gate_commit_sha") != "1f71e2c2fa66867953cbc53be8c2ba6e7d50a9cb":
+        fail("South Base geodetic gate binding changed")
+    controls = geo.get("geodetic_controls", [])
+    if {x.get("id") for x in controls} != {"ngs-tv1051-san-juan-south-base", "ngs-tv1029-morro-lighthouse"}:
+        fail("South Base/Morro geodetic control set changed")
+    south = next(x for x in controls if x.get("id") == "ngs-tv1051-san-juan-south-base")
+    if south.get("status") != "PASS_VERIFIED_NGS_PID" or south.get("datum") != "NAD83(1997)":
+        fail("South Base control authority/datum changed")
     sheets = geo.get("sheets", [])
     if len(sheets) != 3:
         fail("expected three Santurce georeference sheets")
@@ -232,6 +240,8 @@ def render_geo_fallback_svg(geo: dict) -> str:
         points.extend(sheet.get("polygon", []))
         for item in sheet.get("controls", []) + sheet.get("holdouts", []):
             points.append([item["lat"], item["lon"]])
+    for item in geo.get("geodetic_controls", []):
+        points.append([item["lat"], item["lon"]])
     if not points:
         return '<p class="muted">No geospatial display points available.</p>'
     lats = [p[0] for p in points]
@@ -271,6 +281,23 @@ def render_geo_fallback_svg(geo: dict) -> str:
             elements.append(
                 f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="#c62828" stroke="#fff" stroke-width="2"/>'
             )
+
+    control_by_id = {x["id"]: x for x in geo.get("geodetic_controls", [])}
+    for rel in geo.get("geodetic_relationships", []):
+        a = control_by_id.get(rel.get("from"))
+        b = control_by_id.get(rel.get("to"))
+        if a and b:
+            x1, y1 = xy(a["lat"], a["lon"])
+            x2, y2 = xy(b["lat"], b["lon"])
+            elements.append(
+                f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
+                'stroke="#2563eb" stroke-width="2" stroke-dasharray="7 5"/>'
+            )
+    for item in geo.get("geodetic_controls", []):
+        x, y = xy(item["lat"], item["lon"])
+        elements.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="#2563eb" stroke="#fff" stroke-width="2"/>'
+        )
     elements.append(
         '<text x="18" y="412" font-family="system-ui" font-size="13" fill="#4d5666">'
         'Static fallback control-network view · geographic display only'
@@ -413,7 +440,7 @@ th{{background:#f5f7fa;position:sticky;top:0}} .table-scroll{{overflow:auto;max-
 .geo-fallback{{width:100%;height:100%;display:block}}.map-fallback-note{{padding:8px 10px;background:#fff7ed;border-top:1px solid #f2c98b;font-size:.86rem}}
 .geo-grid{{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,.7fr);gap:14px;align-items:start}}
 .geo-legend{{display:grid;gap:9px;margin:10px 0 16px}}.geo-legend span{{display:flex;align-items:center;gap:8px}}
-.geo-dot{{width:12px;height:12px;border-radius:50%;display:inline-block}}.geo-dot.promoted{{background:var(--green)}}.geo-dot.holdout{{background:var(--red)}}.geo-dot.diagnostic{{background:var(--amber)}}
+.geo-dot{{width:12px;height:12px;border-radius:50%;display:inline-block}}.geo-dot.promoted{{background:var(--green)}}.geo-dot.holdout{{background:var(--red)}}.geo-dot.diagnostic{{background:var(--amber)}}.geo-dot.ngs{{background:#2563eb}}
 .geo-note{{border-left:4px solid var(--amber);padding:10px 12px;background:#fff7ed;border-radius:8px}}
 .leaflet-popup-content{{font-family:system-ui,-apple-system,sans-serif;line-height:1.35}}
 .chart-card h2{{margin-bottom:4px}}
@@ -487,11 +514,13 @@ ul{{line-height:1.55}}
 <span><i class="geo-dot promoted"></i>Promoted fit control / promoted sheet footprint</span>
 <span><i class="geo-dot holdout"></i>Failed temporal-alignment holdout — not a GCP</span>
 <span><i class="geo-dot diagnostic"></i>Diagnostic-only Third Section footprint</span>
+<span><i class="geo-dot ngs"></i>Verified NGS control / diagnostic bearing relation</span>
 </div>
 <div class="table-scroll">
 <table><thead><tr><th>Sheet</th><th>Authority</th><th>RMS</th><th>GCPs</th></tr></thead><tbody>{geo_sheet_rows}</tbody></table>
 </div>
 <p class="geo-note"><strong>Third Section:</strong> 101 overlap-registration inliers; RMS 1.1859701 px. Its footprint is diagnostic only. Historical raster overlays are not yet embedded in this dashboard repository.</p>
+<p class="geo-note"><strong>South Base:</strong> NGS PID TV1051 is plotted with MORRO LIGHTHOUSE TV1029. The dashed line is the independently corroborated bearing relationship; it does not represent the separate 1904/1909 magnetic observation points.</p>
 <small>Geospatial source binding: <code>{esc(geo['source']['repository'])}@{esc(geo['source']['commit_sha'][:12])}</code></small>
 </div>
 </div>
@@ -619,6 +648,28 @@ ul{{line-height:1.55}}
       );
       bounds.push([gcp.lat,gcp.lon]);
     }});
+  }});
+
+  const geodeticById = Object.fromEntries((geo.geodetic_controls || []).map(x => [x.id, x]));
+  (geo.geodetic_relationships || []).forEach(rel => {{
+    const a = geodeticById[rel.from], b = geodeticById[rel.to];
+    if (!a || !b) return;
+    L.polyline([[a.lat,a.lon],[b.lat,b.lon]], {{
+      color:'#2563eb', weight:2, dashArray:'7 5', opacity:.9
+    }}).addTo(map).bindPopup(
+      '<strong>South Base → Morro bearing check</strong><br>'+
+      rel.status+'<br>Historical: '+rel.historical_bearing+
+      '<br>Δ azimuth: '+Number(rel.angular_difference_arcsec).toFixed(2)+' arcsec'
+    );
+  }});
+  (geo.geodetic_controls || []).forEach(ctrl => {{
+    L.circleMarker([ctrl.lat,ctrl.lon], {{
+      radius:8, color:'#ffffff', weight:2, fillColor:'#2563eb', fillOpacity:1
+    }}).addTo(map).bindPopup(
+      '<strong>'+ctrl.label+'</strong><br>'+ctrl.status+
+      '<br>Datum: '+ctrl.datum+'<br>'+ctrl.history
+    );
+    bounds.push([ctrl.lat,ctrl.lon]);
   }});
 
     if (bounds.length) map.fitBounds(bounds, {{padding:[18,18]}});
