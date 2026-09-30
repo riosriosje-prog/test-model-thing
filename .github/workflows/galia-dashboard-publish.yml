@@ -20,6 +20,7 @@ on:
       - "tools/vendor_patch_gradio_lite_runtime.py"
       - "tests/test_galia_dashboard_publisher.py"
       - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
+      - "tests/smoke_galia_gradio_lite_webkit.py"
       - ".github/workflows/galia-dashboard-publish.yml"
   push:
     branches: [main]
@@ -39,6 +40,7 @@ on:
       - "tools/vendor_patch_gradio_lite_runtime.py"
       - "tests/test_galia_dashboard_publisher.py"
       - "tests/test_galia_gradio_lite_dashboard_v0_1.py"
+      - "tests/smoke_galia_gradio_lite_webkit.py"
       - ".github/workflows/galia-dashboard-publish.yml"
 
 permissions:
@@ -82,9 +84,55 @@ jobs:
           name: galia-gradio-lite-dashboard
           path: dist/gradio-lite/
 
+  webkit-smoke:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@v4
+        with:
+          name: galia-gradio-lite-dashboard
+          path: dist/gradio-lite
+      - name: Install Playwright WebKit
+        run: |
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps webkit
+      - name: Serve built dashboard
+        run: |
+          python -m http.server 8000 --directory dist/gradio-lite > /tmp/galia-http.log 2>&1 &
+          echo $! > /tmp/galia-http.pid
+          python - <<'PY'
+          import time
+          import urllib.request
+          for _ in range(60):
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:8000/", timeout=1) as r:
+                      if r.status == 200:
+                          print("GALIA_STATIC_SERVER=READY")
+                          break
+              except Exception:
+                  time.sleep(1)
+          else:
+              raise SystemExit("static server failed to start")
+          PY
+      - name: Run WebKit runtime smoke
+        run: python tests/smoke_galia_gradio_lite_webkit.py
+      - name: Upload WebKit smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: galia-gradio-lite-webkit-smoke
+          path: |
+            dist/smoke/
+            /tmp/galia-http.log
+          if-no-files-found: ignore
+
   deploy:
     if: github.ref == 'refs/heads/main'
-    needs: validate
+    needs: [validate, webkit-smoke]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
