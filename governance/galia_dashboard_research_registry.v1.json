@@ -1,5 +1,5 @@
 {
-  "schema_version": "galia.dashboard.research.v2",
+  "schema_version": "galia.dashboard.research.v3",
   "projects": [
     {
       "id": "mcleary",
@@ -28,6 +28,14 @@
       "id": "tranvia",
       "title": "Tranvía San Juan–Santurce",
       "state": "REGISTERED_NOT_EMBEDDED"
+    },
+    {
+      "id": "south-base",
+      "title": "South Base · San Juan",
+      "subtitle": "C&GS · Hodgkins 1899 · Forney 1900",
+      "state": "EVIDENCE_EMBEDDED",
+      "evidence_path": "research/evidence/south_base.v1.json",
+      "summary": "1899 harbor-control work and the 1900 Ponce→San Juan triangulation are verified. A 1900 South Base origin is a strong hypothesis, not yet an exact establishment fact; original station description and modern PID remain open."
     }
   ]
 }
