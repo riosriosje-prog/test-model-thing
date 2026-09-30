@@ -8,7 +8,7 @@ on:
       - "governance/galia_dashboard_authority_pointer.v1.json"
       - "governance/galia_dashboard_research_registry.v1.json"
       - "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
-      - "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
+      - "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"\n      - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"\n      - "governance/galia_gradio_lite_runtime_recovery_receipt.v0_3.json"
       - "governance/safe_delete_execution_receipt.v1.json"
       - "governance/hf_final_release_candidate.v1.json"
       - "research/evidence/**"
@@ -54,13 +54,82 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check pytest
           python -m pytest -q             tests/test_galia_dashboard_publisher.py             tests/test_galia_gradio_lite_dashboard_v0_1.py
-      - name: Build Gradio Lite dashboard from control plane
+      - name: Build and vendor patched Gradio Lite runtime
         run: |
           python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
           cp publisher/gradio_lite/README.md dist/gradio-lite/README.md
-          grep -q '@gradio/lite@5.45.0' dist/gradio-lite/index.html
+          mkdir -p .tmp/gradio-lite dist/gradio-lite/vendor/gradio-lite
+          TARBALL=$(npm pack @gradio/lite@5.45.0 --pack-destination .tmp/gradio-lite | tail -n 1)
+          tar -xzf ".tmp/gradio-lite/$TARBALL" -C .tmp/gradio-lite
+          cp -R .tmp/gradio-lite/package/dist/. dist/gradio-lite/vendor/gradio-lite/
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path("dist/gradio-lite/vendor/gradio-lite")
+          workers = list(root.rglob("webworker-*.js"))
+          if not workers:
+              raise SystemExit("No Gradio Lite webworker asset found")
+          old = "https://cdn.jsdelivr.net/pyodide/v0.27.3/full/pyodide.js"
+          new = "https://cdn.jsdelivr.net/pyodide/v0.27.6/full/pyodide.js"
+          patched = 0
+          for path in workers:
+              text = path.read_text(encoding="utf-8")
+              if old in text:
+                  path.write_text(text.replace(old, new), encoding="utf-8")
+                  patched += 1
+          if patched != 1:
+              raise SystemExit(f"Expected exactly one Pyodide runtime patch, got {patched}")
+          print("GALIA_GRADIO_LITE_RUNTIME_PATCH=PASS")
+          print("GALIA_GRADIO_LITE_PYODIDE=0.27.6")
+          PY
+          grep -q './vendor/gradio-lite/lite.js' dist/gradio-lite/index.html
           grep -q 'South Base · San Juan' dist/gradio-lite/index.html
           grep -q 'sdk: static' dist/gradio-lite/README.md
+          grep -R -q 'pyodide/v0.27.6/full/pyodide.js' dist/gradio-lite/vendor/gradio-lite
+
+      - name: Browser smoke test patched Gradio Lite
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+          python -m http.server 8765 --directory dist/gradio-lite >/tmp/galia-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          node - <<'JS'
+          const { chromium } = require("playwright");
+          (async () => {
+            const browser = await chromium.launch({headless: true});
+            const page = await browser.newPage();
+            const browserErrors = [];
+            page.on("pageerror", err => browserErrors.push(String(err)));
+            page.on("console", msg => {
+              if (msg.type() === "error") browserErrors.push(msg.text());
+            });
+            await page.goto("http://127.0.0.1:8765/", {waitUntil: "domcontentloaded", timeout: 60000});
+            await page.getByText("GALIA", {exact: false}).first().waitFor({timeout: 180000});
+            await page.getByText("South Base · San Juan", {exact: false}).first().waitFor({timeout: 180000});
+            const body = await page.locator("body").innerText();
+            const bad = [
+              "Can't find a pure Python 3 wheel",
+              "Traceback (most recent call last)",
+              "Requested 'huggingface-hub",
+            ];
+            for (const marker of bad) {
+              if (body.includes(marker)) throw new Error("Runtime failure marker: " + marker);
+            }
+            const relevant = browserErrors.filter(x =>
+              x.includes("micropip") ||
+              x.includes("huggingface-hub") ||
+              x.includes("PythonError") ||
+              x.includes("Traceback")
+            );
+            if (relevant.length) throw new Error(relevant.join("\n"));
+            console.log("GALIA_GRADIO_LITE_BROWSER_SMOKE=PASS");
+            await browser.close();
+          })().catch(err => {
+            console.error(err);
+            process.exit(1);
+          });
+          JS
       - uses: actions/upload-artifact@v4
         with:
           name: galia-gradio-lite-dashboard
