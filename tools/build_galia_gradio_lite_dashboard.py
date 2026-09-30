@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
 
 from tools import build_galia_dashboard as base
 
-PINNED_GRADIO_LITE = "5.45.0"
+PINNED_GRADIO_LITE = "5.45.0"\nPINNED_PYODIDE = "0.27.6"\nRUNTIME_JS = "./vendor/gradio-lite/lite.js"\nRUNTIME_CSS = "./vendor/gradio-lite/lite.css"
 
 APP_PY = r"""
 import json
@@ -236,7 +236,7 @@ FILES
 </gradio-lite>
 </body>
 </html>
-""".replace("VERSION", PINNED_GRADIO_LITE).replace("FILES", files)
+""".replace("RUNTIME_JS", RUNTIME_JS).replace("RUNTIME_CSS", RUNTIME_CSS).replace("FILES", files)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -257,7 +257,7 @@ def main():
 
     digest = hashlib.sha256(data.encode("utf-8")).hexdigest()
     print("GALIA_GRADIO_LITE_VALIDATION=PASS")
-    print("GALIA_GRADIO_LITE_VERSION=" + PINNED_GRADIO_LITE)
+    print("GALIA_GRADIO_LITE_VERSION=" + PINNED_GRADIO_LITE)\n    print("GALIA_GRADIO_LITE_PYODIDE=" + PINNED_PYODIDE)\n    print("GALIA_GRADIO_LITE_RUNTIME_MODE=VENDORED_PATCHED")
     print("GALIA_GRADIO_LITE_EVIDENCE_DOCS=" + str(len(evidence_docs)))
     print("GALIA_GRADIO_LITE_SHA256=" + digest)
 
