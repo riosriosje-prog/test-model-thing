@@ -9,8 +9,11 @@ on:
       - "governance/galia_dashboard_research_registry.v1.json"
       - "governance/galia_south_base_research_promotion_receipt.v1.json"
       - "research/evidence/**"
+      - "research/gates/**"
       - "research/geospatial/**"
       - "tools/build_galia_dashboard.py"
+      - "tools/validate_south_base_gates.py"
+      - "tools/probe_south_base_ngs.py"
       - "tests/test_galia_dashboard_publisher.py"
       - ".github/workflows/galia-pages.yml"
   push:
@@ -20,8 +23,11 @@ on:
       - "governance/galia_dashboard_research_registry.v1.json"
       - "governance/galia_south_base_research_promotion_receipt.v1.json"
       - "research/evidence/**"
+      - "research/gates/**"
       - "research/geospatial/**"
       - "tools/build_galia_dashboard.py"
+      - "tools/validate_south_base_gates.py"
+      - "tools/probe_south_base_ngs.py"
       - "tests/test_galia_dashboard_publisher.py"
       - ".github/workflows/galia-pages.yml"
 
@@ -46,6 +52,16 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check pytest
           python -m pytest -q tests/test_galia_dashboard_publisher.py
+      - name: Validate South Base research gates
+        run: |
+          if [ -f research/gates/south_base_gates.v0_2.json ]; then
+            python tools/validate_south_base_gates.py
+          fi
+      - name: Probe NGS control near South Base read-only
+        run: |
+          if [ -f tools/probe_south_base_ngs.py ]; then
+            python tools/probe_south_base_ngs.py
+          fi
       - name: Build site
         run: |
           python tools/build_galia_dashboard.py --output _site/index.html
