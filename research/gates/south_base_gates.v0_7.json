@@ -1,0 +1,728 @@
+{
+  "schema_version": "galia.research.gates.v1",
+  "gate_set_id": "GALIA-SOUTH-BASE-GATES-v0.7",
+  "state": "RESEARCH_CANDIDATE_NOT_PROMOTED",
+  "project_id": "south-base",
+  "parent_promoted_dossier": {
+    "evidence_path": "research/evidence/south_base.v1.json",
+    "receipt_path": "governance/galia_south_base_research_promotion_receipt.v1.json",
+    "scope": "RESEARCH_DOSSIER_AND_READ_ONLY_DASHBOARD_ONLY"
+  },
+  "created_local": "2026-09-30",
+  "invariants": {
+    "automatic_promotion": false,
+    "canonical_database_write": false,
+    "hypothesis_promoted_as_fact": false,
+    "magnetic_station_equals_south_base": false,
+    "map_label_equals_original_establishment_record": false
+  },
+  "gates": [
+    {
+      "id": "SB-EXISTS-BY-1904",
+      "state": "PASS",
+      "proposition": "South Base triangulation station existed by the 1904 magnetic occupation referenced in the 1908 and 1909 C&GS station descriptions.",
+      "evidence": [
+        "1908 C&GS magnetic station description states the 1904 station was reoccupied between Morro Lighthouse and South Base triangulation station, 20 paces from South Base.",
+        "1909 C&GS report states observations were made 50 feet from South Base triangulation station toward Morro Lighthouse, within a few feet of the 1904/1908 point."
+      ],
+      "effect": "Existence by 1904 is verified. This does not establish the original construction/occupation year."
+    },
+    {
+      "id": "SB-MAGNETIC-DISTINCTION",
+      "state": "PASS",
+      "proposition": "South Base triangulation station is not the 1904/1908 magnetic observation point and is not the separately monumented 1909 magnetic station.",
+      "evidence": [
+        "The magnetic point is described by offset from South Base.",
+        "The 1909 point was independently monumented with a cement stone marked U.S.C.&G.S., 1909."
+      ],
+      "effect": "Never transfer a magnetic-station coordinate/mark to South Base without an explicit tie computation."
+    },
+    {
+      "id": "SB-MORRO-BEARING",
+      "state": "PASS",
+      "proposition": "The true bearing from the South Base vicinity toward Morro Lighthouse was N 37°09.4′ E.",
+      "evidence": "C&GS 1909 magnetic station description says the bearing was determined from triangulation.",
+      "effect": "Provides an orientation constraint but not a unique coordinate."
+    },
+    {
+      "id": "SB-NGS-MORRO-LIGHTHOUSE-BEARING-DIAGNOSTIC",
+      "state": "PASS_INDEPENDENT_GEOMETRIC_CORROBORATION",
+      "proposition": "The current official NGS positions for SAN JUAN SOUTH BASE (TV1051) and MORRO LIGHTHOUSE (TV1029) reproduce the 1909 C&GS South Base→Morro lighthouse bearing to within about 9 arcseconds.",
+      "computation": {
+        "source_positions": {
+          "from": {
+            "pid": "TV1051",
+            "designation": "SAN JUAN SOUTH BASE",
+            "datum": "NAD 83(1997)",
+            "lat": 18.4520642611,
+            "lon": -66.1386454944
+          },
+          "to": {
+            "pid": "TV1029",
+            "designation": "MORRO LIGHTHOUSE",
+            "datum": "NAD 83(1997)",
+            "lat": 18.4710023333,
+            "lon": -66.1236058528
+          }
+        },
+        "ellipsoid": "GRS80",
+        "geodesic_distance_m": 2630.118939518387,
+        "geodesic_azimuth_deg": 37.154158396903554,
+        "geodesic_azimuth_dms": "37 09 14.97023",
+        "historical_1909_bearing_deg": 37.156666666666666,
+        "historical_1909_bearing_dms": "37 09 24.00000",
+        "difference_arcsec": -9.029771147203292
+      },
+      "limits": [
+        "This is an independent identity/topology diagnostic, not a substitute for original 1899/1909 observation reductions.",
+        "The lighthouse underwent historical structural changes; the calculation uses the official NGS station MORRO LIGHTHOUSE TV1029 and therefore must not be generalized to every lighthouse epoch without a station-history tie."
+      ],
+      "effect": "Strongly corroborates that TV1051 is the historical South Base referenced by the 1909 magnetic description."
+    },
+    {
+      "id": "SB-1936-CORPS-MAP-SURVIVAL",
+      "state": "REJECTED_FALSE_LEAD_ST_THOMAS",
+      "proposition": "The 1937 House Document plate carrying 'STA. SOUTH BASE' belongs to St. Thomas Harbor, U.S. Virgin Islands, not San Juan, Puerto Rico.",
+      "source": {
+        "publication": "U.S. Serial Set / U.S. Engineer Office, Puerto Rico District, Oct. 1936",
+        "govinfo_package": "SERIALSET-10129_00_00-005-0200-0000",
+        "url": "https://www.govinfo.gov/content/pkg/SERIALSET-10129_00_00-005-0200-0000/pdf/SERIALSET-10129_00_00-005-0200-0000.pdf"
+      },
+      "limits": [
+        "The Puerto Rico District administered work in the Virgin Islands; agency/district identity does not imply Puerto Rico island location.",
+        "Shared station names are non-unique."
+      ],
+      "effect": "Do not use this plate as survival, position, coordinate, or station-identity evidence for SAN JUAN SOUTH BASE / TV1051.",
+      "evidence": [
+        "GovInfo OCR for House Document No. 200, 75th Congress, 1st Session identifies the plate title as ST THOMAS HARBOR, VIRGIN ISLANDS, U.S.A.",
+        "The same plate contains the label STA. SOUTH BASE and U.S. Engineer Office Puerto Rico District notation."
+      ]
+    },
+    {
+      "id": "SB-1936-MAP-GRID-COORDINATE",
+      "state": "CLOSED_NOT_APPLICABLE_FALSE_LEAD",
+      "target": "No San Juan coordinate extraction should be attempted from the St. Thomas plate.",
+      "rejection_rule": "Permanent: reject any coordinate/grid inference for SAN JUAN SOUTH BASE from SERIALSET-10129_00_00-005-0200-0000 plate labeled ST THOMAS HARBOR."
+    },
+    {
+      "id": "SB-1899-UNT-SAN-JUAN-HARBOR-MAP",
+      "state": "PASS_SOURCE_RECOVERED_CONTEXT_ONLY",
+      "proposition": "The Portal to Texas History preserves an 1899 U.S. Coast & Geodetic Survey / U.S. Fish Commission San Juan Harbor map product. The recovered front image states that it was adapted from C&GS Chart No. 908 with U.S. Fish Commission additions in 1899.",
+      "recovered": {
+        "repository": "The Portal to Texas History / University of Texas at Arlington Library",
+        "ark": "ark:/67531/metapth231585",
+        "manifest_url": "https://texashistory.unt.edu/ark:/67531/metapth231585/manifest/",
+        "title": "San Juan Harbor Porto Rico.",
+        "public_canvas_max_px": 1500,
+        "canvas_count": 2,
+        "visible_footer": "Adapted from chart No. 908 U.S. Coast & Geodetic Survey Washington D.C. / Additions by U.S. Fish Commission 1899"
+      },
+      "limits": [
+        "This is a derived/adapted chart product, not demonstrated to be Hodgkins's original April 1899 field/control sketch.",
+        "At the repository's public full-max derivative, a SOUTH BASE station label has not been read confidently.",
+        "The map therefore does not independently establish South Base monumentation; the official NGS station history does."
+      ],
+      "effect": "Useful 1899 cartographic context and chart-lineage evidence only. Do not use as a station-establishment record or precision coordinate source."
+    },
+    {
+      "id": "SB-1899-SAN-JUAN-HARBOR-CONTROL",
+      "state": "PASS_CAMPAIGN_PLUS_OFFICIAL_1899_STATION_NETWORK",
+      "proposition": "Hodgkins surveyed San Juan Harbor in April 1899; official NGS station histories independently preserve an 1899 C&GS/WCH San Juan control layer including SAN JUAN SOUTH BASE, SAN JUAN NORTH BASE and MORRO CASTLE.",
+      "limits": [
+        "The 1898-99 annual report itself describes the San Juan harbor survey but does not name South Base.",
+        "The station-name/date identity comes from the official NGS datasheet archive, not from wording in the annual report.",
+        "The original GB/GBZ measured-base record is still required before calling the North↔South line a formally measured baseline with a specific historical length/method."
+      ],
+      "effect": "The 1899 local-control branch is no longer merely plausible: an 1899 C&GS station network at San Juan is verified. Formal base-measurement details remain open."
+    },
+    {
+      "id": "SB-1899-WCH-MORRO-CASTLE",
+      "state": "PASS",
+      "proposition": "NGS PID TV1031 MORRO CASTLE was monumented by CGS in 1899 and preserves the description header 'DESCRIBED BY COAST AND GEODETIC SURVEY 1899 (WCH)'.",
+      "recovered": {
+        "pid": "TV1031",
+        "designation": "MORRO CASTLE",
+        "history": [
+          {
+            "date": "1899",
+            "condition": "MONUMENTED",
+            "report_by": "CGS"
+          }
+        ],
+        "description_header": "DESCRIBED BY COAST AND GEODETIC SURVEY 1899 (WCH)",
+        "mark": "iron pipe set in cement"
+      },
+      "effect": "Places a third 1899 WCH control at Morro in the same San Juan network as North Base and South Base."
+    },
+    {
+      "id": "SB-1900-SF-MORRO-CASTLE-2",
+      "state": "PASS_STRONG_PERSONNEL_CORROBORATION",
+      "proposition": "NGS PID TV1021 MORRO CASTLE 2 was monumented by CGS in 1900 and preserves the description header 'DESCRIBED BY COAST AND GEODETIC SURVEY 1900 (SF)'; independent C&GS personnel history places Stehman Forney's triangulation party in Puerto Rico from Ponce to San Juan in Jan-May 1900.",
+      "recovered": {
+        "pid": "TV1021",
+        "designation": "MORRO CASTLE 2",
+        "history": [
+          {
+            "date": "1900",
+            "condition": "MONUMENTED",
+            "report_by": "CGS"
+          },
+          {
+            "date": "1902",
+            "condition": "GOOD",
+            "report_by": "CGS"
+          }
+        ],
+        "description_header": "DESCRIBED BY COAST AND GEODETIC SURVEY 1900 (SF)",
+        "mark_summary": "hollow cement-covered brick pier with standard brass disk; surface station mark a marble slab with triangle and copper bolt"
+      },
+      "limits": [
+        "The datasheet itself records only the initials SF; it does not spell out Stehman Forney.",
+        "The attribution of SF to Stehman Forney is strongly corroborated by the independent 1900 field-assignment record, but remains a cross-source identification."
+      ],
+      "effect": "Demonstrates a distinct 1900 CGS/SF control layer at Morro rather than the original monumentation of South Base."
+    },
+    {
+      "id": "SB-1900-MORRO-LIGHTHOUSE-FIRST-OBSERVED",
+      "state": "PASS",
+      "proposition": "NGS PID TV1029 MORRO LIGHTHOUSE records CGS 'FIRST OBSERVED' in 1900.",
+      "recovered": {
+        "pid": "TV1029",
+        "designation": "MORRO LIGHTHOUSE",
+        "history_first_observed": {
+          "date": "1900",
+          "condition": "FIRST OBSERVED",
+          "report_by": "CGS"
+        },
+        "current_datum": "NAD 83(1997)",
+        "superseded_pr_position": "18 28 22.77427 N / 066 07 26.37128 W"
+      },
+      "effect": "Independently corroborates a 1900 observation campaign centered on Morro while South Base/North Base/Morro Castle already carry 1899 CGS/WCH monumentation."
+    },
+    {
+      "id": "SB-1899-1900-CAMPAIGN-SEPARATION",
+      "state": "PASS",
+      "model": {
+        "layer_1899": [
+          "TV1051 SAN JUAN SOUTH BASE — 1899 MONUMENTED CGS — described 1899 (WCH)",
+          "TV1049 SAN JUAN NORTH BASE — 1899 MONUMENTED CGS — described 1899 (WCH)",
+          "TV1031 MORRO CASTLE — 1899 MONUMENTED CGS — described 1899 (WCH)"
+        ],
+        "layer_1900": [
+          "TV1021 MORRO CASTLE 2 — 1900 MONUMENTED CGS — described 1900 (SF)",
+          "TV1029 MORRO LIGHTHOUSE — 1900 FIRST OBSERVED CGS",
+          "Stehman Forney party — Jan-May 1900 triangulation Ponce→San Juan"
+        ]
+      },
+      "interpretation": "The official station histories support two temporally distinct control/observation layers. South Base belongs to the 1899 layer; 1900 is a later triangulation/observation layer.",
+      "remaining_open": "Whether Forney/SF actually occupied or incorporated TV1051 South Base in 1900 still requires a field/reconnaissance/angle/base-computation record."
+    },
+    {
+      "id": "SB-1900-FORNEY-NETWORK",
+      "state": "PASS_CAMPAIGN_WITH_DISTINCT_1900_MORRO_CONTROL_LAYER",
+      "proposition": "Stehman Forney led triangulation from Ponce to San Juan Jan-May 1900; NGS independently records MORRO CASTLE 2 as a 1900 CGS station described by (SF) and MORRO LIGHTHOUSE as first observed by CGS in 1900.",
+      "limits": [
+        "This does not yet prove that Forney/SF occupied TV1051 South Base.",
+        "The South Base monument itself already belongs to the verified 1899 WCH layer."
+      ],
+      "effect": "1900 is now treated as a distinct extension/integration/observation campaign, not the origin of South Base."
+    },
+    {
+      "id": "SB-ORIGIN-MODEL",
+      "state": "PASS_1899_MONUMENTATION_WITH_1900_NETWORK_INTEGRATION_SEPARATE",
+      "model": [
+        "1899: SAN JUAN SOUTH BASE (TV1051) monumented by CGS and described by C&GS 1899 (WCH) — verified.",
+        "1899: SAN JUAN NORTH BASE (TV1049) monumented by CGS and described by C&GS 1899 (WCH) — verified.",
+        "1900: Forney Ponce→San Juan triangulation — verified campaign; specific South Base occupation/integration remains to be tied to field records.",
+        "1901: TV1051 recovered GOOD by CGS; a 20-foot tripod and scaffold signal was erected over the station.",
+        "1904: South Base used as a triangulation reference for magnetic work — independently verified."
+      ],
+      "effect": "The former hypothesis that South Base may have originated in 1900 is superseded by official NGS station history: the monument existed in 1899. The unresolved question is now the exact 1899 survey operation/base measurement and the role of Forney's 1900 campaign."
+    },
+    {
+      "id": "SB-NARA-RG23-RECORD-ROUTE",
+      "state": "PASS_ARCHIVAL_TARGET_DEFINED",
+      "repository": "National Archives and Records Administration",
+      "record_group": "RG 23 — Records of the Coast and Geodetic Survey",
+      "target_series": [
+        "GA — Triangulation Station Descriptions, 1834–1955",
+        "GAR — Reconnaissance Notes, 1834–1912",
+        "GH — Horizontal and Vertical Angle Observations, 1817–1948",
+        "AA — Azimuth Observations, 1844–1919",
+        "GB — Base Measurements, 1833–1935",
+        "GBZ — Base Line Computations, 1857–1937",
+        "Records relating to surveys in insular possessions, 1900–1906",
+        "Partial geographic and subject indexes, 1899–1913"
+      ],
+      "effect": "Original station description and first-observation evidence have a defined archival search path."
+    },
+    {
+      "id": "SB-ORIGINAL-STATION-DESCRIPTION",
+      "state": "PASS_TEXT_RECOVERED_IN_OFFICIAL_NGS_DATASHEET",
+      "target": "Locate the original GA-series station description for South Base, San Juan.",
+      "required_fields": [
+        "station name",
+        "establishment/occupation date",
+        "establishing or observing party",
+        "station mark",
+        "reference/witness marks",
+        "locality description",
+        "original latitude/longitude or linked computation identifier"
+      ],
+      "recovered": {
+        "pid": "TV1051",
+        "designation": "SAN JUAN SOUTH BASE",
+        "description_header": "DESCRIBED BY COAST AND GEODETIC SURVEY 1899 (WCH)",
+        "locality": "STATION IS ON THE LOW LAND ON THE SW SIDE OF THE HARBOR. THERE ARE NO CHARACTERISTIC FEATURES IN THE NEIGHBORHOOD.",
+        "original_mark": "2-inch iron pipe set vertically in the ground and secured by cement",
+        "history": [
+          {
+            "date": "1899",
+            "condition": "MONUMENTED",
+            "report_by": "CGS"
+          },
+          {
+            "date": "1901",
+            "condition": "GOOD",
+            "report_by": "CGS"
+          }
+        ],
+        "recovery_1901": "A 20-foot tripod and scaffold signal was erected over this station."
+      },
+      "limits": [
+        "The official NGS datasheet preserves the 1899 C&GS description text and station history.",
+        "The archival GA-series original station-description card/image has not yet been recovered; that remains a provenance-depth gate rather than a content-identity gate."
+      ]
+    },
+    {
+      "id": "SB-ESTABLISHING-PARTY",
+      "state": "PASS_AGENCY_YEAR_AND_DESCRIPTOR_NOMINAL_IDENTITY",
+      "candidates": [
+        "W. C. Hodgkins / Blake party, 1899",
+        "Stehman Forney triangulation party, 1900",
+        "1899 establishment followed by 1900 integration/reoccupation"
+      ],
+      "close_rule": "Requires an original station description, field/reconnaissance record, computation sheet, or equivalent primary record that nominates South Base.",
+      "resolved": {
+        "monumenting_agency": "Coast and Geodetic Survey (CGS)",
+        "monumented_year": 1899,
+        "described_by": "Coast and Geodetic Survey 1899 (WCH)",
+        "descriptor_nominal_identity": "WCH = William Candler Hodgkins (cross-source corroboration)"
+      },
+      "limits": [
+        "The official NGS datasheet directly establishes CGS monumentation in 1899 and records descriptor initials WCH.",
+        "Federal personnel/history sources corroborate WCH as William Candler Hodgkins.",
+        "Do not overstate this as proof that Hodgkins personally installed the iron-pipe monument."
+      ]
+    },
+    {
+      "id": "SB-ORIGINAL-COORDINATE-MARK",
+      "state": "PARTIAL_MARK_AND_LATER_COORDINATE_REALIZATIONS_RECOVERED",
+      "target": "Recover original coordinate, datum, monument/mark description, witness ties and first observation.",
+      "close_rule": "Do not backfill from the 1904/1908/1909 magnetic offsets.",
+      "recovered": {
+        "original_mark": "2-inch iron pipe set vertically in the ground and secured by cement",
+        "current_ngs_control": {
+          "datum": "NAD 83(1997)",
+          "latitude_dms": "18 27 07.43134 N",
+          "longitude_dms": "066 08 19.12378 W",
+          "horizontal_order": "THIRD",
+          "position_source": "ADJUSTED"
+        },
+        "superseded_pr_datum": {
+          "latitude_dms": "18 27 14.59585 N",
+          "longitude_dms": "066 08 20.51227 W",
+          "horizontal_order": "3",
+          "warning": "NGS labels this superseded survey control and does not recommend it for current survey control."
+        },
+        "state_plane_from_current_position": {
+          "system": "SPC PRVI",
+          "northing_m": 268507.444,
+          "easting_m": 231128.444
+        }
+      },
+      "remaining_open": "Recover the actual 1899 field/computation coordinate and datum lineage rather than treating later adjusted/superseded coordinates as the original 1899 observation."
+    },
+    {
+      "id": "SB-NGS-PID",
+      "state": "PASS",
+      "target": "Reconcile South Base with a modern NGS station record/PID using station history, recovery notes, coordinates and monument identity.",
+      "close_rule": "Name similarity or spatial proximity alone is insufficient.",
+      "resolved": {
+        "pid": "TV1051",
+        "designation": "SAN JUAN SOUTH BASE",
+        "official_archive": "https://geodesy.noaa.gov/pub/DS_ARCHIVE/DataSheets/PR.ZIP",
+        "archive_sha256": "d92e00e1aeec923424234b164bf87271431a9cb139b1254b3da4efd84faa7086",
+        "archive_byte_size": 1407895,
+        "archive_snapshot_date_context": "NGS monthly Puerto Rico datasheet archive retrieved 2026-09-30"
+      },
+      "identity_basis": [
+        "Exact NGS designation SAN JUAN SOUTH BASE.",
+        "1899 CGS monumentation history.",
+        "1899 C&GS description (WCH).",
+        "Morro Castle 2 reference-object azimuth/distance consistent with the historical magnetic-station topology."
+      ]
+    },
+    {
+      "id": "SB-SAN-JUAN-NORTH-BASE-1899",
+      "state": "PASS_COMPANION_STATION_IDENTIFIED",
+      "resolved": {
+        "pid": "TV1049",
+        "designation": "SAN JUAN NORTH BASE",
+        "county": "CATANO",
+        "current_ngs_position": {
+          "datum": "NAD 83(1997)",
+          "latitude_dms": "18 27 42.77977 N",
+          "longitude_dms": "066 08 14.61205 W",
+          "horizontal_order": "THIRD"
+        },
+        "superseded_pr_datum": {
+          "latitude_dms": "18 27 49.94506 N",
+          "longitude_dms": "066 08 16.00040 W"
+        },
+        "history": [
+          {
+            "date": "1899",
+            "condition": "MONUMENTED",
+            "report_by": "CGS"
+          }
+        ],
+        "description_header": "DESCRIBED BY COAST AND GEODETIC SURVEY 1899 (WCH)",
+        "mark": "2-inch iron pipe set vertically in the ground and secured by cement"
+      },
+      "diagnostic_geometry_from_current_ngs_positions": {
+        "south_to_north_geodesic_distance_m": 1094.8559970230078,
+        "south_to_north_forward_azimuth_deg": 6.944488627294715
+      },
+      "effect": "North Base and South Base are verified companion-designation controls from the same 1899 C&GS/WCH campaign. Their function as measured endpoints of a formally measured baseline is strongly suggested but remains a separate documentary gate."
+    },
+    {
+      "id": "SB-1899-OFFICIAL-FIELD-WORK-CLASSIFICATION",
+      "state": "PASS_LIMITING_EVIDENCE",
+      "source": {
+        "publication": "Report of the Superintendent, U.S. Coast and Geodetic Survey, 1898-99, Appendix No. 2 — Details of Field Work",
+        "url": "https://library.oarcloud.noaa.gov/docs.lib/htdocs/rescue/cgs/003_pdf/CSC-0102.PDF"
+      },
+      "recovered": {
+        "operation_81": {
+          "locality": "Porto Rico",
+          "party": [
+            "W. C. Hodgkins",
+            "Bowie",
+            "Nelson"
+          ],
+          "vessel": "Steamer Blake",
+          "classes": [
+            "Hydrography",
+            "Topography",
+            "Triangulation",
+            "Tidal observations",
+            "Astronomical"
+          ]
+        },
+        "operation_82": {
+          "locality": "Porto Rico: San Juan Harbor",
+          "party": [
+            "W. C. Hodgkins",
+            "Bowie",
+            "Nelson"
+          ],
+          "vessel": "Steamer Blake",
+          "classes": [
+            "Hydrography"
+          ]
+        },
+        "technical_index": {
+          "porto_rico_under_triangulation": true,
+          "porto_rico_under_astronomical_determination": true,
+          "porto_rico_enumerated_under_base_lines": false
+        }
+      },
+      "interpretation": "The annual report verifies that Hodgkins's Porto Rico season included triangulation, while its specifically indexed San Juan Harbor sub-assignment is hydrographic. The technical index does not enumerate Porto Rico under Base lines. This is limiting evidence against assuming, from station names alone, that TV1049↔TV1051 was a formally measured C&GS base line.",
+      "limits": [
+        "The report is a summary/index and may omit local supporting measurements used for hydrography or secondary triangulation.",
+        "The absence of a Porto Rico entry under Base lines is not proof that no local base was measured.",
+        "Official NGS designations SAN JUAN NORTH BASE and SAN JUAN SOUTH BASE remain real 1899 station names; their functional/base-measurement relationship still requires a primary computation or field record."
+      ],
+      "effect": "Keep SB-1899-BASELINE-MEASUREMENT open. Require GB/GBZ or equivalent primary evidence before assigning original measured length, method, corrections, or formal base-line status."
+    },
+    {
+      "id": "SB-1899-BASELINE-MEASUREMENT",
+      "state": "OPEN_FUNCTION_AND_MEASUREMENT_RECORD",
+      "target": "Determine whether SAN JUAN NORTH BASE (TV1049) and SAN JUAN SOUTH BASE (TV1051) were explicitly used as endpoints of a formally measured C&GS base line in 1899, and if so recover the original measured length, method, corrections, date and personnel.",
+      "priority_series": [
+        "GB — Base Measurements, 1833–1935",
+        "GBZ — Base Line Computations, 1857–1937",
+        "GA — Triangulation Station Descriptions, 1834–1955",
+        "GAR — Reconnaissance Notes, 1834–1912",
+        "GH — Horizontal and Vertical Angle Observations, 1817–1948",
+        "Partial geographic and subject indexes, 1899–1913"
+      ],
+      "close_rule": "Do not infer formal measured-base status or substitute the ~1094.856 m modern adjusted geodesic separation for an original 1899 measured length. Close only with GB/GBZ or equivalent primary field/computation evidence explicitly linking TV1049 and TV1051.",
+      "archival_locator": {
+        "repository": "National Archives and Records Administration",
+        "record_group": "RG 23 — Records of the Coast and Geodetic Survey",
+        "section": "23.4.2 — Records of the Library and Archives Section / Scientific Records",
+        "search_terms": [
+          "San Juan",
+          "Porto Rico",
+          "SAN JUAN NORTH BASE",
+          "SAN JUAN SOUTH BASE",
+          "1899",
+          "WCH"
+        ]
+      },
+      "negative_or_limiting_evidence": [
+        "1898-99 Appendix No. 2 lists operation 82, San Juan Harbor, as Hydrography.",
+        "The technical index lists Porto Rico under Triangulation and Astronomical determination but does not enumerate Porto Rico under Base lines."
+      ]
+    },
+    {
+      "id": "SB-GA-ORIGINAL-CARD-IMAGE",
+      "state": "OPEN_ARCHIVAL_REQUIRED",
+      "target": "Recover the GA-series original or microfilmed station-description card for SAN JUAN SOUTH BASE / TV1051 from RG 23; public digital search is saturated without a card image.",
+      "effect": "The official NGS datasheet already recovers the substantive 1899 description; this gate is for archival provenance depth and original-record inspection."
+    },
+    {
+      "id": "SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION",
+      "state": "OPEN_HUMAN_RECONCILIATION_REQUIRED",
+      "discrepancy": {
+        "promoted_dossier": "research/evidence/south_base.v1.json",
+        "promoted_claim_id": "SOUTHBASE-ORIGIN-1900",
+        "promoted_claim_status": "STRONG_HYPOTHESIS",
+        "newer_gate_state": "SB-ORIGIN-MODEL = PASS_1899_MONUMENTATION_WITH_1900_NETWORK_INTEGRATION_SEPARATE",
+        "conflict": "The promoted research dossier still presents 1900 establishment/integration as the leading origin hypothesis, while official NGS station history now verifies CGS monumentation of SAN JUAN SOUTH BASE in 1899."
+      },
+      "effect": "Do not silently mutate the promoted dossier. A future explicit human reconciliation/promotion should supersede the 1900-origin hypothesis while preserving its audit history."
+    },
+    {
+      "id": "SB-LATER-REOCCUPATION-CONTINUITY",
+      "state": "PASS",
+      "proposition": "A later C&GS annual report lists South Base, San Juan among Puerto Rico magnetic stations occupied by G. Hartnell and says the stations other than specifically identified new stations had been occupied previously.",
+      "source": {
+        "publication": "Report of Superintendent, U.S. Coast and Geodetic Survey; report containing field instructions dated Aug. 30, 1911",
+        "url": "https://www.govinfo.gov/content/pkg/SERIALSET-06441_00_00-002-0966-0000/pdf/SERIALSET-06441_00_00-002-0966-0000.pdf"
+      },
+      "effect": "Adds continuity/reoccupation evidence after 1909; does not affect the verified 1899 monumentation origin."
+    },
+    {
+      "id": "SB-1899-BASELINE-DIGITAL-SEARCH-SATURATION",
+      "state": "PASS_SEARCH_SATURATION_NO_PRIMARY_MEASUREMENT_FOUND",
+      "proposition": "A targeted digital search did not recover a primary GB/GBZ-equivalent record explicitly stating that SAN JUAN NORTH BASE (TV1049) and SAN JUAN SOUTH BASE (TV1051) were the endpoints of a formally measured C&GS base line in 1899.",
+      "search_scope": [
+        "Exact paired designations SAN JUAN NORTH BASE / SAN JUAN SOUTH BASE",
+        "Porto Rico / San Juan + base line / base-line / base measurement + 1899",
+        "Official NGS PR datasheets for TV1049 and TV1051",
+        "1898-99 C&GS annual-report field-work and technical indexes",
+        "NOAA Central Library annual-report/index surfaces",
+        "NARA RG 23 series/finding-aid surfaces for GB, GBZ, GA, GAR, GH and partial geographic/subject indexes"
+      ],
+      "evidence": [
+        "TV1051 datasheet does not list TV1049 as a reference object.",
+        "TV1049 datasheet does not list TV1051 as a reference object.",
+        "The 1898-99 technical index lists Porto Rico under Triangulation and Astronomical determination but not under Base lines.",
+        "Searches of indexed digital C&GS/NOAA/NARA surfaces did not return a San Juan 1899 base-measurement computation or measured length."
+      ],
+      "effect": "Digital-source saturation is documented, but the baseline-function gate remains OPEN because the relevant GB/GBZ or equivalent archival record may be undigitized.",
+      "caution": "Absence from web/indexed digital sources is not proof that no local or secondary base was measured."
+    },
+    {
+      "id": "SB-1899-SAN-JUAN-EXAMINATION-BLUEPRINT",
+      "state": "OPEN_ARCHIVAL_LEAD",
+      "proposition": "A Coast Survey examination of San Juan Harbor in 1899 produced a blueprint furnished to the naval station at San Juan.",
+      "evidence": [
+        "A 1900 Congressional Record debate states that an examination was made in San Juan Harbor and that a blue print of the examination was furnished to the naval station at San Juan.",
+        "The same passage states that no copy had been furnished to the Navy Department or made available for general navigation at that time."
+      ],
+      "source": {
+        "publication": "Congressional Record, 56th Congress, 1st Session, May 1900",
+        "url": "https://www.govinfo.gov/content/pkg/GPO-CRECB-1900-pt6-v33/pdf/GPO-CRECB-1900-pt6-v33-6.pdf"
+      },
+      "archival_routes": [
+        "RG 23 — Superintendent's File, 1866-1910",
+        "RG 23 — Division of Hydrography and Topography letters received, 1899-1909",
+        "RG 23 — manuscript nautical charts from original surveys",
+        "RG 37 — Hydrographic Office cartographic files",
+        "House Committee on Naval Affairs papers 57A-F25.1 — detailed maps of San Juan Harbor",
+        "RG 77 — engineer officers stationed in San Juan, letters sent 1899-1901"
+      ],
+      "effect": "Recovering the blueprint or its field-sheet antecedent may expose local control/base geometry absent from the published chart. It is a lead, not current proof of formal base measurement."
+    },
+    {
+      "id": "SB-1900-FORNEY-TV1051-OCCUPATION",
+      "state": "OPEN_NO_DIRECT_STATION_TIE",
+      "proposition": "The 1900 Forney/SF Ponce-to-San Juan triangulation campaign is verified, but no recovered record yet states that the party occupied SAN JUAN SOUTH BASE / TV1051 in 1900.",
+      "evidence": [
+        "TV1051 station history records 1899 MONUMENTED and 1901 GOOD, with no 1900 recovery/history entry.",
+        "TV1021 MORRO CASTLE 2 is explicitly 1900 CGS and described 1900 (SF).",
+        "TV1029 MORRO LIGHTHOUSE is explicitly FIRST OBSERVED by CGS in 1900.",
+        "Forney's independent personnel history places his triangulation party from Ponce to San Juan, Jan-May 1900.",
+        "Targeted exact-name digital searches did not recover a 1900 South Base occupation/angle-book citation."
+      ],
+      "close_rule": "Close only with GAR/GH/AA/Geodetic Report/field record or equivalent primary source explicitly tying the 1900 party to South Base.",
+      "effect": "Do not describe Forney as having occupied South Base specifically; describe 1900 as a verified San Juan network-extension/observation campaign with TV1051 participation still open."
+    },
+    {
+      "id": "SB-NAVY-HYDROGRAPHIC-OFFICE-1899-MAP-CHECK",
+      "state": "PASS_LIMITING_EVIDENCE",
+      "proposition": "The NARA Hydrographic Office special list identifies an 1899 San Juan Harbor item, but it is an annotated 1896 Hydrographic Office chart from USS Sterling, not the C&GS examination blueprint.",
+      "source": {
+        "publication": "NARA Special List 43 — Maps and Charts of the Hydrographic Office",
+        "url": "https://www.archives.gov/files/research/cartographic/special-list-43-hydrographic-office.pdf",
+        "entry": "1287"
+      },
+      "evidence": "Entry 1287 describes H.O. chart No. 1317 (1896), annotated in 1899 to show new buoys; source USS Sterling.",
+      "effect": "Do not mistake NARA RG37 item 1287 for Hodgkins's C&GS San Juan examination blueprint. The blueprint remains a separate archival target."
+    },
+    {
+      "id": "SB-WCH-NOMINAL-IDENTITY",
+      "state": "PASS_CROSS_SOURCE_CORROBORATION",
+      "proposition": "The descriptor initials '(WCH)' on the 1899 C&GS descriptions for SAN JUAN SOUTH BASE, SAN JUAN NORTH BASE and MORRO CASTLE are attributable to William Candler Hodgkins by cross-source corroboration.",
+      "evidence": [
+        "Official NGS datasheets preserve the header 'DESCRIBED BY COAST AND GEODETIC SURVEY 1899 (WCH)' for TV1051, TV1049 and TV1031.",
+        "Federal personnel records identify W. C. Hodgkins as William Candler Hodgkins, a Coast and Geodetic Survey officer.",
+        "NOAA/C&GS historical records independently place W. C. Hodgkins in charge of the 1899 Puerto Rico / San Juan Harbor work."
+      ],
+      "limits": [
+        "The datasheet header itself supplies initials only; the full-name identification is cross-source, not expanded in the station text.",
+        "This does not prove that Hodgkins personally drove each station mark; it identifies the descriptor/officer association for the 1899 C&GS station layer."
+      ],
+      "effect": "Establishing-party attribution can be stated as C&GS 1899, described under WCH = William Candler Hodgkins by corroboration. Monument-setting personnel below that level remain unspecified."
+    },
+    {
+      "id": "SB-1899-IIIF-CANVAS-RECOVERY",
+      "state": "PASS_SOURCE_PIXELS_INSPECTED_LIMITING_EVIDENCE",
+      "proposition": "Both public IIIF canvases for the 1899 San Juan Harbor map at the Portal to Texas History were recovered and inspected at the repository's advertised native public derivative size.",
+      "recovered": {
+        "manifest_sha256": "0f6a1b3508ec6f22c076d140c5fbac02fa60b29261dc7476b6daf5683d73d984",
+        "canvas_count": 2,
+        "canvas_1": {
+          "dimensions": {
+            "width": 1500,
+            "height": 1482
+          },
+          "sha256": "c5a1bf0d92f7115e2dc43d6f21a8214a92c149f909a4fbc58cf68f79f66eec64",
+          "interpretation": "front/map image"
+        },
+        "canvas_2": {
+          "dimensions": {
+            "width": 1500,
+            "height": 1487
+          },
+          "sha256": "08ed20974f52ca11a174e532352ad9012508b559d362edf116775e55685ca222",
+          "interpretation": "reverse/back image; no additional usable station geometry recovered"
+        }
+      },
+      "visual_inspection": {
+        "target_sector": "Palo Seco–Cataño / western and southwestern San Juan Harbor, covering the modern TV1049/TV1051 locality",
+        "readable_features": [
+          "Palo Seco Pt.",
+          "Cataño Pt.",
+          "coastline, channels, soundings and harbor features"
+        ],
+        "result": "NO_CONFIDENT_NORTH_BASE_OR_SOUTH_BASE_LABEL_OR_EXPLICIT_BASE_LINE_READ_AT_PUBLIC_1500PX_DERIVATIVE"
+      },
+      "limits": [
+        "The map is an 1899 U.S. Fish Commission adaptation of C&GS Chart No. 908, not demonstrated to be the original Hodgkins examination blueprint or field sheet.",
+        "Failure to read a station label at this derivative resolution is not evidence that the station or a local base was absent from the underlying survey.",
+        "No measured length, method, correction, or formal baseline statement is visible/recoverable from this inspection."
+      ],
+      "effect": "The early chart derivative remains contextual evidence only. It does not close SB-1899-BASELINE-MEASUREMENT."
+    },
+    {
+      "id": "SB-GA-CARD-DIGITAL-SEARCH",
+      "state": "PASS_SEARCH_SATURATION_CARD_IMAGE_NOT_RECOVERED",
+      "proposition": "Targeted public web/NGS/NOAA searches recovered the substantive 1899 station-description text through the official NGS datasheet archive but did not recover an image of the original GA-series station-description card.",
+      "effect": "Content identity is already PASS through NGS; provenance-depth gate SB-GA-ORIGINAL-CARD-IMAGE remains OPEN_ARCHIVAL_REQUIRED.",
+      "caution": "Digital non-recovery is not evidence that the GA card does not exist in NARA holdings."
+    }
+  ],
+  "next_actions": [
+    "Recover the GB/GBZ 1899 San Juan record and determine whether TV1049↔TV1051 was a formally measured base line; if yes, capture original length, method, corrections, date and personnel.",
+    "Recover the GA-series original station-description card/image for TV1051 and TV1049.",
+    "Recover 1900 GH/GAR/field records to determine whether SF/Forney occupied or incorporated TV1051 South Base.",
+    "Visually identify the exact 1936 Serial Set plate containing 'STA. SOUTH BASE' before attributing it to San Juan.",
+    "Human-reconcile the promoted South Base dossier so the superseded 1900-origin hypothesis is preserved historically but no longer presented as current leading origin."
+  ],
+  "source_register": [
+    {
+      "label": "C&GS Report 1909",
+      "url": "https://library.oarcloud.noaa.gov/docs.lib/htdocs/rescue/cgs/004_pdf/CSC-0113.PDF",
+      "supports": [
+        "SB-EXISTS-BY-1904",
+        "SB-MAGNETIC-DISTINCTION",
+        "SB-MORRO-BEARING"
+      ]
+    },
+    {
+      "label": "U.S. Serial Set 10129 — 1936 Puerto Rico District map",
+      "url": "https://www.govinfo.gov/content/pkg/SERIALSET-10129_00_00-005-0200-0000/pdf/SERIALSET-10129_00_00-005-0200-0000.pdf",
+      "supports": [
+        "SB-1936-CORPS-MAP-SURVIVAL",
+        "SB-1936-MAP-GRID-COORDINATE"
+      ],
+      "caution": "OCR/package lead only until exact plate context is visually verified."
+    },
+    {
+      "label": "NARA RG 23 Guide",
+      "url": "https://www.archives.gov/research/guide-fed-records/groups/023.html/1000",
+      "supports": [
+        "SB-NARA-RG23-RECORD-ROUTE"
+      ]
+    },
+    {
+      "label": "NARA Guide to Puerto Rican Records",
+      "url": "https://www.archives.gov/files/nyc/finding-aids/puerto-rican-records-guide.pdf",
+      "supports": [
+        "SB-NARA-RG23-RECORD-ROUTE"
+      ]
+    },
+    {
+      "label": "NGS Puerto Rico monthly datasheet archive — TV1051 SAN JUAN SOUTH BASE / TV1049 SAN JUAN NORTH BASE",
+      "url": "https://geodesy.noaa.gov/pub/DS_ARCHIVE/DataSheets/PR.ZIP",
+      "snapshot_sha256": "d92e00e1aeec923424234b164bf87271431a9cb139b1254b3da4efd84faa7086",
+      "supports": [
+        "SB-NGS-PID",
+        "SB-ORIGINAL-STATION-DESCRIPTION",
+        "SB-ESTABLISHING-PARTY",
+        "SB-ORIGINAL-COORDINATE-MARK",
+        "SB-SAN-JUAN-NORTH-BASE-1899",
+        "SB-ORIGIN-MODEL"
+      ]
+    },
+    {
+      "label": "The Portal to Texas History — San Juan Harbor Porto Rico (1899)",
+      "url": "https://texashistory.unt.edu/ark:/67531/metapth231585/",
+      "supports": [
+        "SB-1899-UNT-SAN-JUAN-HARBOR-MAP"
+      ],
+      "caution": "Derived/adapted Chart 908 product; not an original South Base station record."
+    },
+    {
+      "label": "C&GS Report 1898-99, Appendix No. 2 — Details of Field Work / Technical Index",
+      "url": "https://library.oarcloud.noaa.gov/docs.lib/htdocs/rescue/cgs/003_pdf/CSC-0102.PDF",
+      "supports": [
+        "SB-1899-OFFICIAL-FIELD-WORK-CLASSIFICATION",
+        "SB-1899-BASELINE-MEASUREMENT"
+      ],
+      "caution": "Summary/index evidence: useful to constrain interpretation, not sufficient by itself to prove absence of a local base measurement."
+    }
+  ],
+  "predecessor": "research/gates/south_base_gates.v0_3.json",
+  "revision_note": "v0.4 adds the official 1898-99 field-work classification as a negative/limiting gate: Porto Rico/Blake carried triangulation generally, but the San Juan Harbor sub-assignment is listed as hydrography and Porto Rico is not enumerated under the report's Base lines technical class. This prevents silent promotion of the North Base↔South Base line to a formally measured baseline absent GB/GBZ evidence.",
+  "parent_gate_set": "research/gates/south_base_gates.v0_6.json",
+  "open_gate_summary": {
+    "remaining_material": [
+      "SB-1899-BASELINE-MEASUREMENT — formal measured-base function/length/method remains OPEN_ARCHIVAL_REQUIRED",
+      "SB-1899-SAN-JUAN-EXAMINATION-BLUEPRINT — recover C&GS examination blueprint/field-sheet antecedent",
+      "SB-1900-FORNEY-TV1051-OCCUPATION — direct 1900 station tie remains OPEN_NO_DIRECT_STATION_TIE",
+      "SB-GA-ORIGINAL-CARD-IMAGE — OPEN_ARCHIVAL_REQUIRED after digital-search saturation",
+      "SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION — explicit human reconciliation remains required"
+    ],
+    "closed_this_pass": [
+      "SB-WCH-NOMINAL-IDENTITY → PASS_CROSS_SOURCE_CORROBORATION",
+      "SB-1899-IIIF-CANVAS-RECOVERY → PASS_SOURCE_PIXELS_INSPECTED_LIMITING_EVIDENCE",
+      "SB-GA-CARD-DIGITAL-SEARCH → PASS_SEARCH_SATURATION_CARD_IMAGE_NOT_RECOVERED"
+    ]
+  }
+}
