@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "research/gates/south_base_gates.v0_2.json"
+      - "research/gates/south_base_gates.v0_3.json"
       - "research/evidence/south_base.v1.json"
       - "tools/probe_south_base_ngs.py"
       - "tools/validate_south_base_gates.py"
