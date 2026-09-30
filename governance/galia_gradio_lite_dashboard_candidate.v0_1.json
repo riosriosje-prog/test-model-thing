@@ -37,5 +37,5 @@
     "auto_promote": false,
     "deployment_receipt": "governance/galia_gradio_lite_dashboard_deployment_receipt.v0_2.json"
   },
-  "runtime_recovery_receipt": "governance/galia_gradio_lite_runtime_recovery_receipt.v0_4.json"
+  "runtime_recovery_receipt": "governance/galia_gradio_lite_runtime_recovery_receipt.v0_5.json"
 }
