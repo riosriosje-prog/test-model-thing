@@ -409,6 +409,18 @@
       "state": "OPEN_PROVENANCE_DEPTH",
       "target": "Recover the GA-series original or microfilmed station-description card for SAN JUAN SOUTH BASE / TV1051.",
       "effect": "The official NGS datasheet already recovers the substantive 1899 description; this gate is for archival provenance depth and original-record inspection."
+    },
+    {
+      "id": "SB-PROMOTED-DOSSIER-ORIGIN-RECONCILIATION",
+      "state": "OPEN_HUMAN_RECONCILIATION_REQUIRED",
+      "discrepancy": {
+        "promoted_dossier": "research/evidence/south_base.v1.json",
+        "promoted_claim_id": "SOUTHBASE-ORIGIN-1900",
+        "promoted_claim_status": "STRONG_HYPOTHESIS",
+        "newer_gate_state": "SB-ORIGIN-MODEL = PASS_1899_MONUMENTATION_WITH_1900_NETWORK_INTEGRATION_SEPARATE",
+        "conflict": "The promoted research dossier still presents 1900 establishment/integration as the leading origin hypothesis, while official NGS station history now verifies CGS monumentation of SAN JUAN SOUTH BASE in 1899."
+      },
+      "effect": "Do not silently mutate the promoted dossier. A future explicit human reconciliation/promotion should supersede the 1900-origin hypothesis while preserving its audit history."
     }
   ],
   "next_actions": [
@@ -416,7 +428,8 @@
     "Recover the GA-series original station-description card/image for TV1051 and TV1049.",
     "Recover 1900 GH/GAR/field records to determine whether SF/Forney occupied or incorporated TV1051 South Base.",
     "Visually identify the exact 1936 Serial Set plate containing 'STA. SOUTH BASE' before attributing it to San Juan.",
-    "Preserve all current/superseded NGS coordinates with explicit datum/status labels."
+    "Preserve all current/superseded NGS coordinates with explicit datum/status labels.",
+    "Human-reconcile the promoted South Base dossier so the superseded 1900-origin hypothesis is preserved historically but no longer presented as current leading origin."
   ],
   "source_register": [
     {
