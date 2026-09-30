@@ -391,7 +391,7 @@ ul{{line-height:1.55}}
 <div class="big">{promotion_coverage}%</div>
 <div class="progress-track" aria-label="Promotion coverage"><div class="progress-fill {promotion_progress_class}" style="width:{promotion_coverage}%"></div></div>
 <p>{promoted_dossiers} of {len(projects)} research dossiers carry a human promotion receipt.</p>
-<small>Coverage only, not a quality score. Green ≥70% · amber 40–69% · red &lt;40%.</small>
+<small>This is coverage, not a quality score. Green ≥70% · amber 40–69% · red &lt;40%.</small>
 </div>
 </div>
 </section>
