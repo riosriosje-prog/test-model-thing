@@ -10,7 +10,12 @@ import urllib.request
 from pathlib import Path
 
 TITLE = "Report of the Superintendent of the Coast and Geodetic Survey showing the progress of the work from July 1, 1899, to June 30, 1900"
-QUERY = 'title:"Report of the Superintendent of the Coast and Geodetic Survey" AND year:1901'
+QUERIES = [
+    'title:("Report of the Superintendent") AND title:("Coast and Geodetic Survey")',
+    'title:("Coast and Geodetic Survey") AND (year:1900 OR year:1901)',
+    'creator:("U.S. Coast and Geodetic Survey") AND (year:1900 OR year:1901)',
+    'identifier:reportofsuper* AND (year:1900 OR year:1901)',
+]
 
 TERMS = [
     "PORTO RICO",
@@ -86,32 +91,47 @@ def main():
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    q = urllib.parse.urlencode({
-        "q": QUERY,
-        "fl[]": ["identifier", "title", "date", "year", "creator"],
-        "rows": "100",
-        "page": "1",
-        "output": "json",
-    }, doseq=True)
-    search_url = "https://archive.org/advancedsearch.php?" + q
-
     receipt = {
         "schema_version": "galia.south_base_annual_report_probe.v1",
         "mode": "READ_ONLY_DISCOVERY",
         "target_title": TITLE,
-        "search_url": search_url,
+        "search_queries": QUERIES,
         "status": "SEARCH_FAILED",
         "candidates": [],
     }
 
     try:
-        data = get_json(search_url)
-        docs = data.get("response", {}).get("docs", [])
+        merged = {}
+        search_urls = []
+        for query in QUERIES:
+            q = urllib.parse.urlencode({
+                "q": query,
+                "fl[]": ["identifier", "title", "date", "year", "creator", "description"],
+                "rows": "200",
+                "page": "1",
+                "output": "json",
+            }, doseq=True)
+            search_url = "https://archive.org/advancedsearch.php?" + q
+            search_urls.append(search_url)
+            data = get_json(search_url)
+            for doc in data.get("response", {}).get("docs", []):
+                ident = doc.get("identifier")
+                if ident:
+                    merged[ident] = doc
+        receipt["search_urls"] = search_urls
         candidates = sorted(
-            [{**d, "_score": candidate_score(d)} for d in docs],
+            [{**d, "_score": candidate_score(d)} for d in merged.values()],
             key=lambda d: (-d["_score"], str(d.get("identifier"))),
         )
         receipt["candidates"] = candidates
+        for cand in candidates[:50]:
+            print("ANNUAL1900_CANDIDATE=" + json.dumps({
+                "identifier": cand.get("identifier"),
+                "title": cand.get("title"),
+                "date": cand.get("date"),
+                "year": cand.get("year"),
+                "score": cand.get("_score"),
+            }, ensure_ascii=False, sort_keys=True))
         selected = next((d for d in candidates if d["_score"] >= 9), None)
         if not selected:
             receipt["status"] = "NO_CANDIDATE"
