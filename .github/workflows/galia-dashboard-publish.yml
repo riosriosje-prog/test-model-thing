@@ -71,21 +71,54 @@ jobs:
           grep -q 'South Base · San Juan' dist/gradio-lite/index.html
           grep -q 'sdk: static' dist/gradio-lite/README.md
 
-      - name: Capture patched runtime hashes
+      - name: Capture and patch Gradio Lite worker
         run: |
           PATCH_BASE="https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
           curl -fsSL --retry 3 "$PATCH_BASE/lite.js" -o /tmp/galia-lite.js
           curl -fsSL --retry 3 "$PATCH_BASE/lite.css" -o /tmp/galia-lite.css
 
-          JS_SHA256=$(sha256sum /tmp/galia-lite.js | awk '{print $1}')
-          CSS_SHA256=$(sha256sum /tmp/galia-lite.css | awk '{print $1}')
-          echo "GALIA_GRADIO_LITE_PATCH_JS_SHA256=$JS_SHA256"
-          echo "GALIA_GRADIO_LITE_PATCH_CSS_SHA256=$CSS_SHA256"
-
-          python - "$JS_SHA256" "$CSS_SHA256" <<'PY'
-          import json
-          import sys
+          WORKER_PATH=$(python - <<'PY'
+          import re
           from pathlib import Path
+          text = Path("/tmp/galia-lite.js").read_text(encoding="utf-8")
+          matches = sorted(set(re.findall(r"assets/webworker-[A-Za-z0-9_-]+\\.js", text)))
+          if len(matches) != 1:
+              raise SystemExit(f"Expected exactly one webworker asset, found {matches}")
+          print(matches[0])
+          PY
+          )
+          echo "GALIA_GRADIO_LITE_UPSTREAM_WORKER=$WORKER_PATH"
+          curl -fsSL --retry 3 "$PATCH_BASE/$WORKER_PATH" -o /tmp/galia-worker.js
+
+          python - <<'PY'
+          import hashlib
+          import json
+          import re
+          from pathlib import Path
+
+          lite = Path("/tmp/galia-lite.js").read_bytes()
+          css = Path("/tmp/galia-lite.css").read_bytes()
+          worker_path = Path("/tmp/galia-worker.js")
+          original = worker_path.read_text(encoding="utf-8")
+
+          pattern = r"os\\.link\\s*=\\s*lambda\\s+src,\\s*dst:\\s*None"
+          replacement = "os.link = lambda src, dst, *args, **kwargs: None"
+          patched, count = re.subn(pattern, replacement, original)
+          if count != 1:
+              raise SystemExit(f"Expected one os.link compatibility patch, got {count}")
+
+          out = Path("dist/gradio-lite/galia-gradio-lite-webworker.js")
+          out.write_text(patched, encoding="utf-8")
+
+          worker_match = re.findall(
+              r"assets/webworker-[A-Za-z0-9_-]+\\.js",
+              lite.decode("utf-8"),
+          )
+          worker_rel = sorted(set(worker_match))[0]
+          worker_url = (
+              "https://gradio-lite-previews.s3.amazonaws.com/"
+              "PINNED_HF_HUB/dist/" + worker_rel
+          )
 
           payload = {
               "runtime": "GRADIO_LITE_PINNED_HF_HUB",
@@ -93,14 +126,27 @@ jobs:
               "upstream_patch_basis": "gradio-app/gradio#12162",
               "js_url": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js",
               "css_url": "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.css",
-              "js_sha256": sys.argv[1],
-              "css_sha256": sys.argv[2],
+              "worker_url": worker_url,
+              "js_sha256": hashlib.sha256(lite).hexdigest(),
+              "css_sha256": hashlib.sha256(css).hexdigest(),
+              "worker_original_sha256": hashlib.sha256(original.encode()).hexdigest(),
+              "worker_patched_sha256": hashlib.sha256(patched.encode()).hexdigest(),
+              "worker_patch": replacement,
           }
           Path("dist/gradio-lite/runtime-lock.json").write_text(
               json.dumps(payload, indent=2) + "\n",
               encoding="utf-8",
           )
+
+          print("GALIA_GRADIO_LITE_PATCH_JS_SHA256=" + payload["js_sha256"])
+          print("GALIA_GRADIO_LITE_PATCH_CSS_SHA256=" + payload["css_sha256"])
+          print("GALIA_GRADIO_LITE_WORKER_ORIGINAL_SHA256=" + payload["worker_original_sha256"])
+          print("GALIA_GRADIO_LITE_WORKER_PATCHED_SHA256=" + payload["worker_patched_sha256"])
+          print("GALIA_GRADIO_LITE_OS_LINK_PATCH=PASS")
           PY
+
+          test -s dist/gradio-lite/galia-gradio-lite-webworker.js
+          grep -q 'lambda src, dst, \*args, \*\*kwargs: None' dist/gradio-lite/galia-gradio-lite-webworker.js
 
       - name: Browser smoke test Chromium and WebKit
         run: |
