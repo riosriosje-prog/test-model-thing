@@ -36,8 +36,8 @@ def test_promoted_manifest_is_read_only_and_deploy_bound():
 
 def test_gradio_lite_build_is_pinned_and_read_only(tmp_path):
     text = build(tmp_path)
-    assert 'src="./vendor/gradio-lite/lite.js"' in text
-    assert 'href="./vendor/gradio-lite/lite.css"' in text
+    assert 'src="https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js"' in text
+    assert 'href="https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.css"' in text
     assert "cdn.jsdelivr.net/npm/@gradio/lite" not in text
     assert "READ ONLY" in text
     assert "authority mutation disabled" in text
@@ -63,6 +63,5 @@ def test_builder_reuses_existing_fail_closed_authority_validation():
 
 def test_runtime_lock_is_explicit():
     source = (ROOT / "tools/build_galia_gradio_lite_dashboard.py").read_text(encoding="utf-8")
-    assert 'PINNED_GRADIO_LITE = "5.45.0"' in source
-    assert 'PINNED_PYODIDE = "0.27.6"' in source
-    assert 'RUNTIME_JS = "./vendor/gradio-lite/lite.js"' in source
+    assert 'PINNED_GRADIO_LITE = "PINNED_HF_HUB"' in source
+    assert 'RUNTIME_BASE = "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"' in source
