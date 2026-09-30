@@ -16,6 +16,33 @@ from tools import build_galia_dashboard as base
 
 PINNED_GRADIO_LITE = "PINNED_HF_HUB"
 PINNED_GRADIO_LITE_BASE = "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
+PATCHED_WORKER_PATH = "./galia-gradio-lite-webworker.js"
+
+WORKER_REDIRECT_JS = r"""
+(() => {
+  const NativeBlob = globalThis.Blob;
+  const patchedWorkerUrl = new URL("galia-gradio-lite-webworker.js", window.location.href).href;
+  class GaliaBlob extends NativeBlob {
+    constructor(parts = [], options = {}) {
+      const patchedParts = parts.map((part) => {
+        if (typeof part !== "string") return part;
+        if (!part.includes("importScripts(") ||
+            !part.includes("gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB") ||
+            !part.includes("webworker-")) {
+          return part;
+        }
+        return part.replace(
+          /https:\/\/gradio-lite-previews\.s3\.amazonaws\.com\/PINNED_HF_HUB\/dist\/[^"')]*webworker-[^"')]+\.js/g,
+          patchedWorkerUrl
+        );
+      });
+      super(patchedParts, options);
+    }
+  }
+  globalThis.Blob = GaliaBlob;
+  console.debug("GALIA_GRADIO_LITE_WORKER_REDIRECT=ACTIVE");
+})();
+"""
 
 APP_PY = r"""
 import json
@@ -243,6 +270,7 @@ def render(pointer, registry, evidence_docs):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GALIA — Gradio Lite</title>
 <meta name="description" content="Read-only GALIA authority and research dashboard">
+<script>WORKER_REDIRECT</script>
 <script type="module" crossorigin src="RUNTIME_BASE/lite.js"></script>
 <link rel="stylesheet" href="RUNTIME_BASE/lite.css">
 <style>html,body{margin:0;padding:0;min-height:100%;background:#0b1020}</style>
@@ -253,7 +281,7 @@ FILES
 </gradio-lite>
 </body>
 </html>
-""".replace("RUNTIME_BASE", PINNED_GRADIO_LITE_BASE).replace("FILES", files)
+""".replace("WORKER_REDIRECT", WORKER_REDIRECT_JS).replace("RUNTIME_BASE", PINNED_GRADIO_LITE_BASE).replace("FILES", files)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -276,6 +304,7 @@ def main():
     print("GALIA_GRADIO_LITE_VALIDATION=PASS")
     print("GALIA_GRADIO_LITE_RUNTIME=" + PINNED_GRADIO_LITE)
     print("GALIA_GRADIO_LITE_RUNTIME_BASE=" + PINNED_GRADIO_LITE_BASE)
+    print("GALIA_GRADIO_LITE_PATCHED_WORKER=" + PATCHED_WORKER_PATH)
     print("GALIA_GRADIO_LITE_EVIDENCE_DOCS=" + str(len(evidence_docs)))
     print("GALIA_GRADIO_LITE_SHA256=" + digest)
 
