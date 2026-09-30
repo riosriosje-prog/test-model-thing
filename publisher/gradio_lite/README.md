@@ -15,7 +15,7 @@ short_description: Read-only GALIA research and authority dashboard
 
 Static, browser-executed GALIA dashboard.
 
-- Runtime: @gradio/lite 5.45.0 + Pyodide.
+- Runtime: Gradio Lite upstream patched `PINNED_HF_HUB` build + Pyodide.\n- Recovery: avoids the broken npm 5.45.0 `huggingface-hub` dependency path and applies the browser Starlette `query_string` compatibility shim.
 - Publication boundary: READ ONLY.
 - Canonical authority remains in the GALIA control plane.
 - This candidate performs no remote writes and cannot promote itself.

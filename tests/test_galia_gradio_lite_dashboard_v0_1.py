@@ -36,9 +36,11 @@ def test_promoted_manifest_is_read_only_and_deploy_bound():
 
 def test_gradio_lite_build_is_pinned_and_read_only(tmp_path):
     text = build(tmp_path)
-    assert "@gradio/lite@5.45.0/dist/lite.js" in text
-    assert "@gradio/lite@5.45.0/dist/lite.css" in text
+    assert "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.js" in text
+    assert "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/lite.css" in text
     assert "READ ONLY" in text
+    assert "_galia_starlette_url_init" in text
+    assert "query_string" in text
     assert "authority mutation disabled" in text
     assert "RC-GALIA-2026-09-13-004" in text
     assert "Avenida MacLeary. Parada 44" in text
@@ -49,6 +51,7 @@ def test_build_embeds_bound_data_and_no_remote_control_plane_fetch(tmp_path):
     text = build(tmp_path)
     assert "raw.githubusercontent.com" not in text
     assert "githubusercontent.com" not in text
+    assert "cdn.jsdelivr.net/npm/@gradio/lite@5.45.0" not in text
     assert '<gradio-file name="authority.json">' in text
     assert '<gradio-file name="research_registry.json">' in text
     assert '<gradio-file name="evidence_mcleary.json">' in text
