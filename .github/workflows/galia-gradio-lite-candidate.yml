@@ -30,6 +30,21 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest
       - name: Run candidate tests
         run: python -m pytest -q tests/test_galia_gradio_lite_dashboard_v0_1.py
+      - name: Inspect upstream pinned Gradio Lite bundle
+        run: |
+          python - <<'PY'
+          import re, urllib.request
+          base="https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist/"
+          data=urllib.request.urlopen(base+"lite.js", timeout=30).read().decode("utf-8","replace")
+          print("LITE_JS_BYTES", len(data))
+          refs=sorted(set(re.findall(r'(?:\./)?assets/[A-Za-z0-9_.-]+', data)))
+          for ref in refs:
+              print("ASSET_REF", ref)
+          for pat in ("webworker","gradio_client","gradio-","\.whl"):
+              hits=sorted(set(re.findall(r'.{0,80}'+pat+r'.{0,120}', data, re.I)))
+              for hit in hits[:20]:
+                  print("MATCH", pat, hit)
+          PY
       - name: Build candidate
         run: python tools/build_galia_gradio_lite_dashboard.py --output dist/gradio-lite/index.html
       - name: Enforce promoted read-only boundary
