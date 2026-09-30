@@ -1,0 +1,43 @@
+{
+  "schema_version": "galia.promotion_receipt.v1",
+  "receipt_id": "GALIA-SOUTH-BASE-RESEARCH-PROMOTION-2026-09-30-001",
+  "state": "PROMOTED",
+  "promoted_object": {
+    "candidate_id": "GALIA-SOUTH-BASE-RESEARCH-DOSSIER-v1",
+    "evidence_path": "research/evidence/south_base.v1.json",
+    "registry_path": "governance/galia_dashboard_research_registry.v1.json"
+  },
+  "human_authorization": {
+    "command": "promueve esto ya y termina el dashboard",
+    "authorized": true,
+    "date": "2026-09-30"
+  },
+  "scope": {
+    "baseline": "SOUTH_BASE_RESEARCH_DOSSIER_v1",
+    "promotion_scope": "RESEARCH_DOSSIER_AND_READ_ONLY_DASHBOARD_ONLY",
+    "global_master_mutation": false,
+    "canonical_database_write": false,
+    "hypothesis_promoted_as_fact": false,
+    "dashboard_publication_authorized": true
+  },
+  "promoted_findings": {
+    "verified": [
+      "1899 Hodgkins/Blake Puerto Rico work",
+      "Ponce base line 2,572.6 m",
+      "Cardona astronomical azimuth in 1899",
+      "April 1899 San Juan Harbor bar/anchorage survey",
+      "Forney triangulation Ponce-to-San Juan, Jan-May 1900",
+      "South Base distinct from nearby magnetic observation points/monuments",
+      "Morro true bearing N 37°09.4′ E from the South Base vicinity"
+    ],
+    "strong_hypothesis": [
+      "South Base was established or integrated during the 1900 Forney campaign"
+    ],
+    "open": [
+      "Original South Base station description",
+      "Exact establishing party/date",
+      "Original coordinate and station mark",
+      "Modern NGS PID reconciliation"
+    ]
+  }
+}
