@@ -21,32 +21,48 @@ def fetch(url: str, timeout: int = 60) -> tuple[bytes, str, str]:
         return r.read(), r.geturl(), r.headers.get("Content-Type", "")
 
 
-def find_image_service(manifest: dict) -> str | None:
+def iter_canvas_images(manifest: dict):
+    rows = []
     # IIIF Presentation API v2
     try:
-        resource = manifest["sequences"][0]["canvases"][0]["images"][0]["resource"]
-        service = resource.get("service")
-        if isinstance(service, list):
-            service = service[0]
-        if isinstance(service, dict):
-            return service.get("@id") or service.get("id")
-        if resource.get("@id"):
-            # direct image resource fallback
-            return resource["@id"]
+        canvases = manifest["sequences"][0]["canvases"]
+        for idx, canvas in enumerate(canvases, start=1):
+            resource = canvas["images"][0]["resource"]
+            service = resource.get("service")
+            if isinstance(service, list):
+                service = service[0]
+            service_id = service.get("@id") if isinstance(service, dict) else None
+            rows.append({
+                "canvas_index": idx,
+                "label": canvas.get("label"),
+                "width": canvas.get("width"),
+                "height": canvas.get("height"),
+                "resource_id": resource.get("@id"),
+                "service_id": service_id,
+            })
+        return rows
     except Exception:
         pass
 
-    # IIIF Presentation API v3
+    # Minimal v3 fallback.
     try:
-        body = manifest["items"][0]["items"][0]["items"][0]["body"]
-        service = body.get("service")
-        if isinstance(service, list):
-            service = service[0]
-        if isinstance(service, dict):
-            return service.get("id") or service.get("@id")
-        return body.get("id")
+        for idx, canvas in enumerate(manifest["items"], start=1):
+            body = canvas["items"][0]["items"][0]["body"]
+            service = body.get("service")
+            if isinstance(service, list):
+                service = service[0]
+            rows.append({
+                "canvas_index": idx,
+                "label": canvas.get("label"),
+                "width": canvas.get("width"),
+                "height": canvas.get("height"),
+                "resource_id": body.get("id"),
+                "service_id": service.get("id") if isinstance(service, dict) else None,
+            })
+        return rows
     except Exception:
-        return None
+        return []
+
 
 
 def main() -> None:
@@ -58,6 +74,7 @@ def main() -> None:
         "mode": "READ_ONLY_REMOTE_SOURCE_RECOVERY",
         "status": "FETCH_FAILED",
         "manifest_url": MANIFEST_URL,
+        "retrieval_strategy": "IIIF_PRESENTATION_MANIFEST_PLUS_DECLARED_FULL_MAX_CANVASES",
         "source_identity": {
             "title": "San Juan Harbor Porto Rico.",
             "creator": "U.S. Coast and Geodetic Survey",
@@ -78,27 +95,29 @@ def main() -> None:
             "manifest_sha256": hashlib.sha256(raw).hexdigest(),
         })
 
-        service = find_image_service(manifest)
-        if not service:
-            raise RuntimeError("IIIF image service/resource not found")
-        receipt["iiif_service"] = service
-
-        if service.lower().endswith((".jpg", ".jpeg", ".png")):
-            image_url = service
-        else:
-            image_url = service.rstrip("/") + "/full/4000,/0/default.jpg"
-        receipt["image_request_url"] = image_url
-
-        image, final_image, image_type = fetch(image_url, timeout=120)
-        image_path = out / "san-juan-harbor-1899-iiif-4000.jpg"
-        image_path.write_bytes(image)
-        receipt.update({
-            "status": "FETCHED",
-            "image_final_url": final_image,
-            "image_content_type": image_type,
-            "image_byte_size": len(image),
-            "image_sha256": hashlib.sha256(image).hexdigest(),
-        })
+        canvases = iter_canvas_images(manifest)
+        if not canvases:
+            raise RuntimeError("IIIF canvases not found")
+        receipt["canvases"] = []
+        for row in canvases:
+            image_url = row.get("resource_id")
+            if not image_url and row.get("service_id"):
+                image_url = row["service_id"].rstrip("/") + "/full/max/0/default.jpg"
+            if not image_url:
+                continue
+            image, final_image, image_type = fetch(image_url, timeout=120)
+            image_path = out / f"san-juan-harbor-1899-canvas-{row['canvas_index']}-max.jpg"
+            image_path.write_bytes(image)
+            receipt["canvases"].append({
+                **row,
+                "image_request_url": image_url,
+                "image_final_url": final_image,
+                "image_content_type": image_type,
+                "image_byte_size": len(image),
+                "image_sha256": hashlib.sha256(image).hexdigest(),
+                "artifact_path": str(image_path),
+            })
+        receipt["status"] = "FETCHED" if receipt["canvases"] else "FETCH_FAILED"
     except Exception as exc:
         receipt["status"] = "FETCH_FAILED"
         receipt["error"] = f"{type(exc).__name__}: {exc}"
@@ -109,12 +128,11 @@ def main() -> None:
     )
 
     print("SOUTHBASE_1899_MAP_PROBE_STATUS=" + receipt["status"])
-    if receipt.get("iiif_service"):
-        print("SOUTHBASE_1899_MAP_IIIF_SERVICE=" + receipt["iiif_service"])
-    if receipt.get("image_final_url"):
-        print("SOUTHBASE_1899_MAP_IMAGE_URL=" + receipt["image_final_url"])
-        print("SOUTHBASE_1899_MAP_IMAGE_BYTES=" + str(receipt["image_byte_size"]))
-        print("SOUTHBASE_1899_MAP_IMAGE_SHA256=" + receipt["image_sha256"])
+    for row in receipt.get("canvases", []):
+        print("SOUTHBASE_1899_MAP_CANVAS=" + str(row["canvas_index"]))
+        print("SOUTHBASE_1899_MAP_IMAGE_URL=" + row["image_final_url"])
+        print("SOUTHBASE_1899_MAP_IMAGE_BYTES=" + str(row["image_byte_size"]))
+        print("SOUTHBASE_1899_MAP_IMAGE_SHA256=" + row["image_sha256"])
     if receipt.get("error"):
         print("SOUTHBASE_1899_MAP_ERROR=" + receipt["error"])
     # Remote availability is a research-source gate, not a CI infrastructure gate.
