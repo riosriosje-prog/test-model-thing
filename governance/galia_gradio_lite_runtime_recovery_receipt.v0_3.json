@@ -1,0 +1,38 @@
+{
+  "schema_version": "galia.runtime_recovery_receipt.v1",
+  "receipt_id": "GALIA-GRADIO-LITE-RUNTIME-RECOVERY-2026-09-30-003",
+  "state": "CANDIDATE",
+  "incident": {
+    "surface": "Junitos/GALIA",
+    "observed_runtime": "@gradio/lite 5.45.0",
+    "observed_python": "Pyodide CPython 3.12",
+    "failure_class": "MICROPIP_DEPENDENCY_RESOLUTION",
+    "user_evidence": "mobile browser traceback in micropip package_manager/install/transaction during Gradio Lite initialization"
+  },
+  "root_cause": {
+    "upstream_runtime": "Gradio Lite 5.45.0",
+    "bundled_pyodide": "0.27.3",
+    "bundled_micropip": "0.8.0",
+    "known_upstream_issue": "gradio-app/gradio#12262",
+    "boundary": "failure occurs while Lite installs its own Gradio wheels, before GALIA app.py executes"
+  },
+  "candidate_fix": {
+    "gradio_lite": "5.45.0",
+    "runtime_distribution": "VENDORED_IN_SPACE",
+    "pyodide_from": "0.27.3",
+    "pyodide_to": "0.27.6",
+    "browser_smoke_required": true,
+    "canonical_authority_mutation": false,
+    "research_data_mutation": false
+  },
+  "promotion": {
+    "state": "PENDING_CI",
+    "required_gates": [
+      "unit tests",
+      "runtime asset patch exactly once",
+      "headless browser renders GALIA",
+      "South Base dossier visible",
+      "no micropip/huggingface-hub traceback"
+    ]
+  }
+}
