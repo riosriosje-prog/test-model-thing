@@ -8,7 +8,7 @@ MANIFEST = ROOT / "governance/galia_gradio_lite_dashboard_candidate.v0_1.json"
 
 def build(tmp_path):
     out = tmp_path / "index.html"
-    subprocess.run(
+    p = subprocess.run(
         [
             sys.executable,
             "tools/build_galia_gradio_lite_dashboard.py",
@@ -16,10 +16,11 @@ def build(tmp_path):
             str(out),
         ],
         cwd=ROOT,
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
     )
+    assert p.returncode == 0, f"builder failed\nSTDOUT:\n{p.stdout}\nSTDERR:\n{p.stderr}"
     return out.read_text(encoding="utf-8")
 
 def test_promoted_manifest_is_read_only_and_deploy_bound():
