@@ -14,7 +14,10 @@ if str(ROOT) not in sys.path:
 
 from tools import build_galia_dashboard as base
 
-PINNED_GRADIO_LITE = "5.45.0"\nPINNED_PYODIDE = "0.27.6"\nRUNTIME_JS = "./vendor/gradio-lite/lite.js"\nRUNTIME_CSS = "./vendor/gradio-lite/lite.css"
+PINNED_GRADIO_LITE = "5.45.0"
+PINNED_PYODIDE = "0.27.6"
+RUNTIME_JS = "./vendor/gradio-lite/lite.js"
+RUNTIME_CSS = "./vendor/gradio-lite/lite.css"
 
 APP_PY = r"""
 import json
