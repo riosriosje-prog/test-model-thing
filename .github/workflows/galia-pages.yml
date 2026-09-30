@@ -9,6 +9,7 @@ on:
       - "governance/galia_dashboard_research_registry.v1.json"
       - "governance/galia_south_base_research_promotion_receipt.v1.json"
       - "research/evidence/**"
+      - "research/geospatial/**"
       - "tools/build_galia_dashboard.py"
       - "tests/test_galia_dashboard_publisher.py"
       - ".github/workflows/galia-pages.yml"
@@ -19,6 +20,7 @@ on:
       - "governance/galia_dashboard_research_registry.v1.json"
       - "governance/galia_south_base_research_promotion_receipt.v1.json"
       - "research/evidence/**"
+      - "research/geospatial/**"
       - "tools/build_galia_dashboard.py"
       - "tests/test_galia_dashboard_publisher.py"
       - ".github/workflows/galia-pages.yml"
@@ -52,7 +54,10 @@ jobs:
           grep -q -- '--navy:#071a33' _site/index.html
           grep -q -- '--paper:#ffffff' _site/index.html
           grep -q -- '--ink:#000000' _site/index.html
-          ! grep -q '<script src=' _site/index.html
+          grep -q '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>' _site/index.html
+          test "$(grep -o '<script src=' _site/index.html | wc -l)" -eq 1
+          ! grep -qiE 'gradio|pyodide|micropip' _site/index.html
+          grep -q 'GALIA_GEO_SHEETS=3' <(python tools/build_galia_dashboard.py --output /tmp/galia-verify.html)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
