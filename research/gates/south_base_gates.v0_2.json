@@ -1,0 +1,190 @@
+{
+  "schema_version": "galia.research.gates.v1",
+  "gate_set_id": "GALIA-SOUTH-BASE-GATES-v0.2",
+  "state": "RESEARCH_CANDIDATE_NOT_PROMOTED",
+  "project_id": "south-base",
+  "parent_promoted_dossier": {
+    "evidence_path": "research/evidence/south_base.v1.json",
+    "receipt_path": "governance/galia_south_base_research_promotion_receipt.v1.json",
+    "scope": "RESEARCH_DOSSIER_AND_READ_ONLY_DASHBOARD_ONLY"
+  },
+  "created_local": "2026-09-30",
+  "invariants": {
+    "automatic_promotion": false,
+    "canonical_database_write": false,
+    "hypothesis_promoted_as_fact": false,
+    "magnetic_station_equals_south_base": false,
+    "map_label_equals_original_establishment_record": false
+  },
+  "gates": [
+    {
+      "id": "SB-EXISTS-BY-1904",
+      "state": "PASS",
+      "proposition": "South Base triangulation station existed by the 1904 magnetic occupation referenced in the 1908 and 1909 C&GS station descriptions.",
+      "evidence": [
+        "1908 C&GS magnetic station description states the 1904 station was reoccupied between Morro Lighthouse and South Base triangulation station, 20 paces from South Base.",
+        "1909 C&GS report states observations were made 50 feet from South Base triangulation station toward Morro Lighthouse, within a few feet of the 1904/1908 point."
+      ],
+      "effect": "Existence by 1904 is verified. This does not establish the original construction/occupation year."
+    },
+    {
+      "id": "SB-MAGNETIC-DISTINCTION",
+      "state": "PASS",
+      "proposition": "South Base triangulation station is not the 1904/1908 magnetic observation point and is not the separately monumented 1909 magnetic station.",
+      "evidence": [
+        "The magnetic point is described by offset from South Base.",
+        "The 1909 point was independently monumented with a cement stone marked U.S.C.&G.S., 1909."
+      ],
+      "effect": "Never transfer a magnetic-station coordinate/mark to South Base without an explicit tie computation."
+    },
+    {
+      "id": "SB-MORRO-BEARING",
+      "state": "PASS",
+      "proposition": "The true bearing from the South Base vicinity toward Morro Lighthouse was N 37°09.4′ E.",
+      "evidence": "C&GS 1909 magnetic station description says the bearing was determined from triangulation.",
+      "effect": "Provides an orientation constraint but not a unique coordinate."
+    },
+    {
+      "id": "SB-1936-CORPS-MAP-SURVIVAL",
+      "state": "PASS_LABEL_PRESENT",
+      "proposition": "A 1936 U.S. Engineer Office, Puerto Rico District map explicitly labels STA. SOUTH BASE.",
+      "source": {
+        "publication": "U.S. Serial Set / U.S. Engineer Office, Puerto Rico District, Oct. 1936",
+        "govinfo_package": "SERIALSET-10129_00_00-005-0200-0000",
+        "url": "https://www.govinfo.gov/content/pkg/SERIALSET-10129_00_00-005-0200-0000/pdf/SERIALSET-10129_00_00-005-0200-0000.pdf"
+      },
+      "limits": [
+        "The map label proves continued cartographic recognition of the station name in 1936.",
+        "The exact plotted grid coordinate has not yet been extracted from a verified image/scan.",
+        "A 1936 label does not prove establishment date or original station mark."
+      ],
+      "effect": "Adds a later independent cartographic survival anchor."
+    },
+    {
+      "id": "SB-1936-MAP-GRID-COORDINATE",
+      "state": "OPEN",
+      "target": "Recover the 1936 map image at sufficient resolution, identify its grid reference/system, and read or derive the plotted South Base coordinate with an uncertainty budget.",
+      "rejection_rule": "Do not infer a precise coordinate solely from OCR fragments or a low-resolution text extraction."
+    },
+    {
+      "id": "SB-1899-SAN-JUAN-HARBOR-CONTROL",
+      "state": "PASS_CAMPAIGN_AND_PRODUCT_ONLY",
+      "proposition": "Hodgkins surveyed San Juan Harbor in April 1899 and a C&GS San Juan Harbor map dated 1899 survives.",
+      "limits": [
+        "No inspected 1899 source yet nominates South Base by name.",
+        "Local survey control is plausible but South Base establishment in 1899 remains unproven."
+      ],
+      "effect": "1899 remains a plausible local-control origin branch."
+    },
+    {
+      "id": "SB-1900-FORNEY-NETWORK",
+      "state": "PASS_CAMPAIGN",
+      "proposition": "Stehman Forney led triangulation from Ponce to San Juan between January and May 1900.",
+      "limits": [
+        "The assignment record does not say whether South Base was established, first occupied, or reoccupied.",
+        "Network integration in 1900 remains stronger than exact establishment in 1900."
+      ],
+      "effect": "1900 remains the leading network-integration hypothesis."
+    },
+    {
+      "id": "SB-ORIGIN-MODEL",
+      "state": "STRONG_HYPOTHESIS_MULTI_STAGE",
+      "model": [
+        "1899: Hodgkins local San Juan Harbor survey/control — possible establishment context.",
+        "1900: Forney Ponce→San Juan triangulation — strong integration/occupation context.",
+        "1904: South Base demonstrably exists as triangulation reference for magnetic work."
+      ],
+      "effect": "Do not collapse establishment, integration, and later reoccupation into a single unsupported date."
+    },
+    {
+      "id": "SB-NARA-RG23-RECORD-ROUTE",
+      "state": "PASS_ARCHIVAL_TARGET_DEFINED",
+      "repository": "National Archives and Records Administration",
+      "record_group": "RG 23 — Records of the Coast and Geodetic Survey",
+      "target_series": [
+        "GA — Triangulation Station Descriptions, 1834–1955",
+        "GAR — Reconnaissance Notes, 1834–1912",
+        "GH — Horizontal and Vertical Angle Observations, 1817–1948",
+        "AA — Azimuth Observations, 1844–1919",
+        "GB — Base Measurements, 1833–1935",
+        "GBZ — Base Line Computations, 1857–1937",
+        "Records relating to surveys in insular possessions, 1900–1906",
+        "Partial geographic and subject indexes, 1899–1913"
+      ],
+      "effect": "Original station description and first-observation evidence have a defined archival search path."
+    },
+    {
+      "id": "SB-ORIGINAL-STATION-DESCRIPTION",
+      "state": "OPEN_PRIMARY_TARGET",
+      "target": "Locate the original GA-series station description for South Base, San Juan.",
+      "required_fields": [
+        "station name",
+        "establishment/occupation date",
+        "establishing or observing party",
+        "station mark",
+        "reference/witness marks",
+        "locality description",
+        "original latitude/longitude or linked computation identifier"
+      ]
+    },
+    {
+      "id": "SB-ESTABLISHING-PARTY",
+      "state": "OPEN",
+      "candidates": [
+        "W. C. Hodgkins / Blake party, 1899",
+        "Stehman Forney triangulation party, 1900",
+        "1899 establishment followed by 1900 integration/reoccupation"
+      ],
+      "close_rule": "Requires an original station description, field/reconnaissance record, computation sheet, or equivalent primary record that nominates South Base."
+    },
+    {
+      "id": "SB-ORIGINAL-COORDINATE-MARK",
+      "state": "OPEN",
+      "target": "Recover original coordinate, datum, monument/mark description, witness ties and first observation.",
+      "close_rule": "Do not backfill from the 1904/1908/1909 magnetic offsets."
+    },
+    {
+      "id": "SB-NGS-PID",
+      "state": "OPEN",
+      "target": "Reconcile South Base with a modern NGS station record/PID using station history, recovery notes, coordinates and monument identity.",
+      "close_rule": "Name similarity or spatial proximity alone is insufficient."
+    }
+  ],
+  "next_actions": [
+    "Recover a high-resolution 1936 Corps map image and solve its grid coordinate for STA. SOUTH BASE.",
+    "Search GA/GAR/GH/AA and insular-possession records for South Base / San Juan / Morro / Forney / Hodgkins, 1899–1904.",
+    "Use the resulting approximate coordinate to query modern NGS control spatially, then require recovery-history identity before PID reconciliation."
+  ],
+  "source_register": [
+    {
+      "label": "C&GS Report 1909",
+      "url": "https://library.oarcloud.noaa.gov/docs.lib/htdocs/rescue/cgs/004_pdf/CSC-0113.PDF",
+      "supports": [
+        "SB-EXISTS-BY-1904",
+        "SB-MAGNETIC-DISTINCTION",
+        "SB-MORRO-BEARING"
+      ]
+    },
+    {
+      "label": "U.S. Serial Set 10129 — 1936 Puerto Rico District map",
+      "url": "https://www.govinfo.gov/content/pkg/SERIALSET-10129_00_00-005-0200-0000/pdf/SERIALSET-10129_00_00-005-0200-0000.pdf",
+      "supports": [
+        "SB-1936-CORPS-MAP-SURVIVAL"
+      ]
+    },
+    {
+      "label": "NARA RG 23 Guide",
+      "url": "https://www.archives.gov/research/guide-fed-records/groups/023.html/1000",
+      "supports": [
+        "SB-NARA-RG23-RECORD-ROUTE"
+      ]
+    },
+    {
+      "label": "NARA Guide to Puerto Rican Records",
+      "url": "https://www.archives.gov/files/nyc/finding-aids/puerto-rican-records-guide.pdf",
+      "supports": [
+        "SB-NARA-RG23-RECORD-ROUTE"
+      ]
+    }
+  ]
+}
