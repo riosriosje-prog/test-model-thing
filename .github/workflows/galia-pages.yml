@@ -50,7 +50,7 @@ jobs:
           python-version: "3.13"
       - name: Validate static dashboard
         run: |
-          python -m pip install --disable-pip-version-check pytest
+          python -m pip install --disable-pip-version-check pytest pyproj
           python -m pytest -q tests/test_galia_dashboard_publisher.py
       - name: Validate South Base research gates
         run: |
