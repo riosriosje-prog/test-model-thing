@@ -16,6 +16,8 @@ from tools import build_galia_dashboard as base
 
 PINNED_GRADIO_LITE = "PINNED_HF_HUB"
 PINNED_GRADIO_LITE_BASE = "https://gradio-lite-previews.s3.amazonaws.com/PINNED_HF_HUB/dist"
+PINNED_GRADIO_LITE_WORKER = "webworker-BsZ7XNFH.js"
+LOCAL_PATCHED_WORKER = "./assets/webworker-galia.js"
 
 APP_PY = r"""
 import json
@@ -243,7 +245,34 @@ def render(pointer, registry, evidence_docs):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GALIA — Gradio Lite</title>
 <meta name="description" content="Read-only GALIA authority and research dashboard">
-<script type="module" crossorigin src="RUNTIME_BASE/lite.js"></script>
+<script type="module">
+const runtimeBase = "RUNTIME_BASE";
+const upstreamWorkerSuffix = "/assets/WORKER_NAME";
+const patchedWorkerUrl = new URL("LOCAL_WORKER", import.meta.url).href;
+
+function remapWorkerUrl(url) {
+    const value = url instanceof URL ? url.href : String(url);
+    return value.endsWith(upstreamWorkerSuffix) ? patchedWorkerUrl : url;
+}
+
+const NativeWorker = globalThis.Worker;
+globalThis.Worker = class GALIAWorker extends NativeWorker {
+    constructor(url, options) {
+        super(remapWorkerUrl(url), options);
+    }
+};
+
+if (typeof globalThis.SharedWorker !== "undefined") {
+    const NativeSharedWorker = globalThis.SharedWorker;
+    globalThis.SharedWorker = class GALIASharedWorker extends NativeSharedWorker {
+        constructor(url, options) {
+            super(remapWorkerUrl(url), options);
+        }
+    };
+}
+
+await import(runtimeBase + "/lite.js");
+</script>
 <link rel="stylesheet" href="RUNTIME_BASE/lite.css">
 <style>html,body{margin:0;padding:0;min-height:100%;background:#0b1020}</style>
 </head>
@@ -253,7 +282,7 @@ FILES
 </gradio-lite>
 </body>
 </html>
-""".replace("RUNTIME_BASE", PINNED_GRADIO_LITE_BASE).replace("FILES", files)
+""".replace("RUNTIME_BASE", PINNED_GRADIO_LITE_BASE).replace("WORKER_NAME", PINNED_GRADIO_LITE_WORKER).replace("LOCAL_WORKER", LOCAL_PATCHED_WORKER).replace("FILES", files)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -276,6 +305,7 @@ def main():
     print("GALIA_GRADIO_LITE_VALIDATION=PASS")
     print("GALIA_GRADIO_LITE_RUNTIME=" + PINNED_GRADIO_LITE)
     print("GALIA_GRADIO_LITE_RUNTIME_BASE=" + PINNED_GRADIO_LITE_BASE)
+    print("GALIA_GRADIO_LITE_WORKER_PATCH=LOCAL_REDIRECT")
     print("GALIA_GRADIO_LITE_EVIDENCE_DOCS=" + str(len(evidence_docs)))
     print("GALIA_GRADIO_LITE_SHA256=" + digest)
 
