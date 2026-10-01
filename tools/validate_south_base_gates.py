@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PATH = ROOT / "research/gates/south_base_gates.v0_8.json"
+PATH = ROOT / "research/gates/south_base_gates.v0_9.json"
 
 
 def fail(msg: str) -> None:
@@ -56,6 +56,9 @@ def main() -> None:
         "SB-1901-JN-NOMINAL-IDENTITY",
         "SB-1901-SOUTH-BASE-REOCCUPATION-SIGNAL",
         "SB-TV1051-FIRST-OBSERVATION",
+        "SB-NGS-BASE-REFERENCE-NETWORK",
+        "SB-TV1057-SOUTH-BASE-AZIMUTH-RELATION",
+        "SB-TV1057-1901-TEMPORAL-TIE",
     }
     if not required.issubset(gates):
         fail("required gates missing")
@@ -162,6 +165,16 @@ def main() -> None:
     first_obs = gates["SB-TV1051-FIRST-OBSERVATION"]
     if first_obs.get("state") != "OPEN_GH_FIELD_BOOK_REQUIRED":
         fail("TV1051 first-observation gate must remain open pending primary observation evidence")
+    refnet = gates["SB-NGS-BASE-REFERENCE-NETWORK"]
+    if refnet.get("state") != "PASS_ONE_EXTERNAL_REFERENCE":
+        fail("South Base reference-network gate regressed")
+    rr = refnet.get("recovered", {})
+    if rr.get("external_reference_hit_count") != 1 or rr.get("source_pid") != "TV1057":
+        fail("unexpected South Base external reference network")
+    if gates["SB-TV1057-SOUTH-BASE-AZIMUTH-RELATION"].get("state") != "PASS_RELATIONSHIP_UNDATED":
+        fail("TV1057 South Base azimuth relation regressed")
+    if gates["SB-TV1057-1901-TEMPORAL-TIE"].get("state") != "REJECT_AS_FIRST_OBSERVATION_EVIDENCE":
+        fail("TV1057 temporal-use rejection regressed")
     if gates["SB-GA-ORIGINAL-CARD-IMAGE"]["state"] != "OPEN_ARCHIVAL_REQUIRED":
         fail("GA original-card gate must remain archival-open")
     if gates["SB-ESTABLISHING-PARTY"]["state"] != "PASS_AGENCY_YEAR_AND_DESCRIPTOR_NOMINAL_IDENTITY":
@@ -200,6 +213,9 @@ def main() -> None:
     print("JN_1901_NOMINAL_IDENTITY=PASS_STRONG_CROSS_SOURCE_CORROBORATION")
     print("TV1051_1901_REOCCUPATION_SIGNAL=PASS")
     print("TV1051_FIRST_OBSERVATION=OPEN_GH_FIELD_BOOK_REQUIRED")
+    print("NGS_BASE_REFERENCE_NETWORK=PASS_ONE_EXTERNAL_REFERENCE:TV1057")
+    print("TV1057_SOUTH_BASE_AZIMUTH=PASS_RELATIONSHIP_UNDATED")
+    print("TV1057_1901_TEMPORAL_TIE=REJECT_AS_FIRST_OBSERVATION_EVIDENCE")
 
 
 if __name__ == "__main__":
