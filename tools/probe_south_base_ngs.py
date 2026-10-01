@@ -237,6 +237,46 @@ def main() -> None:
             receipt["jn_1901_recovery_note_count"] = sum(1 for x in jn_1901_blocks if x["is_1901_recovery_note"])
             receipt["jn_1901_recovery_notes"] = [x for x in jn_1901_blocks if x["is_1901_recovery_note"]]
 
+            # Search the complete Puerto Rico archive for cross-station references
+            # to South Base/TV1051 and North Base/TV1049.  This is a graph-discovery
+            # aid only: a reference-object line does not itself date an observation.
+            reference_hits = []
+            station_re_all = re.compile(
+                r"(?ms)^ ([A-Z0-9]{6}) \*{20,}\s*$.*?(?=^ [A-Z0-9]{6} \*{20,}\s*$|\Z)"
+            )
+            needles = ("SAN JUAN SOUTH BASE", "SOUTH BASE", "TV1051", "SAN JUAN NORTH BASE", "NORTH BASE", "TV1049")
+            for member, text_data in searchable:
+                for match in station_re_all.finditer(text_data):
+                    pid = match.group(1)
+                    block = match.group(0)
+                    if pid in {"TV1051", "TV1049"}:
+                        continue
+                    upper = block.upper()
+                    matched = sorted({n for n in needles if n in upper})
+                    if not matched:
+                        continue
+                    designation = None
+                    history = []
+                    context = []
+                    for line in block.splitlines():
+                        up = line.upper()
+                        if "DESIGNATION -" in line:
+                            designation = line.split("DESIGNATION -", 1)[1].strip()
+                        if "HISTORY" in up:
+                            history.append(line.strip())
+                        if any(n in up for n in needles):
+                            context.append(line.strip())
+                    reference_hits.append({
+                        "source_pid": pid,
+                        "source_designation": designation,
+                        "member": member,
+                        "matched_terms": matched,
+                        "history_lines": history[:40],
+                        "reference_context": context[:80],
+                    })
+            receipt["base_station_reference_hits"] = reference_hits
+            receipt["base_station_reference_hit_count"] = len(reference_hits)
+
             for pid in PRIORITY_PIDS:
                 hits = []
                 for member, text_data in searchable:
@@ -274,6 +314,9 @@ def main() -> None:
         print("NGS_PR_ARCHIVE_MEMBERS=" + str(archive.get("member_count", 0)))
         print("NGS_PR_ARCHIVE_LITERAL_SOUTH_BASE=" + str(receipt.get("archive_contains_literal_south_base")))
         print("NGS_PR_ARCHIVE_LITERAL_SAN_JUAN_NORTH_BASE=" + str(receipt.get("archive_contains_literal_san_juan_north_base")))
+    print("NGS_BASE_REFERENCE_HIT_COUNT=" + str(receipt.get("base_station_reference_hit_count", 0)))
+    for row in receipt.get("base_station_reference_hits", []):
+        print("NGS_BASE_REFERENCE_HIT=" + json.dumps(row, sort_keys=True))
     print("NGS_1901_JN_BLOCK_COUNT=" + str(receipt.get("jn_1901_block_count", 0)))
     print("NGS_1901_JN_DESCRIPTION_COUNT=" + str(receipt.get("jn_1901_description_count", 0)))
     print("NGS_1901_JN_RECOVERY_NOTE_COUNT=" + str(receipt.get("jn_1901_recovery_note_count", 0)))
