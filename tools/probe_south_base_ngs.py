@@ -249,7 +249,7 @@ def main() -> None:
                 for match in station_re_all.finditer(text_data):
                     pid = match.group(1)
                     block = match.group(0)
-                    if pid in {"TV1051", "TV1049", "TV1057"}:
+                    if pid in {"TV1051", "TV1049"}:
                         continue
                     upper = block.upper()
                     matched = sorted({n for n in needles if n in upper})
@@ -266,6 +266,12 @@ def main() -> None:
                             history.append(line.strip())
                         if any(n in up for n in needles):
                             context.append(line.strip())
+                    desc_match = re.search(
+                        r"(?ms)DESCRIBED BY[^\n]*1901 \(JN\)(.*?)(?=STATION RECOVERY|\Z)",
+                        block,
+                    )
+                    desc_1901 = desc_match.group(1) if desc_match else ""
+                    header_before_description = block.split("STATION DESCRIPTION", 1)[0]
                     reference_hits.append({
                         "source_pid": pid,
                         "source_designation": designation,
@@ -273,6 +279,9 @@ def main() -> None:
                         "matched_terms": matched,
                         "history_lines": history[:40],
                         "reference_context": context[:80],
+                        "base_mentioned_in_current_header": "SOUTH BASE" in header_before_description.upper(),
+                        "base_mentioned_in_1901_description": "SOUTH BASE" in desc_1901.upper(),
+                        "station_relocated_later": "THIS STATION WAS MOVED TO ANOTHER HILL" in upper,
                     })
             receipt["base_station_reference_hits"] = reference_hits
             receipt["base_station_reference_hit_count"] = len(reference_hits)
