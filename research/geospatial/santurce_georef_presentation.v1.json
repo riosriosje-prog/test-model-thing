@@ -161,16 +161,6 @@
           "status": "PROMOTED_FIT_CONTROL",
           "residual_m": 0.09894327094582621
         }
-      ],
-      "holdouts": [
-        {
-          "id": "second-loiza-san-jorge",
-          "label": "Loíza × San Jorge",
-          "lat": 18.451783,
-          "lon": -66.061687,
-          "status": "FAIL_TEMPORAL_ALIGNMENT_DO_NOT_USE_AS_GCP",
-          "residual_m": 34.86337773
-        }
       ]
     },
     {
