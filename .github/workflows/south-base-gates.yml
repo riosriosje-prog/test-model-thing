@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "research/gates/south_base_gates.v0_7.json"
+      - "research/gates/south_base_gates.v0_8.json"
       - "research/evidence/south_base.v1.json"
       - "tools/probe_south_base_ngs.py"
       - "tools/validate_south_base_gates.py"
@@ -29,6 +29,26 @@ jobs:
         run: python tools/validate_south_base_gates.py
       - name: Probe NGS read-only
         run: python tools/probe_south_base_ngs.py
+      - name: Verify 1901 JN campaign classification
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("research/gates/derived/south_base_ngs_radial_probe.v0_1.json")
+          d=json.loads(p.read_text())
+          assert d["datasheet_archive"]["sha256"] == "d92e00e1aeec923424234b164bf87271431a9cb139b1254b3da4efd84faa7086"
+          assert d["jn_1901_block_count"] == 29
+          assert d["jn_1901_description_count"] == 28
+          assert d["jn_1901_recovery_note_count"] == 1
+          rows=d["jn_1901_recovery_notes"]
+          assert len(rows) == 1
+          assert rows[0]["pid"] == "TV1051"
+          assert rows[0]["designation"] == "SAN JUAN SOUTH BASE"
+          assert rows[0]["history_1901"] == ["TV1051  HISTORY     - 1901     GOOD             CGS"]
+          assert rows[0]["is_1901_description"] is False
+          assert rows[0]["is_1901_recovery_note"] is True
+          print("JN_1901_CLASSIFICATION_GATE=PASS")
+          PY
       - name: Recover 1899 San Juan Harbor map via IIIF read-only
         run: python tools/probe_south_base_1899_map.py
       - name: Preserve probe receipt
