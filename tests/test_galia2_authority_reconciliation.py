@@ -14,39 +14,39 @@ def c(cid, p="P", s="receipt-signing", k="K1", start="2026-01-01T00:00:00Z", end
 
 
 def test_same_key_corroborated():
-    assert f22.reconcile([c("A", tag="1"), c("B", tag="2")])["status"] == "SAME_KEY_CORROBORATED"
+    assert f22.reconcile([c("A", tag="1"), c("B", tag="2")])["authority_state"] == "SAME_KEY_CORROBORATED"
 
 
 def test_overlap_distinct_keys_requires_human_selection():
     result = f22.reconcile([c("A", k="K1"), c("B", k="K2")])
-    assert result["status"] == "HUMAN_SELECTION_REQUIRED"
+    assert result["conflict_state"] == "CONFLICT_DETECTED" and result["authority_state"] == "AUTHORITY_UNRESOLVED" and result["action_required"] == "HUMAN_SELECTION_REQUIRED"
     assert result["selected_candidate_id"] is None
 
 
 def test_distinct_scopes_are_compatible():
-    assert f22.reconcile([c("A", s="receipt-signing"), c("B", s="timestamp-signing")])["status"] == "NON_OVERLAPPING_COMPATIBLE"
+    assert f22.reconcile([c("A", s="receipt-signing"), c("B", s="timestamp-signing")])["authority_state"] == "NON_OVERLAPPING_COMPATIBLE"
 
 
 def test_distinct_providers_are_compatible():
-    assert f22.reconcile([c("A", p="P1"), c("B", p="P2")])["status"] == "NON_OVERLAPPING_COMPATIBLE"
+    assert f22.reconcile([c("A", p="P1"), c("B", p="P2")])["authority_state"] == "NON_OVERLAPPING_COMPATIBLE"
 
 
 def test_partial_overlap_conflicts():
-    assert f22.reconcile([c("A", k="K1", end="2026-06-01T00:00:00Z"), c("B", k="K2", start="2026-05-01T00:00:00Z")])["status"] == "HUMAN_SELECTION_REQUIRED"
+    assert f22.reconcile([c("A", k="K1", end="2026-06-01T00:00:00Z"), c("B", k="K2", start="2026-05-01T00:00:00Z")])["action_required"] == "HUMAN_SELECTION_REQUIRED"
 
 
 def test_half_open_boundary_is_non_overlapping():
-    assert f22.reconcile([c("A", k="K1", end="2026-06-01T00:00:00Z"), c("B", k="K2", start="2026-06-01T00:00:00Z")])["status"] == "NON_OVERLAPPING_COMPATIBLE"
+    assert f22.reconcile([c("A", k="K1", end="2026-06-01T00:00:00Z"), c("B", k="K2", start="2026-06-01T00:00:00Z")])["authority_state"] == "NON_OVERLAPPING_COMPATIBLE"
 
 
 def test_contradictory_revocation_requires_human_selection():
-    assert f22.reconcile([c("A", k="K1", end="2026-05-01T00:00:00Z"), c("B", k="K2", start="2026-04-01T00:00:00Z")])["status"] == "HUMAN_SELECTION_REQUIRED"
+    assert f22.reconcile([c("A", k="K1", end="2026-05-01T00:00:00Z"), c("B", k="K2", start="2026-04-01T00:00:00Z")])["action_required"] == "HUMAN_SELECTION_REQUIRED"
 
 
 def test_explicit_human_selection_preserves_candidates():
     candidates = [c("A", k="K1"), c("B", k="K2")]
     result = f22.reconcile(candidates, f22.make_human_decision(candidates, "A"))
-    assert result["status"] == "RECONCILED_BY_EXPLICIT_HUMAN_DECISION"
+    assert result["conflict_state"] == "CONFLICT_DETECTED" and result["authority_state"] == "RECONCILED_BY_EXPLICIT_HUMAN_DECISION" and result["action_required"] is None
     assert {z["candidate_id"] for z in result["preserved_candidates"]} == {"A", "B"}
     assert result["canonical_effect"] == "NONE"
     assert result["master_promotion_state"] == "AUTHORITY_HOLD"
@@ -85,9 +85,9 @@ def test_rejected_candidate_is_preserved():
 
 def test_majority_is_not_authority():
     result = f22.reconcile([c("A", k="K1", tag="1"), c("B", k="K1", tag="2"), c("C", k="K2", tag="3")])
-    assert result["status"] == "HUMAN_SELECTION_REQUIRED"
+    assert result["conflict_state"] == "CONFLICT_DETECTED" and result["authority_state"] == "AUTHORITY_UNRESOLVED" and result["action_required"] == "HUMAN_SELECTION_REQUIRED"
 
 
 def test_recency_is_not_authority():
     result = f22.reconcile([c("A", k="K1", start="2026-01-01T00:00:00Z"), c("B", k="K2", start="2026-09-01T00:00:00Z")])
-    assert result["status"] == "HUMAN_SELECTION_REQUIRED"
+    assert result["conflict_state"] == "CONFLICT_DETECTED" and result["authority_state"] == "AUTHORITY_UNRESOLVED" and result["action_required"] == "HUMAN_SELECTION_REQUIRED"
