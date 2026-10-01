@@ -20,7 +20,7 @@ RADIUS_KM = 3.5
 
 API = "https://geodesy.noaa.gov/api/nde/radial"
 ARCHIVE_URL = "https://geodesy.noaa.gov/pub/DS_ARCHIVE/DataSheets/PR.ZIP"
-PRIORITY_PIDS = ["TV1051", "TV1049", "TV1020", "TV1029", "TV1030", "TV1031", "TV1021", "DE5560"]
+PRIORITY_PIDS = ["TV1051", "TV1049", "TV1057", "TV1020", "TV1029", "TV1030", "TV1031", "TV1021", "DE5560"]
 
 
 def fetch_json(url: str):
@@ -249,7 +249,7 @@ def main() -> None:
                 for match in station_re_all.finditer(text_data):
                     pid = match.group(1)
                     block = match.group(0)
-                    if pid in {"TV1051", "TV1049"}:
+                    if pid in {"TV1051", "TV1049", "TV1057"}:
                         continue
                     upper = block.upper()
                     matched = sorted({n for n in needles if n in upper})
