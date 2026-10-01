@@ -182,6 +182,61 @@ def main() -> None:
             receipt["archive_contains_literal_south_base"] = "SOUTH BASE" in corpus_upper
             receipt["archive_contains_literal_san_juan_north_base"] = "SAN JUAN NORTH BASE" in corpus_upper
 
+            # Campaign-level test for the 1901 recovery initials "(JN)".
+            # Search complete station blocks, not isolated lines, so the designation
+            # and recovery context remain attached to each hit.
+            jn_1901_blocks = []
+            station_re = re.compile(
+                r"(?ms)^ ([A-Z0-9]{6}) \*{20,}\s*$.*?(?=^ [A-Z0-9]{6} \*{20,}\s*$|\Z)"
+            )
+            for member, text_data in searchable:
+                for match in station_re.finditer(text_data):
+                    block = match.group(0)
+                    upper = block.upper()
+                    if "1901 (JN)" not in upper:
+                        continue
+                    pid = match.group(1)
+                    designation = None
+                    for line in block.splitlines():
+                        if "DESIGNATION -" in line:
+                            designation = line.split("DESIGNATION -", 1)[1].strip()
+                            break
+                    context = [
+                        line.strip()
+                        for line in block.splitlines()
+                        if any(term in line.upper() for term in (
+                            "DESIGNATION -",
+                            "HISTORY",
+                            "RECOVERY NOTE",
+                            "1901 (JN)",
+                            "TRIPOD",
+                            "SCAFFOLD",
+                            "STATION IS",
+                            "MARKED BY",
+                        ))
+                    ]
+                    is_recovery = bool(re.search(r"RECOVERY NOTE BY[^\n]*1901 \(JN\)", block, re.I))
+                    is_description = bool(re.search(r"DESCRIBED BY[^\n]*1901 \(JN\)", block, re.I))
+                    history_1901 = [
+                        line.strip()
+                        for line in block.splitlines()
+                        if "HISTORY" in line.upper() and "1901" in line
+                    ]
+                    jn_1901_blocks.append({
+                        "pid": pid,
+                        "designation": designation,
+                        "member": member,
+                        "is_1901_recovery_note": is_recovery,
+                        "is_1901_description": is_description,
+                        "history_1901": history_1901,
+                        "context_lines": context[:80],
+                    })
+            receipt["jn_1901_blocks"] = jn_1901_blocks
+            receipt["jn_1901_block_count"] = len(jn_1901_blocks)
+            receipt["jn_1901_description_count"] = sum(1 for x in jn_1901_blocks if x["is_1901_description"])
+            receipt["jn_1901_recovery_note_count"] = sum(1 for x in jn_1901_blocks if x["is_1901_recovery_note"])
+            receipt["jn_1901_recovery_notes"] = [x for x in jn_1901_blocks if x["is_1901_recovery_note"]]
+
             for pid in PRIORITY_PIDS:
                 hits = []
                 for member, text_data in searchable:
@@ -219,6 +274,14 @@ def main() -> None:
         print("NGS_PR_ARCHIVE_MEMBERS=" + str(archive.get("member_count", 0)))
         print("NGS_PR_ARCHIVE_LITERAL_SOUTH_BASE=" + str(receipt.get("archive_contains_literal_south_base")))
         print("NGS_PR_ARCHIVE_LITERAL_SAN_JUAN_NORTH_BASE=" + str(receipt.get("archive_contains_literal_san_juan_north_base")))
+    print("NGS_1901_JN_BLOCK_COUNT=" + str(receipt.get("jn_1901_block_count", 0)))
+    print("NGS_1901_JN_DESCRIPTION_COUNT=" + str(receipt.get("jn_1901_description_count", 0)))
+    print("NGS_1901_JN_RECOVERY_NOTE_COUNT=" + str(receipt.get("jn_1901_recovery_note_count", 0)))
+    for row in receipt.get("jn_1901_blocks", []):
+        print("NGS_1901_JN_BLOCK=" + json.dumps(row, sort_keys=True))
+    for row in receipt.get("jn_1901_recovery_notes", []):
+        print("NGS_1901_JN_RECOVERY_NOTE=" + json.dumps(row, sort_keys=True))
+
     for pid, ds in receipt.get("priority_datasheets", {}).items():
         print("NGS_DATASHEET_STATUS=" + pid + ":" + ds.get("status", ""))
         for hit in ds.get("hits", []):

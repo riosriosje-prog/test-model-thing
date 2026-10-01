@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PATH = ROOT / "research/gates/south_base_gates.v0_7.json"
+PATH = ROOT / "research/gates/south_base_gates.v0_8.json"
 
 
 def fail(msg: str) -> None:
@@ -52,6 +52,10 @@ def main() -> None:
         "SB-WCH-NOMINAL-IDENTITY",
         "SB-1899-IIIF-CANVAS-RECOVERY",
         "SB-GA-CARD-DIGITAL-SEARCH",
+        "SB-1901-JN-CAMPAIGN-SIGNATURE",
+        "SB-1901-JN-NOMINAL-IDENTITY",
+        "SB-1901-SOUTH-BASE-REOCCUPATION-SIGNAL",
+        "SB-TV1051-FIRST-OBSERVATION",
     }
     if not required.issubset(gates):
         fail("required gates missing")
@@ -141,6 +145,23 @@ def main() -> None:
         fail("1899 IIIF canvas count changed")
     if gates["SB-GA-CARD-DIGITAL-SEARCH"]["state"] != "PASS_SEARCH_SATURATION_CARD_IMAGE_NOT_RECOVERED":
         fail("GA-card digital-search saturation gate regressed")
+    jn = gates["SB-1901-JN-CAMPAIGN-SIGNATURE"]
+    if jn.get("state") != "PASS_OFFICIAL_NGS_NETWORK_SIGNATURE":
+        fail("1901 JN campaign signature regressed")
+    rec = jn.get("recovered", {})
+    if rec.get("archive_sha256") != "d92e00e1aeec923424234b164bf87271431a9cb139b1254b3da4efd84faa7086":
+        fail("1901 JN campaign archive snapshot changed")
+    if rec.get("block_count") != 29 or rec.get("description_count") != 28 or rec.get("recovery_note_count") != 1:
+        fail("1901 JN campaign classification changed")
+    if rec.get("sole_recovery_note_pid") != "TV1051":
+        fail("sole 1901 JN recovery-note PID changed")
+    if gates["SB-1901-JN-NOMINAL-IDENTITY"]["state"] != "PASS_STRONG_CROSS_SOURCE_CORROBORATION":
+        fail("JN nominal identity gate regressed")
+    if gates["SB-1901-SOUTH-BASE-REOCCUPATION-SIGNAL"]["state"] != "PASS":
+        fail("1901 South Base reoccupation/signal gate regressed")
+    first_obs = gates["SB-TV1051-FIRST-OBSERVATION"]
+    if first_obs.get("state") != "OPEN_GH_FIELD_BOOK_REQUIRED":
+        fail("TV1051 first-observation gate must remain open pending primary observation evidence")
     if gates["SB-GA-ORIGINAL-CARD-IMAGE"]["state"] != "OPEN_ARCHIVAL_REQUIRED":
         fail("GA original-card gate must remain archival-open")
     if gates["SB-ESTABLISHING-PARTY"]["state"] != "PASS_AGENCY_YEAR_AND_DESCRIPTOR_NOMINAL_IDENTITY":
@@ -175,6 +196,10 @@ def main() -> None:
     print("IIIF_1899_MAP=PASS_SOURCE_PIXELS_INSPECTED_LIMITING_EVIDENCE")
     print("GA_CARD_DIGITAL_SEARCH=PASS_SEARCH_SATURATION_CARD_IMAGE_NOT_RECOVERED")
     print("GA_ORIGINAL_CARD=OPEN_ARCHIVAL_REQUIRED")
+    print("JN_1901_NETWORK=PASS:29_BLOCKS_28_DESCRIPTIONS_1_RECOVERY")
+    print("JN_1901_NOMINAL_IDENTITY=PASS_STRONG_CROSS_SOURCE_CORROBORATION")
+    print("TV1051_1901_REOCCUPATION_SIGNAL=PASS")
+    print("TV1051_FIRST_OBSERVATION=OPEN_GH_FIELD_BOOK_REQUIRED")
 
 
 if __name__ == "__main__":
