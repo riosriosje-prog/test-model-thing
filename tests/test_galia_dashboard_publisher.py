@@ -193,7 +193,7 @@ def test_geospatial_snapshot_preserves_authority_separation():
     assert sheets["third-section-1918"]["authority"] == "DIAGNOSTIC_CHAIN_NOT_PROMOTED_ABSOLUTE"
     assert len(sheets["first-section-1917"]["controls"]) == 5
     assert len(sheets["second-section-1918"]["controls"]) == 5
-    assert sheets["second-section-1918"]["holdouts"][0]["status"] == "FAIL_TEMPORAL_ALIGNMENT_DO_NOT_USE_AS_GCP"
+    assert "holdouts" not in sheets["second-section-1918"]
     controls = {x["id"]: x for x in geo["geodetic_controls"]}
     assert controls["ngs-tv1051-san-juan-south-base"]["status"] == "PASS_VERIFIED_NGS_PID"
     assert controls["ngs-tv1051-san-juan-south-base"]["datum"] == "NAD83(1997)"
