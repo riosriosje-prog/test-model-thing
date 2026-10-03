@@ -22,12 +22,12 @@ def _dt(v:str)->datetime:
     return datetime.fromisoformat(v[:-1]+"+00:00").astimezone(timezone.utc)
 
 def candidate_core(c:Dict[str,Any])->Dict[str,Any]:
-    req=("candidate_id","provider_id","scope","key_id","key_sha256","source_artifact_sha256","lineage_sha256","valid_from_utc")
+    req=("candidate_id","provider_id","scope","key_id","key_sha256","source_artifact_sha256","lineage_sha256","valid_from_utc","authority_assertion")
     for k in req:
         if not c.get(k): raise ValueError("candidate missing "+k)
     for k in ("key_sha256","source_artifact_sha256","lineage_sha256"):
         if not _is_hash(c[k]): raise ValueError(k+" malformed")
-    start=_dt(c["valid_from_utc"]); end=_dt(c["valid_until_utc"]) if c.get("valid_until_utc") else None
+    if c["authority_assertion"] not in {"ACTIVE","REVOKED"}: raise ValueError("invalid authority_assertion")\n    start=_dt(c["valid_from_utc"]); end=_dt(c["valid_until_utc"]) if c.get("valid_until_utc") else None
     if end and end<=start: raise ValueError("invalid authority interval")
     return {k:c.get(k) for k in sorted(set(c)|{"valid_until_utc"}) if k!="candidate_sha256"}
 
@@ -54,7 +54,7 @@ def reconcile(candidates:List[Dict[str,Any]],human_decision:Dict[str,Any]|None=N
         for b in candidates[i+1:]:
             same=a["provider_id"]==b["provider_id"] and a["scope"]==b["scope"]
             if not same or not overlaps(a,b): compatible.append([a["candidate_id"],b["candidate_id"]])
-            elif a["key_id"]==b["key_id"] and a["key_sha256"]==b["key_sha256"]: corroborations.append([a["candidate_id"],b["candidate_id"]])
+            elif a["key_id"]==b["key_id"] and a["key_sha256"]==b["key_sha256"] and a["authority_assertion"]==b["authority_assertion"]: corroborations.append([a["candidate_id"],b["candidate_id"]])
             else: conflicts.append([a["candidate_id"],b["candidate_id"]])
     conflict_state="CONFLICT_DETECTED" if conflicts else None
     authority_state="AUTHORITY_UNRESOLVED" if conflicts else ("SAME_KEY_CORROBORATED" if corroborations else "NON_OVERLAPPING_COMPATIBLE")
