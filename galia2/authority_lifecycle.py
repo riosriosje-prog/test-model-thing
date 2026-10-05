@@ -172,6 +172,10 @@ class HumanLifecycleAuthorization:
             raise UnresolvedLegalState(
                 "VACATED and REVERSED are terminal lifecycle states"
             )
+        if self.expected_current_state is EventAuthorityState.NONFINAL:
+            raise UnresolvedLegalState(
+                "NONFINAL assertion/source events are not lifecycle targets"
+            )
         if self.expected_current_state not in LIFECYCLE_INPUT_STATES:
             raise UnresolvedLegalState(
                 "expected_current_state is not lifecycle-eligible"
@@ -283,6 +287,16 @@ def _required(payload: dict[str, str], key: str, event: CanonicalEvent) -> str:
     return value.strip()
 
 
+def _valid_sha256(value: object) -> bool:
+    if not isinstance(value, str) or len(value) != 64:
+        return False
+    try:
+        int(value, 16)
+    except ValueError:
+        return False
+    return True
+
+
 def _load_exact(store: SecuredClaimStore, bound: BoundEvent) -> CanonicalEvent:
     try:
         event = store.get_event(bound.event_id)
@@ -368,6 +382,32 @@ def resolve_effective_authority_state(
         seen.add(current.event_id)
         payload = _payload(current)
 
+        human_authorization_id = _required(
+            payload, "human_authorization_id", current
+        )
+        human_authorization_sha256 = _required(
+            payload, "human_authorization_sha256", current
+        )
+        human_reviewer = _required(
+            payload, "human_reviewer", current
+        )
+        if (
+            not human_authorization_id
+            or not human_reviewer
+            or not _valid_sha256(human_authorization_sha256)
+        ):
+            raise UnresolvedLegalState(
+                f"lifecycle transition {current.event_id} lacks valid human authorization provenance"
+            )
+        if current.authority.authority_type == "HUMAN_PROMOTION":
+            raise UnresolvedLegalState(
+                f"lifecycle transition {current.event_id} uses human promotion as legal authority"
+            )
+        if current.authority_state not in ACTIVE_STATES:
+            raise UnresolvedLegalState(
+                f"lifecycle transition {current.event_id} is not itself operative/final"
+            )
+
         from_state = EventAuthorityState(
             _required(payload, "from_state", current)
         )
@@ -382,6 +422,39 @@ def resolve_effective_authority_state(
             raise UnresolvedLegalState(
                 f"stored lifecycle transition {from_state.value} -> "
                 f"{to_state.value} is not allowed"
+            )
+
+        replacement_event_id = payload.get("replacement_event_id", "")
+        replacement_event_sha256 = payload.get("replacement_event_sha256", "")
+        if to_state is EventAuthorityState.SUPERSEDED:
+            if (
+                not replacement_event_id
+                or not _valid_sha256(replacement_event_sha256)
+            ):
+                raise UnresolvedLegalState(
+                    f"stored SUPERSEDED transition {current.event_id} lacks replacement binding"
+                )
+            if replacement_event_id == target.event_id:
+                raise UnresolvedLegalState(
+                    "stored replacement_event must differ from target"
+                )
+            try:
+                replacement_event = store.get_event(replacement_event_id)
+            except KeyError as exc:
+                raise UnresolvedLegalState(
+                    f"stored replacement_event does not exist: {replacement_event_id}"
+                ) from exc
+            if replacement_event.sha256 != replacement_event_sha256:
+                raise UnresolvedLegalState(
+                    "stored replacement_event hash mismatch"
+                )
+            if replacement_event.event_type == TRANSITION_EVENT_TYPE:
+                raise UnresolvedLegalState(
+                    "stored replacement_event cannot be lifecycle transition"
+                )
+        elif replacement_event_id or replacement_event_sha256:
+            raise UnresolvedLegalState(
+                "stored replacement binding is permitted only for SUPERSEDED transition"
             )
 
         if ordered:
