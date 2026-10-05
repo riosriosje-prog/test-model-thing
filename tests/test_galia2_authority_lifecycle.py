@@ -674,6 +674,11 @@ class AuthorityLifecycleTests(unittest.TestCase):
             payload=(
                 ("target_event_id", target.event_id),
                 ("target_event_sha256", target.sha256),
+                ("human_authorization_id", "forged-human"),
+                ("human_authorization_sha256", "a" * 64),
+                ("human_reviewer", "forged-reviewer"),
+                ("replacement_event_id", ""),
+                ("replacement_event_sha256", ""),
                 ("prior_transition_event_id", ""),
                 ("prior_transition_sha256", ""),
                 ("from_state", "OPERATIVE"),
@@ -690,6 +695,11 @@ class AuthorityLifecycleTests(unittest.TestCase):
             payload=(
                 ("target_event_id", target.event_id),
                 ("target_event_sha256", target.sha256),
+                ("human_authorization_id", "forged-human"),
+                ("human_authorization_sha256", "a" * 64),
+                ("human_reviewer", "forged-reviewer"),
+                ("replacement_event_id", ""),
+                ("replacement_event_sha256", ""),
                 ("prior_transition_event_id", "missing"),
                 ("prior_transition_sha256", "0" * 64),
                 ("from_state", "STAYED"),
@@ -713,6 +723,11 @@ class AuthorityLifecycleTests(unittest.TestCase):
             payload=(
                 ("target_event_id", target.event_id),
                 ("target_event_sha256", target.sha256),
+                ("human_authorization_id", "forged-human"),
+                ("human_authorization_sha256", "a" * 64),
+                ("human_reviewer", "forged-reviewer"),
+                ("replacement_event_id", ""),
+                ("replacement_event_sha256", ""),
                 ("prior_transition_event_id", ""),
                 ("prior_transition_sha256", ""),
                 ("from_state", "OPERATIVE"),
@@ -730,6 +745,11 @@ class AuthorityLifecycleTests(unittest.TestCase):
             payload=(
                 ("target_event_id", target.event_id),
                 ("target_event_sha256", target.sha256),
+                ("human_authorization_id", "forged-human"),
+                ("human_authorization_sha256", "a" * 64),
+                ("human_reviewer", "forged-reviewer"),
+                ("replacement_event_id", ""),
+                ("replacement_event_sha256", ""),
                 ("prior_transition_event_id", root.event_id),
                 ("prior_transition_sha256", "0" * 64),
                 ("from_state", "STAYED"),
@@ -804,7 +824,7 @@ class AuthorityLifecycleTests(unittest.TestCase):
                 expected_state=EventAuthorityState.FINAL,
             )
         )
-        with self.assertRaisesRegex(UnresolvedLegalState, "all inputs FINAL"):
+        with self.assertRaisesRegex(UnresolvedLegalState, "effectively"):
             self.status_compiler.compile(
                 self._c5_request(trio, state=EventAuthorityState.FINAL)
             )
