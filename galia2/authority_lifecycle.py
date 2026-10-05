@@ -462,6 +462,38 @@ class AuthorityLifecycleGate:
         authorization.validate()
 
         target = _load_exact(self.store, authorization.target)
+        auth_hash = authorization.sha256
+        transition_event_id = (
+            f"authority-transition:{authorization.authorization_id}:{auth_hash}"
+        )
+        try:
+            existing = self.store.get_event(transition_event_id)
+        except KeyError:
+            existing = None
+        if existing is not None:
+            payload = _payload(existing)
+            if (
+                existing.event_type != TRANSITION_EVENT_TYPE
+                or payload.get("human_authorization_sha256") != auth_hash
+                or payload.get("target_event_id") != target.event_id
+                or payload.get("target_event_sha256") != target.sha256
+            ):
+                raise UnresolvedLegalState(
+                    "existing lifecycle event conflicts with exact authorization replay"
+                )
+            return LifecycleTransitionResult(
+                authorization_sha256=auth_hash,
+                before_state=EventAuthorityState(
+                    _required(payload, "from_state", existing)
+                ),
+                after_state=EventAuthorityState(
+                    _required(payload, "to_state", existing)
+                ),
+                event=existing,
+                persisted_event_id=existing.event_id,
+                replay_idempotent=True,
+            )
+
         if target.event_type == TRANSITION_EVENT_TYPE:
             raise UnresolvedLegalState(
                 "lifecycle transition events cannot themselves be lifecycle targets"
@@ -528,12 +560,8 @@ class AuthorityLifecycleGate:
                     "replacement_event is not legally live"
                 )
 
-        auth_hash = authorization.sha256
         event = CanonicalEvent(
-            event_id=(
-                f"authority-transition:{authorization.authorization_id}:"
-                f"{auth_hash}"
-            ),
+            event_id=transition_event_id,
             event_type=TRANSITION_EVENT_TYPE,
             event_effective_at=authorization.transition_effective_at,
             event_recorded_at=authorization.issued_at,
