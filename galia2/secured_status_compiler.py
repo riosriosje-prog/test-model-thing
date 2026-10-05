@@ -29,6 +29,7 @@ from .secured_claims import (
     classify_secured_claim,
 )
 from .secured_claim_store import SecuredClaimStore
+from .authority_lifecycle import resolve_effective_authority_state
 
 
 COMPILER_VERSION = "secured-status-506a-v1"
@@ -222,15 +223,20 @@ def _load_bound(
         raise UnresolvedLegalState(
             f"{bound.event_id} must be {expected_type}"
         )
-    if event.authority_state not in INPUT_STATES:
+    effective = resolve_effective_authority_state(store, event.event_id)
+    if effective.effective_state not in INPUT_STATES:
         raise UnresolvedLegalState(
-            f"{bound.event_id} must be OPERATIVE or FINAL"
+            f"{bound.event_id} is not effectively OPERATIVE or FINAL: "
+            f"{effective.effective_state.value}"
         )
     _validate_c4_lineage(event)
     return event
 
 
-def _request_hash(request: SecuredStatusCompileRequest) -> str:
+def _request_hash(
+    request: SecuredStatusCompileRequest,
+    lifecycle_bindings: tuple[tuple[str, str, str, str], ...],
+) -> str:
     doc = {
         "request_id": request.request_id,
         "compiled_at": request.compiled_at.isoformat(),
@@ -257,6 +263,7 @@ def _request_hash(request: SecuredStatusCompileRequest) -> str:
             ),
         },
         "result_authority_state": request.result_authority_state.value,
+        "lifecycle_bindings": list(lifecycle_bindings),
         "compiler_version": COMPILER_VERSION,
     }
     raw = json.dumps(
@@ -347,15 +354,19 @@ class SecuredStatusCompiler:
                 "priority value available to creditor cannot exceed estate interest value"
             )
 
+        effective_states = tuple(
+            resolve_effective_authority_state(self.store, event.event_id)
+            for event in (allowance, valuation, priority)
+        )
         if (
             request.result_authority_state is EventAuthorityState.FINAL
             and not all(
-                event.authority_state is EventAuthorityState.FINAL
-                for event in (allowance, valuation, priority)
+                state.effective_state is EventAuthorityState.FINAL
+                for state in effective_states
             )
         ):
             raise UnresolvedLegalState(
-                "FINAL secured-status result requires all inputs FINAL"
+                "FINAL secured-status result requires all inputs effectively FINAL"
             )
 
         classification = classify_secured_claim(
@@ -366,7 +377,16 @@ class SecuredStatusCompiler:
         input_events = (allowance, valuation, priority)
         input_ids = tuple(event.event_id for event in input_events)
         input_hashes = tuple(event.sha256 for event in input_events)
-        req_hash = _request_hash(request)
+        lifecycle_bindings = tuple(
+            (
+                state.target_event_id,
+                state.effective_state.value,
+                state.tail_transition_event_id or "",
+                state.tail_transition_sha256 or "",
+            )
+            for state in effective_states
+        )
+        req_hash = _request_hash(request, lifecycle_bindings)
 
         event = CanonicalEvent(
             event_id=f"secured-status:{request.request_id}:{req_hash}",
@@ -388,6 +408,7 @@ class SecuredStatusCompiler:
                 ("unsecured_deficiency", str(classification.unsecured_deficiency)),
                 ("input_event_ids_json", json.dumps(input_ids, separators=(",", ":"))),
                 ("input_event_hashes_json", json.dumps(input_hashes, separators=(",", ":"))),
+                ("input_lifecycle_bindings_json", json.dumps(lifecycle_bindings, separators=(",", ":"))),
                 ("derivation_kind", "ARITHMETIC_FROM_OPERATIVE_LEGAL_DETERMINATIONS"),
             ),
             authority_state=request.result_authority_state,
