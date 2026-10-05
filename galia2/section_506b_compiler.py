@@ -333,6 +333,14 @@ def _request_hash(request: Section506BCompileRequest) -> str:
                     "citation": (
                         request.allocation_directive.legal_authority.citation
                     ),
+                    "jurisdiction": (
+                        request.allocation_directive.legal_authority.jurisdiction
+                    ),
+                    "effective_date": (
+                        request.allocation_directive.legal_authority.effective_date.isoformat()
+                        if request.allocation_directive.legal_authority.effective_date
+                        else None
+                    ),
                 },
             }
         ),
