@@ -366,7 +366,7 @@ class SecuredStatusCompiler:
             )
         ):
             raise UnresolvedLegalState(
-                "FINAL secured-status result requires all inputs effectively FINAL"
+                "FINAL secured-status result requires all inputs FINAL in reconstructed effective state"
             )
 
         classification = classify_secured_claim(
