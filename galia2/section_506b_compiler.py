@@ -598,7 +598,7 @@ class Section506BCompiler:
             )
         ):
             raise UnresolvedLegalState(
-                "FINAL §506(b) result requires all bound inputs effectively FINAL"
+                "FINAL §506(b) result requires all bound inputs FINAL in reconstructed effective state"
             )
 
         input_ids = tuple(event.event_id for event in input_events)
