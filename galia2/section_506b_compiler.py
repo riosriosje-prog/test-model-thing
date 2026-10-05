@@ -33,6 +33,7 @@ from .secured_claims import (
 )
 from .secured_claim_store import SecuredClaimStore
 from .secured_status_compiler import BoundDetermination
+from .authority_lifecycle import resolve_effective_authority_state
 
 
 COMPILER_VERSION = "section-506b-v1"
@@ -280,16 +281,21 @@ def _load_bound(
         raise UnresolvedLegalState(
             f"{bound.event_id} must be {expected_type}"
         )
-    if event.authority_state not in INPUT_STATES:
+    effective = resolve_effective_authority_state(store, event.event_id)
+    if effective.effective_state not in INPUT_STATES:
         raise UnresolvedLegalState(
-            f"{bound.event_id} must be OPERATIVE or FINAL"
+            f"{bound.event_id} is not effectively OPERATIVE or FINAL: "
+            f"{effective.effective_state.value}"
         )
     if require_c4:
         _validate_c4_lineage(event)
     return event
 
 
-def _request_hash(request: Section506BCompileRequest) -> str:
+def _request_hash(
+    request: Section506BCompileRequest,
+    lifecycle_bindings: tuple[tuple[str, str, str, str], ...],
+) -> str:
     doc = {
         "request_id": request.request_id,
         "compiled_at": request.compiled_at.isoformat(),
@@ -346,6 +352,7 @@ def _request_hash(request: Section506BCompileRequest) -> str:
             }
         ),
         "result_authority_state": request.result_authority_state.value,
+        "lifecycle_bindings": list(lifecycle_bindings),
         "compiler_version": COMPILER_VERSION,
     }
     raw = json.dumps(
@@ -573,31 +580,39 @@ class Section506BCompiler:
                 for x in allocated
             )
 
-        if (
-            request.result_authority_state is EventAuthorityState.FINAL
-            and not all(
-                event.authority_state is EventAuthorityState.FINAL
-                for event in (
-                    secured_status,
-                    valuation,
-                    *recoveries,
-                    *component_events,
-                )
-            )
-        ):
-            raise UnresolvedLegalState(
-                "FINAL §506(b) result requires all bound inputs FINAL"
-            )
-
         input_events = (
             secured_status,
             valuation,
             *recoveries,
             *component_events,
         )
+        effective_states = tuple(
+            resolve_effective_authority_state(self.store, event.event_id)
+            for event in input_events
+        )
+        if (
+            request.result_authority_state is EventAuthorityState.FINAL
+            and not all(
+                state.effective_state is EventAuthorityState.FINAL
+                for state in effective_states
+            )
+        ):
+            raise UnresolvedLegalState(
+                "FINAL §506(b) result requires all bound inputs effectively FINAL"
+            )
+
         input_ids = tuple(event.event_id for event in input_events)
         input_hashes = tuple(event.sha256 for event in input_events)
-        req_hash = _request_hash(request)
+        lifecycle_bindings = tuple(
+            (
+                state.target_event_id,
+                state.effective_state.value,
+                state.tail_transition_event_id or "",
+                state.tail_transition_sha256 or "",
+            )
+            for state in effective_states
+        )
+        req_hash = _request_hash(request, lifecycle_bindings)
 
         oversecurity_event = CanonicalEvent(
             event_id=f"oversecurity:{request.request_id}:{req_hash}",
@@ -619,6 +634,7 @@ class Section506BCompiler:
                 ("oversecured_state", "OVERSECURED" if cushion > 0 else "NOT_OVERSECURED"),
                 ("input_event_ids_json", json.dumps(input_ids, separators=(",", ":"))),
                 ("input_event_hashes_json", json.dumps(input_hashes, separators=(",", ":"))),
+                ("input_lifecycle_bindings_json", json.dumps(lifecycle_bindings, separators=(",", ":"))),
             ),
             authority_state=request.result_authority_state,
         )
@@ -699,6 +715,7 @@ class Section506BCompiler:
                 ("allocation_event_id", allocation_event.event_id if allocation_event else ""),
                 ("input_event_ids_json", json.dumps(input_ids, separators=(",", ":"))),
                 ("input_event_hashes_json", json.dumps(input_hashes, separators=(",", ":"))),
+                ("input_lifecycle_bindings_json", json.dumps(lifecycle_bindings, separators=(",", ":"))),
             ),
             authority_state=request.result_authority_state,
         )
