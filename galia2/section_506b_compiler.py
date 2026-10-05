@@ -292,10 +292,16 @@ def _request_hash(request: Section506BCompileRequest) -> str:
     doc = {
         "request_id": request.request_id,
         "compiled_at": request.compiled_at.isoformat(),
-        "secured_status": request.secured_status.__dict__,
-        "valuation": request.valuation.__dict__,
-        "recoveries_506c": [x.__dict__ for x in request.recoveries_506c],
-        "components": [x.__dict__ for x in request.components],
+        "secured_status": {"event_id": request.secured_status.event_id, "expected_sha256": request.secured_status.expected_sha256},
+        "valuation": {"event_id": request.valuation.event_id, "expected_sha256": request.valuation.expected_sha256},
+        "recoveries_506c": [
+            {"event_id": x.event_id, "expected_sha256": x.expected_sha256}
+            for x in request.recoveries_506c
+        ],
+        "components": [
+            {"event_id": x.event_id, "expected_sha256": x.expected_sha256}
+            for x in request.components
+        ],
         "section_506b_authority": {
             "authority_id": request.section_506b_authority.authority_id,
             "authority_type": request.section_506b_authority.authority_type,
