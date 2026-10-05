@@ -233,7 +233,8 @@ def _validate_c5_secured_status(event: CanonicalEvent) -> None:
         raise UnresolvedLegalState(
             "secured_status input must be OPERATIVE or FINAL"
         )
-    if _required(payload, "compiler_version", event) != "secured-status-506a-v1":
+    compiler_version = payload.get("compiler_version")
+    if compiler_version != "secured-status-506a-v1":
         raise UnresolvedLegalState(
             "secured_status input lacks c5 compiler provenance"
         )
