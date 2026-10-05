@@ -989,14 +989,13 @@ class Section506DCompilerTests(unittest.TestCase):
                 )
             )
 
-    def test_44_secured_portion_cannot_exceed_allowed_amount(self):
+    def test_44_forged_c5_payload_with_copied_provenance_is_rejected(self):
         lien = self._lien()
         claim = self._claim_status("ALLOWED")
         status = self._secured_status(allowed="100", available="100")
-        payload = list(status.payload)
         payload = [
             (k, "101") if k == "secured_portion" else (k, v)
-            for k, v in payload
+            for k, v in status.payload
         ]
         forged = CanonicalEvent(
             event_id="forged-status",
@@ -1008,7 +1007,7 @@ class Section506DCompilerTests(unittest.TestCase):
             authority_state=status.authority_state,
         )
         self.store.append_event(forged)
-        with self.assertRaisesRegex(UnresolvedLegalState, "cannot exceed"):
+        with self.assertRaisesRegex(UnresolvedLegalState, "derivation identity"):
             self.compiler.compile(
                 self._request(lien, claim, status=forged)
             )
