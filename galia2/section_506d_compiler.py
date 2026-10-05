@@ -473,10 +473,10 @@ class Section506DCompiler:
         allowed_amount = None
         secured_portion = None
 
-        if allowance_state == "ALLOWED":
+        if allowance_state == "ALLOWED" and lien_state == "EXISTS":
             if request.secured_status is None:
                 raise UnresolvedLegalState(
-                    "ALLOWED claim requires bound SECURED_STATUS_EVENT"
+                    "ALLOWED claim with existing lien requires bound SECURED_STATUS_EVENT"
                 )
             status, status_state_record = _load_bound(
                 self.store,
@@ -506,9 +506,14 @@ class Section506DCompiler:
                 raise UnresolvedLegalState(
                     "secured_portion cannot exceed allowed_claim_amount"
                 )
+        elif lien_state == "DOES_NOT_EXIST":
+            if request.secured_status is not None:
+                raise UnresolvedLegalState(
+                    "secured_status must be absent when no lien property interest exists"
+                )
         elif request.secured_status is not None:
             raise UnresolvedLegalState(
-                "secured_status is permitted only for ALLOWED claim"
+                "secured_status is permitted only for ALLOWED claim with existing lien"
             )
 
         expected_rule, consequence_code, section_effect = (
