@@ -178,6 +178,11 @@ def _validate_c4_lineage(event: CanonicalEvent) -> None:
         raise UnresolvedLegalState(
             f"{event.event_id} lacks valid c4 authorization hash"
         )
+    expected_event_id = f"legal-determination:{payload['human_authorization_id']}:{auth_hash}"
+    if event.event_id != expected_event_id:
+        raise UnresolvedLegalState(
+            f"{event.event_id} lacks exact c4 derivation identity"
+        )
     try:
         ids = json.loads(ids_raw)
         hashes = json.loads(hashes_raw)
@@ -207,6 +212,13 @@ def _validate_c5_status(event: CanonicalEvent) -> None:
     if _required(payload, "compiler_version", event) != "secured-status-506a-v1":
         raise UnresolvedLegalState(
             "secured_status input lacks c5 compiler provenance"
+        )
+    request_hash = _required(payload, "compile_request_sha256", event)
+    if not _valid_sha256(request_hash) or not event.event_id.endswith(
+        f":{request_hash}"
+    ):
+        raise UnresolvedLegalState(
+            "secured_status input lacks exact c5 derivation identity"
         )
     if _required(payload, "derivation_kind", event) != (
         "ARITHMETIC_FROM_OPERATIVE_LEGAL_DETERMINATIONS"
@@ -583,6 +595,7 @@ class Section506DCompiler:
                     _authority_doc(request.section_506d_authority),
                     sort_keys=True,
                     separators=(",", ":"),
+                    ensure_ascii=False,
                 ),
             ),
             ("input_event_ids_json", json.dumps(input_ids, separators=(",", ":"))),
