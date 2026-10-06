@@ -27,7 +27,8 @@ def candidate_core(c:Dict[str,Any])->Dict[str,Any]:
         if not c.get(k): raise ValueError("candidate missing "+k)
     for k in ("key_sha256","source_artifact_sha256","lineage_sha256"):
         if not _is_hash(c[k]): raise ValueError(k+" malformed")
-    if c["authority_assertion"] not in {"ACTIVE","REVOKED"}: raise ValueError("invalid authority_assertion")\n    start=_dt(c["valid_from_utc"]); end=_dt(c["valid_until_utc"]) if c.get("valid_until_utc") else None
+    if c["authority_assertion"] not in {"ACTIVE","REVOKED"}: raise ValueError("invalid authority_assertion")
+    start=_dt(c["valid_from_utc"]); end=_dt(c["valid_until_utc"]) if c.get("valid_until_utc") else None
     if end and end<=start: raise ValueError("invalid authority interval")
     return {k:c.get(k) for k in sorted(set(c)|{"valid_until_utc"}) if k!="candidate_sha256"}
 
