@@ -9,8 +9,8 @@ def x(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def c(cid, p="P", s="receipt-signing", k="K1", start="2026-01-01T00:00:00Z", end=None, tag="a"):
-    return f22.seal_candidate({"candidate_id": cid, "provider_id": p, "scope": s, "key_id": k, "key_sha256": x("key" + k), "source_artifact_sha256": x("artifact" + tag), "lineage_sha256": x("lineage" + tag), "valid_from_utc": start, "valid_until_utc": end})
+def c(cid, p="P", s="receipt-signing", k="K1", start="2026-01-01T00:00:00Z", end=None, tag="a", assertion="ACTIVE"):
+    return f22.seal_candidate({"candidate_id": cid, "provider_id": p, "scope": s, "key_id": k, "key_sha256": x("key" + k), "source_artifact_sha256": x("artifact" + tag), "lineage_sha256": x("lineage" + tag), "valid_from_utc": start, "valid_until_utc": end, "authority_assertion": assertion})
 
 
 class TestAuthorityReconciliation(unittest.TestCase):
@@ -37,7 +37,10 @@ class TestAuthorityReconciliation(unittest.TestCase):
         self.assertEqual(f22.reconcile([c("A", k="K1", end="2026-06-01T00:00:00Z"), c("B", k="K2", start="2026-06-01T00:00:00Z")])["authority_state"], "NON_OVERLAPPING_COMPATIBLE")
 
     def test_contradictory_revocation_requires_human_selection(self):
-        self.assertEqual(f22.reconcile([c("A", k="K1", end="2026-05-01T00:00:00Z"), c("B", k="K2", start="2026-04-01T00:00:00Z")])["action_required"], "HUMAN_SELECTION_REQUIRED")
+        result = f22.reconcile([c("A", k="K1", assertion="ACTIVE"), c("B", k="K1", assertion="REVOKED")])
+        self.assertEqual(result["conflict_state"], "CONFLICT_DETECTED")
+        self.assertEqual(result["authority_state"], "AUTHORITY_UNRESOLVED")
+        self.assertEqual(result["action_required"], "HUMAN_SELECTION_REQUIRED")
 
     def test_explicit_human_selection_preserves_candidates(self):
         candidates = [c("A", k="K1"), c("B", k="K2")]
@@ -61,6 +64,13 @@ class TestAuthorityReconciliation(unittest.TestCase):
         a, b = c("A", k="K1"), c("B", k="K2")
         bad = copy.deepcopy(a)
         bad["source_artifact_sha256"] = x("tampered")
+        with self.assertRaisesRegex(ValueError, "candidate hash mismatch"):
+            f22.reconcile([bad, b])
+
+    def test_authority_assertion_tamper_fails_closed(self):
+        a, b = c("A", k="K1"), c("B", k="K2")
+        bad = copy.deepcopy(a)
+        bad["authority_assertion"] = "REVOKED"
         with self.assertRaisesRegex(ValueError, "candidate hash mismatch"):
             f22.reconcile([bad, b])
 
