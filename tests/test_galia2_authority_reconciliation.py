@@ -99,5 +99,53 @@ class TestAuthorityReconciliation(unittest.TestCase):
         self.assertEqual(result["action_required"], "HUMAN_SELECTION_REQUIRED")
 
 
+    def test_two_independent_conflicts_one_decision_does_not_reconcile_other_component(self):
+        candidates = [
+            c("A", p="P1", s="receipt-signing", k="K1", tag="1"),
+            c("B", p="P1", s="receipt-signing", k="K2", tag="2"),
+            c("C", p="P2", s="timestamp-signing", k="K3", tag="3"),
+            c("D", p="P2", s="timestamp-signing", k="K4", tag="4"),
+        ]
+        unresolved = f22.reconcile(candidates)
+        self.assertEqual(len(unresolved["conflict_components"]), 2)
+        decision = f22.make_human_decision(candidates, "A")
+        result = f22.reconcile(candidates, decision)
+        self.assertEqual(result["authority_state"], "AUTHORITY_UNRESOLVED")
+        self.assertEqual(result["action_required"], "HUMAN_SELECTION_REQUIRED")
+        states = {tuple(z["candidate_ids"]): z["authority_state"] for z in result["conflict_components"]}
+        self.assertEqual(states[("A", "B")], "RECONCILED_BY_EXPLICIT_HUMAN_DECISION")
+        self.assertEqual(states[("C", "D")], "AUTHORITY_UNRESOLVED")
+        self.assertEqual({z["candidate_id"] for z in result["preserved_candidates"]}, {"A", "B", "C", "D"})
+
+    def test_selection_outside_bound_conflict_component_fails_closed(self):
+        candidates = [
+            c("A", p="P1", s="receipt-signing", k="K1", tag="1"),
+            c("B", p="P1", s="receipt-signing", k="K2", tag="2"),
+            c("C", p="P2", s="timestamp-signing", k="K3", tag="3"),
+            c("D", p="P2", s="timestamp-signing", k="K4", tag="4"),
+        ]
+        unresolved = f22.reconcile(candidates)
+        ab = next(z for z in unresolved["conflict_components"] if z["candidate_ids"] == ["A", "B"])
+        decision = f22.make_human_decision(candidates, "C")
+        decision["conflict_component_sha256"] = ab["component_sha256"]
+        decision["decision_sha256"] = f22._hash({k: v for k, v in decision.items() if k != "decision_sha256"})
+        with self.assertRaisesRegex(ValueError, "selected candidate outside conflict component"):
+            f22.reconcile(candidates, decision)
+
+    def test_component_binding_preserves_all_candidates_and_conflict_history(self):
+        candidates = [
+            c("A", p="P1", k="K1", tag="1"),
+            c("B", p="P1", k="K2", tag="2"),
+            c("C", p="P2", k="K3", tag="3"),
+            c("D", p="P2", k="K4", tag="4"),
+        ]
+        result = f22.reconcile(candidates, f22.make_human_decision(candidates, "A"))
+        self.assertEqual({z["candidate_id"] for z in result["preserved_candidates"]}, {"A", "B", "C", "D"})
+        self.assertIn(["A", "B"], result["conflicts"])
+        self.assertIn(["C", "D"], result["conflicts"])
+        self.assertEqual(result["canonical_effect"], "NONE")
+        self.assertEqual(result["master_promotion_state"], "AUTHORITY_HOLD")
+
+
 if __name__ == "__main__":
     unittest.main()
