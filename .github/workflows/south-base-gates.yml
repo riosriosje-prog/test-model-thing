@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "research/gates/south_base_gates.v0_8.json"
+      - "research/gates/south_base_gates.v0_9.json"
       - "research/evidence/south_base.v1.json"
       - "tools/probe_south_base_ngs.py"
       - "tools/validate_south_base_gates.py"
@@ -29,6 +29,23 @@ jobs:
         run: python tools/validate_south_base_gates.py
       - name: Probe NGS read-only
         run: python tools/probe_south_base_ngs.py
+      - name: Verify South Base reference-network classification
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("research/gates/derived/south_base_ngs_radial_probe.v0_1.json").read_text())
+          assert d["base_station_reference_hit_count"] == 1
+          rows=d["base_station_reference_hits"]
+          assert len(rows) == 1
+          r=rows[0]
+          assert r["source_pid"] == "TV1057"
+          assert r["source_designation"] == "SECA"
+          assert r["base_mentioned_in_current_header"] is True
+          assert r["base_mentioned_in_1901_description"] is False
+          assert r["station_relocated_later"] is True
+          print("SOUTH_BASE_REFERENCE_NETWORK_GATE=PASS")
+          PY
       - name: Verify 1901 JN campaign classification
         run: |
           python - <<'PY'
