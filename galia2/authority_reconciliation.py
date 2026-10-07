@@ -45,6 +45,26 @@ def overlaps(a,b)->bool:
 def candidate_set_hash(cs):
     return _hash([{"candidate_id":c["candidate_id"],"candidate_sha256":c["candidate_sha256"]} for c in sorted(cs,key=lambda x:x["candidate_id"])])
 
+def _conflict_components(conflicts):
+    """Return deterministic connected components of the conflict graph."""
+    adjacency={}
+    for a,b in conflicts:
+        adjacency.setdefault(a,set()).add(b); adjacency.setdefault(b,set()).add(a)
+    components=[]; seen=set()
+    for root in sorted(adjacency):
+        if root in seen: continue
+        stack=[root]; component=set()
+        while stack:
+            node=stack.pop()
+            if node in seen: continue
+            seen.add(node); component.add(node); stack.extend(adjacency.get(node,()))
+        components.append(sorted(component))
+    return components
+
+def conflict_component_hash(component,candidates):
+    ids=set(component)
+    return candidate_set_hash([c for c in candidates if c["candidate_id"] in ids])
+
 def reconcile(candidates:List[Dict[str,Any]],human_decision:Dict[str,Any]|None=None)->Dict[str,Any]:
     if len(candidates)<2: raise ValueError("F22 requires >=2 candidates")
     for c in candidates: validate_candidate(c)
@@ -60,25 +80,41 @@ def reconcile(candidates:List[Dict[str,Any]],human_decision:Dict[str,Any]|None=N
     conflict_state="CONFLICT_DETECTED" if conflicts else None
     authority_state="AUTHORITY_UNRESOLVED" if conflicts else ("SAME_KEY_CORROBORATED" if corroborations else "NON_OVERLAPPING_COMPATIBLE")
     action_required="HUMAN_SELECTION_REQUIRED" if conflicts else None
-    selected=None
+    components=_conflict_components(conflicts)
+    component_records=[{"candidate_ids":comp,"component_sha256":conflict_component_hash(comp,candidates),"authority_state":"AUTHORITY_UNRESOLVED"} for comp in components]
+    selected=None; reconciled_component_sha256=None
     if human_decision is not None:
         if not conflicts: raise ValueError("human selection only valid for unresolved conflict")
         if human_decision.get("schema_version")!=DECISION_SCHEMA: raise ValueError("decision schema mismatch")
         if human_decision.get("candidate_set_sha256")!=set_hash: raise ValueError("decision candidate set mismatch")
         selected=human_decision.get("selected_candidate_id")
         if selected not in ids: raise ValueError("selected candidate absent")
+        decision_component=human_decision.get("conflict_component_sha256")
+        matching=[r for r in component_records if r["component_sha256"]==decision_component]
+        if len(matching)!=1: raise ValueError("decision conflict component mismatch")
+        if selected not in matching[0]["candidate_ids"]: raise ValueError("selected candidate outside conflict component")
         if human_decision.get("decision")!="SELECT_AUTHORITY": raise ValueError("explicit SELECT_AUTHORITY required")
         if not _is_hash(human_decision.get("decision_sha256")): raise ValueError("decision_sha256 malformed")
         expected=_hash({k:v for k,v in human_decision.items() if k!="decision_sha256"})
         if human_decision["decision_sha256"]!=expected: raise ValueError("decision self-hash mismatch")
-        authority_state="RECONCILED_BY_EXPLICIT_HUMAN_DECISION"; action_required=None
+        matching[0]["authority_state"]="RECONCILED_BY_EXPLICIT_HUMAN_DECISION"; reconciled_component_sha256=decision_component
+        unresolved=[r for r in component_records if r["authority_state"]=="AUTHORITY_UNRESOLVED"]
+        if unresolved:
+            authority_state="AUTHORITY_UNRESOLVED"; action_required="HUMAN_SELECTION_REQUIRED"
+        else:
+            authority_state="RECONCILED_BY_EXPLICIT_HUMAN_DECISION"; action_required=None
     result={"schema_version":SCHEMA,"control_id":"GALIA-F22","conflict_state":conflict_state,"authority_state":authority_state,"action_required":action_required,
       "candidate_set_sha256":set_hash,"candidate_ids":sorted(ids),"candidate_hashes":{c["candidate_id"]:c["candidate_sha256"] for c in candidates},
-      "conflicts":conflicts,"same_key_corroborations":corroborations,"compatible_pairs":compatible,"selected_candidate_id":selected,
+      "conflicts":conflicts,"conflict_components":component_records,"same_key_corroborations":corroborations,"compatible_pairs":compatible,"selected_candidate_id":selected,"reconciled_component_sha256":reconciled_component_sha256,
       "preserved_candidates":[dict(c) for c in candidates],"canonical_effect":"NONE","master_promotion_state":"AUTHORITY_HOLD","byte_identity_effect":"NONE","f5_effect":"NONE",
       "invariants":["NO_AUTOMATIC_WINNER","RECENCY_IS_NOT_AUTHORITY","MAJORITY_IS_NOT_AUTHORITY","SIGNATURE_VALID_IS_NOT_KEY_AUTHORITY","F22_EXTERNAL_AUTHORITY_IS_NOT_GALIA_MASTER_AUTHORITY","REJECTED_CANDIDATES_REMAIN_PRESERVED","CONFLICT_HISTORY_PERSISTS_AFTER_RECONCILIATION"]}
     result["reconciliation_sha256"]=_hash(result); return result
 
-def make_human_decision(candidates:List[Dict[str,Any]],selected_candidate_id:str,review_id:str="HR-F22")->Dict[str,Any]:
-    core={"schema_version":DECISION_SCHEMA,"decision":"SELECT_AUTHORITY","review_id":review_id,"candidate_set_sha256":candidate_set_hash(candidates),"selected_candidate_id":selected_candidate_id}
+def make_human_decision(candidates:List[Dict[str,Any]],selected_candidate_id:str,review_id:str="HR-F22",conflict_component_sha256:str|None=None)->Dict[str,Any]:
+    result=reconcile(candidates)
+    components=[r for r in result["conflict_components"] if selected_candidate_id in r["candidate_ids"]]
+    if conflict_component_sha256 is None:
+        if len(components)!=1: raise ValueError("selected candidate must identify exactly one conflict component")
+        conflict_component_sha256=components[0]["component_sha256"]
+    core={"schema_version":DECISION_SCHEMA,"decision":"SELECT_AUTHORITY","review_id":review_id,"candidate_set_sha256":candidate_set_hash(candidates),"conflict_component_sha256":conflict_component_sha256,"selected_candidate_id":selected_candidate_id}
     core["decision_sha256"]=_hash(core); return core
