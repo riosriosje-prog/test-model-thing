@@ -79,6 +79,8 @@ def bind_reconciliation(
         raise ValueError("selected candidate must be preserved exactly once")
     selected = preserved[0]
     f22.validate_candidate(selected)
+    if selected.get("authority_assertion") != "ACTIVE":
+        raise ValueError("selected authority is not ACTIVE; revocation cannot bind P5 scope")
     if selected.get("provider_id") != expected_provider_id:
         raise ValueError("provider binding mismatch")
     if selected.get("scope") != expected_external_scope:
