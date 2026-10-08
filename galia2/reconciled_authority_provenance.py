@@ -70,6 +70,37 @@ def seal_provenance(*, binding: ReconciliationAuthorityBinding,
         raise ValueError("P7/P6 preflight receipt mismatch")
     if promotion.authorization_policy_version != authorization.policy_version:
         raise ValueError("P7/P5 policy mismatch")
+    if (authorization.scope.case_id != preflight.case_id
+            or authorization.scope.case_id != promotion.case_id):
+        raise ValueError("P5/P6/P7 case mismatch")
+    if (authorization.target_commit != preflight.target_commit
+            or authorization.target_commit != promotion.commit_id):
+        raise ValueError("P5/P6/P7 target commit mismatch")
+    required_checks = {
+        "lineage_complete", "schema_valid", "required_stages_complete",
+        "no_blocking_discrepancy", "authority_decision_present",
+        "authorization_present", "authorization_matches_target",
+        "rollback_parent_match", "rollback_integrity_valid",
+        "rollback_schema_compatible", "rollback_authority_refs_valid",
+        "rollback_known_good",
+    }
+    if (not preflight.passed or not preflight.checks
+            or any(not c.passed for c in preflight.checks)):
+        raise ValueError("P6 preflight not passed")
+    if (len(preflight.checks) != len(required_checks)
+            or {c.name for c in preflight.checks} != required_checks):
+        raise ValueError("P6 preflight check set invalid")
+    if preflight.guards != frozenset({"preflight_passed", "rollback_target_verified"}):
+        raise ValueError("P6 preflight guards invalid")
+    if (preflight.receipt.operation != "PROMOTION_PREFLIGHT"
+            or preflight.receipt.result != "PASS"
+            or preflight.receipt.input_commit != authorization.target_commit
+            or preflight.receipt.output_commit is not None
+            or preflight.receipt.output_hashes):
+        raise ValueError("P6 preflight receipt invalid")
+    if (not preflight.receipt.input_hashes
+            or preflight.receipt.input_hashes[0] != promotion.manifest_hash):
+        raise ValueError("P6/P7 manifest hash mismatch")
     return ReconciledAuthorityProvenance(
         schema_version=SCHEMA,
         reconciliation_sha256=binding.reconciliation_sha256,
