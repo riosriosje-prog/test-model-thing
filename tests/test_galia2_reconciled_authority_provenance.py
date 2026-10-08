@@ -28,12 +28,22 @@ def authorization(**kw):
       policy_version="p5",authorized_at=NOW)
     v.update(kw); return PromotionAuthorization(**v)
 
+P6_CHECKS = (
+    "lineage_complete", "schema_valid", "required_stages_complete",
+    "no_blocking_discrepancy", "authority_decision_present",
+    "authorization_present", "authorization_matches_target",
+    "rollback_parent_match", "rollback_integrity_valid",
+    "rollback_schema_compatible", "rollback_authority_refs_valid",
+    "rollback_known_good",
+)
+
 def preflight(receipt_id="pf-1"):
     return PreflightReport(case_id="CASE-1",target_commit="candidate-1",passed=True,
-      checks=(PreflightCheck("all",True,"fixture"),),
+      checks=tuple(PreflightCheck(name, True, "fixture") for name in P6_CHECKS),
       guards=frozenset({"preflight_passed","rollback_target_verified"}),
       receipt=Receipt(receipt_id=receipt_id,operation="PROMOTION_PREFLIGHT",
-        input_commit="candidate-1",input_hashes=(),output_commit=None,output_hashes=(),
+        input_commit="candidate-1",input_hashes=("4"*64,"5"*64,"6"*64),
+        output_commit=None,output_hashes=(),
         policy_version="p6",actor="test",timestamp=NOW,result="PASS"))
 
 def promotion(**kw):
@@ -86,6 +96,52 @@ class TestF24ReconciledAuthorityProvenance(unittest.TestCase):
     def test_policy_mismatch_fails_closed(self):
         with self.assertRaisesRegex(ValueError,"P7/P5 policy mismatch"):
             seal(p=promotion(authorization_policy_version="other"))
+
+    def test_failed_preflight_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "P6 preflight not passed"):
+            seal(pf=replace(preflight(), passed=False))
+
+    def test_failed_preflight_check_fails_closed(self):
+        checks=list(preflight().checks)
+        checks[0]=PreflightCheck("lineage_complete", False, "failed")
+        with self.assertRaisesRegex(ValueError, "P6 preflight not passed"):
+            seal(pf=replace(preflight(), checks=tuple(checks)))
+
+    def test_incomplete_preflight_check_set_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "P6 preflight check set invalid"):
+            seal(pf=replace(preflight(), checks=(PreflightCheck("all",True,"forged"),)))
+
+    def test_missing_preflight_guards_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "P6 preflight guards invalid"):
+            seal(pf=replace(preflight(), guards=frozenset()))
+
+    def test_case_mismatch_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "P5/P6/P7 case mismatch"):
+            seal(p=promotion(case_id="OTHER"))
+
+    def test_target_mismatch_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "P5/P6/P7 target commit mismatch"):
+            seal(a=authorization(target_commit="OTHER"))
+
+    def test_forged_preflight_receipt_fails_closed(self):
+        original=preflight()
+        for changes in ({"operation":"OTHER"}, {"result":"FAIL"},
+                        {"input_commit":"OTHER"}, {"output_commit":"OTHER"},
+                        {"output_hashes":("9"*64,)}):
+            with self.subTest(changes=changes):
+                bad=replace(original, receipt=replace(original.receipt, **changes))
+                with self.assertRaisesRegex(ValueError, "P6 preflight receipt invalid"):
+                    seal(pf=bad)
+
+    def test_p6_p7_manifest_mismatch_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "P6/P7 manifest hash mismatch"):
+            seal(p=promotion(manifest_hash="7"*64))
+
+    def test_missing_preflight_manifest_hash_fails_closed(self):
+        original=preflight()
+        bad=replace(original,receipt=replace(original.receipt,input_hashes=()))
+        with self.assertRaisesRegex(ValueError, "P6/P7 manifest hash mismatch"):
+            seal(pf=bad)
 
     def test_f23_master_escalation_fails_closed(self):
         with self.assertRaisesRegex(ValueError,"master authority invariant"):
