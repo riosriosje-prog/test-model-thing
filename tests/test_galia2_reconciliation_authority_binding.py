@@ -55,6 +55,18 @@ class TestF23ReconciliationAuthorityBinding(unittest.TestCase):
         self.assertEqual(result.f5_effect, "NONE")
         self.assertEqual(result.p5_scope_token, scope.token)
 
+    def test_selected_revocation_cannot_bind(self):
+        active = candidate("A", "K1", tag="1")
+        revoked = candidate("R", "K1", tag="2")
+        revoked["authority_assertion"] = "REVOKED"
+        revoked = f22.seal_candidate({k: v for k, v in revoked.items() if k != "candidate_sha256"})
+        candidates = [active, revoked]
+        result = f22.reconcile(candidates, f22.make_human_decision(candidates, "R"))
+        self.assertEqual(len(result["preserved_candidates"]), 2)
+        scope = AuthorityScope(case_id="CASE-1", target_type="CLAIM", target_ids=("CLAIM-1",))
+        with self.assertRaisesRegex(ValueError, "revocation cannot bind P5 scope"):
+            bind(result, result["reconciled_component_sha256"], scope, expected_selected_candidate_id="R")
+
     def test_reconciliation_tamper_fails_closed(self):
         r, component, scope = fixture()
         bad = copy.deepcopy(r)
