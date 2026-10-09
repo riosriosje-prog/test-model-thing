@@ -6,6 +6,7 @@ promote GALIA master, close BYTE_IDENTITY/F5, or rewrite upstream history.
 """
 from __future__ import annotations
 import hashlib, json
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -105,7 +106,7 @@ def reconcile(candidates:List[Dict[str,Any]],human_decision:Dict[str,Any]|None=N
     result={"schema_version":SCHEMA,"control_id":"GALIA-F22","conflict_state":conflict_state,"authority_state":authority_state,"action_required":action_required,
       "candidate_set_sha256":set_hash,"candidate_ids":sorted(ids),"candidate_hashes":{c["candidate_id"]:c["candidate_sha256"] for c in candidates},
       "conflicts":conflicts,"conflict_components":component_records,"same_key_corroborations":corroborations,"compatible_pairs":compatible,"selected_candidate_id":selected,"reconciled_component_sha256":reconciled_component_sha256,
-      "preserved_candidates":[dict(c) for c in candidates],"canonical_effect":"NONE","master_promotion_state":"AUTHORITY_HOLD","byte_identity_effect":"NONE","f5_effect":"NONE",
+      "preserved_candidates":deepcopy(candidates),"canonical_effect":"NONE","master_promotion_state":"AUTHORITY_HOLD","byte_identity_effect":"NONE","f5_effect":"NONE",
       "invariants":["NO_AUTOMATIC_WINNER","RECENCY_IS_NOT_AUTHORITY","MAJORITY_IS_NOT_AUTHORITY","SIGNATURE_VALID_IS_NOT_KEY_AUTHORITY","F22_EXTERNAL_AUTHORITY_IS_NOT_GALIA_MASTER_AUTHORITY","REJECTED_CANDIDATES_REMAIN_PRESERVED","CONFLICT_HISTORY_PERSISTS_AFTER_RECONCILIATION"]}
     result["reconciliation_sha256"]=_hash(result); return result
 
