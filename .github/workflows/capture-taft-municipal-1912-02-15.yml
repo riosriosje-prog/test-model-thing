@@ -1,0 +1,90 @@
+name: capture-taft-municipal-1912-02-15
+
+on:
+  push:
+    branches:
+      - galia2/taft-1915-source-discovery-v0.1
+    paths:
+      - .github/workflows/capture-taft-municipal-1912-02-15.yml
+      - tools/scan_taft_street_1915.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install PDF tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Capture 15 Feb 1912 issue and page 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture
+          url="https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/00343/1912021501.pdf"
+
+          curl --fail --location --silent --show-error             --retry 5 --retry-all-errors --retry-delay 3             --connect-timeout 30 --max-time 300             --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"             --output capture/el_tiempo_1912_02_15.pdf "$url"
+
+          python - <<'PY'
+          import hashlib,pathlib
+          p=pathlib.Path("capture/el_tiempo_1912_02_15.pdf")
+          b=p.read_bytes()
+          expected="68429060b964605284c27febf7c73a8d97284a3533d652151bda70595e11ca43"
+          assert b.startswith(b"%PDF-")
+          assert hashlib.sha256(b).hexdigest()==expected
+          print("TAFT_MUNICIPAL_1912_02_15_RAW_SIZE="+str(len(b)))
+          print("TAFT_MUNICIPAL_1912_02_15_RAW_SHA256="+expected)
+          PY
+
+          pdftotext -layout -f 12 -l 12             capture/el_tiempo_1912_02_15.pdf             capture/page_12.txt
+
+          pdftoppm -f 12 -l 12 -singlefile -png -r 300             capture/el_tiempo_1912_02_15.pdf             capture/page_12
+
+          python - <<'PY'
+          import hashlib,json,pathlib,re
+          text=pathlib.Path("capture/page_12.txt").read_text(encoding="utf-8",errors="replace")
+          low=re.sub(r"\s+"," ",text.lower())
+          signals={
+            "taft": "taft" in low,
+            "santurce": "santurce" in low,
+            "ordenanza": "ordenanza" in low,
+            "subasta": "subasta" in low,
+            "secretaria_municipal": "secretar" in low and "munici" in low,
+          }
+          p=pathlib.Path("capture/page_12.png")
+          manifest={
+            "page":12,
+            "page_png_sha256":hashlib.sha256(p.read_bytes()).hexdigest(),
+            "page_png_bytes":len(p.read_bytes()),
+            "page_text_sha256":hashlib.sha256(text.encode("utf-8",errors="replace")).hexdigest(),
+            "signals":signals,
+          }
+          pathlib.Path("capture/PAGE_12_MANIFEST.json").write_text(
+              json.dumps(manifest,indent=2,sort_keys=True,ensure_ascii=False)+"\n",
+              encoding="utf-8"
+          )
+          print("TAFT_MUNICIPAL_PAGE12="+json.dumps(manifest,sort_keys=True,ensure_ascii=False))
+          for term in ("taft","ordenanza","subasta","municip"):
+              pos=low.find(term)
+              if pos>=0:
+                  print("TAFT_MUNICIPAL_CONTEXT_"+term.upper()+"="+low[max(0,pos-500):pos+900])
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_TAFT_MUNICIPAL_1912_02_15_PRIMARY
+          path: capture/
+          if-no-files-found: error
+          retention-days: 90

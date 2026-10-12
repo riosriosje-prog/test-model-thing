@@ -1,0 +1,76 @@
+name: capture-taft-1912-04-17
+
+on:
+  push:
+    branches:
+      - galia2/taft-1915-source-discovery-v0.1
+    paths:
+      - .github/workflows/capture-taft-1912-04-17.yml
+      - tools/scan_taft_street_1915.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install PDF tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+      - name: Capture and render 17 Apr 1912
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture/rendered
+          url="https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/00394/1912041701.pdf"
+          curl --fail --location --silent --show-error             --retry 5 --retry-all-errors --retry-delay 3             --connect-timeout 30 --max-time 300             --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"             --output capture/el_tiempo_1912_04_17.pdf "$url"
+
+          PYTHONPATH=. python tools/scan_taft_street_1915.py             --pdf capture/el_tiempo_1912_04_17.pdf             --date 1912-04-17 --folder 394 --url "$url"             --output capture/TAFT_1912_04_17_DISCOVERY.json
+
+          python - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path("capture/el_tiempo_1912_04_17.pdf")
+          b=p.read_bytes()
+          expected="63daa5a82eb7b53c447b709847a68545f23bedc38a7c45bb5fe9a3304a1714e1"
+          assert hashlib.sha256(b).hexdigest()==expected
+          d=json.loads(pathlib.Path("capture/TAFT_1912_04_17_DISCOVERY.json").read_text())
+          assert d["street_hits"]
+          pages=sorted({h["page_number"] for h in d["street_hits"]})
+          pathlib.Path("capture/HIT_PAGES.txt").write_text("\n".join(map(str,pages))+"\n")
+          print("TAFT_1912_04_17_RAW_SIZE="+str(len(b)))
+          print("TAFT_1912_04_17_RAW_SHA256="+expected)
+          print("TAFT_1912_04_17_HIT_PAGES="+",".join(map(str,pages)))
+          for h in d["street_hits"]:
+              print("TAFT_1912_04_17_HIT="+json.dumps(h,ensure_ascii=False,sort_keys=True))
+          PY
+
+          while read -r page; do
+            [ -n "$page" ] || continue
+            pdftoppm -f "$page" -l "$page" -singlefile -png -r 240               capture/el_tiempo_1912_04_17.pdf               "capture/rendered/page_${page}"
+          done < capture/HIT_PAGES.txt
+
+          python - <<'PY'
+          import hashlib,json,pathlib
+          rows=[]
+          for p in sorted(pathlib.Path("capture/rendered").glob("*.png")):
+              b=p.read_bytes()
+              rows.append({"file":p.name,"bytes":len(b),"sha256":hashlib.sha256(b).hexdigest()})
+          pathlib.Path("capture/RENDER_MANIFEST.json").write_text(json.dumps(rows,indent=2,sort_keys=True)+"\n")
+          for row in rows:
+              print("TAFT_1912_04_17_RENDER="+json.dumps(row,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_TAFT_1912_04_17_PRIMARY
+          path: capture/
+          if-no-files-found: error
+          retention-days: 90
