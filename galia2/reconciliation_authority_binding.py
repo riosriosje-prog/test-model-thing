@@ -91,6 +91,8 @@ def bind_reconciliation(
     if reconciliation.get("byte_identity_effect") != "NONE" or reconciliation.get("f5_effect") != "NONE":
         raise ValueError("upstream gate closure forbidden")
 
+    raise ValueError("F23 DW6 independent human decision authentication unavailable")
+
     return ReconciliationAuthorityBinding(
         schema_version=SCHEMA,
         reconciliation_sha256=supplied_hash,
