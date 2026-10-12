@@ -1,0 +1,17 @@
+{
+  "gate": "HF8_WEIGHT_BUNDLE_CONTRACT",
+  "contract_version": "0.3",
+  "status": "READY_FOR_REAL_ARTIFACT",
+  "hf8_weight_artifact_gate": "HOLD",
+  "base_main_sha": "000d15676012a87f4eeab67af3fb93d6b3645262",
+  "extends_promoted_intake_v0_1": true,
+  "purpose": "Require complete authoritative checkpoint bundle, recovery lineage, per-file hashes and training provenance before technical upload eligibility.",
+  "real_weight_included": false,
+  "synthetic_weight_may_satisfy_gate": false,
+  "technical_upload_requires_runtime_verify": true,
+  "automatic_upload_performed": false,
+  "automatic_promotion_performed": false,
+  "human_promotion_required": true,
+  "canonical_authority_transferred": false,
+  "source_of_truth": "github"
+}
