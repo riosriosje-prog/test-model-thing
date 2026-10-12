@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "galia-grafana-live-execution-evidence-v0.9",
+  "title": "GALIA Grafana Live Execution Evidence v0.9",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "project_ref",
+    "profile",
+    "authority_ratification_candidate_id",
+    "authority_ratification_promoted",
+    "ssl_enforcement_enabled",
+    "temporary_access_enabled",
+    "jit_mapping_verified",
+    "server_root_ca_sha256",
+    "gotrue_id",
+    "service_pat_binding_verified",
+    "secret_material_persisted"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "receipt_type": {
+      "const": "GALIA_GRAFANA_LIVE_EXECUTION_EVIDENCE"
+    },
+    "project_ref": {
+      "const": "nzoviwitcqmsacwiizhh"
+    },
+    "profile": {
+      "enum": [
+        "SELF_HOSTED_IPV6",
+        "GRAFANA_CLOUD_PDC_IPV6"
+      ]
+    },
+    "authority_ratification_candidate_id": {
+      "const": "GALIA-GRAFANA-AUTHORITY-RATIFICATION-CANDIDATE-v0.3"
+    },
+    "authority_ratification_promoted": {
+      "const": true
+    },
+    "ssl_enforcement_enabled": {
+      "const": true
+    },
+    "temporary_access_enabled": {
+      "const": true
+    },
+    "jit_mapping_verified": {
+      "const": true
+    },
+    "server_root_ca_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gotrue_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "service_pat_binding_verified": {
+      "const": true
+    },
+    "jit_expires_at": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "grafana_stack_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "grafana_stack_id": {
+      "type": [
+        "string",
+        "integer"
+      ]
+    },
+    "datasource_uid": {
+      "type": "string",
+      "minLength": 1
+    },
+    "self_hosted_ipv6_egress_cidr": {
+      "type": "string"
+    },
+    "self_hosted_direct_ipv6_reachability_verified": {
+      "type": "boolean"
+    },
+    "pdc_network_identity": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pdc_agent_connected": {
+      "type": "boolean"
+    },
+    "pdc_agent_ipv6_egress_cidr": {
+      "type": "string"
+    },
+    "pdc_agent_reaches_supabase_5432_over_ipv6": {
+      "type": "boolean"
+    },
+    "pdc_permit_remote_open": {
+      "type": "string"
+    },
+    "datasource_bound_to_expected_pdc_network": {
+      "type": "boolean"
+    },
+    "verify_full_connection_passed": {
+      "type": "boolean"
+    },
+    "datasource_health_passed": {
+      "type": "boolean"
+    },
+    "five_monitor_views_passed": {
+      "type": "boolean"
+    },
+    "negative_permission_tests_passed": {
+      "type": "boolean"
+    },
+    "secret_material_persisted": {
+      "const": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "SELF_HOSTED_IPV6"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "then": {
+        "required": [
+          "self_hosted_ipv6_egress_cidr",
+          "self_hosted_direct_ipv6_reachability_verified",
+          "verify_full_connection_passed",
+          "datasource_health_passed",
+          "five_monitor_views_passed",
+          "negative_permission_tests_passed"
+        ],
+        "properties": {
+          "self_hosted_direct_ipv6_reachability_verified": {
+            "const": true
+          },
+          "verify_full_connection_passed": {
+            "const": true
+          },
+          "datasource_health_passed": {
+            "const": true
+          },
+          "five_monitor_views_passed": {
+            "const": true
+          },
+          "negative_permission_tests_passed": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "GRAFANA_CLOUD_PDC_IPV6"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "then": {
+        "required": [
+          "grafana_stack_url",
+          "grafana_stack_id",
+          "datasource_uid",
+          "pdc_network_identity",
+          "pdc_agent_connected",
+          "pdc_agent_ipv6_egress_cidr",
+          "pdc_agent_reaches_supabase_5432_over_ipv6",
+          "pdc_permit_remote_open",
+          "datasource_bound_to_expected_pdc_network",
+          "verify_full_connection_passed",
+          "datasource_health_passed",
+          "five_monitor_views_passed",
+          "negative_permission_tests_passed"
+        ],
+        "properties": {
+          "pdc_agent_connected": {
+            "const": true
+          },
+          "pdc_agent_reaches_supabase_5432_over_ipv6": {
+            "const": true
+          },
+          "pdc_permit_remote_open": {
+            "const": "db.nzoviwitcqmsacwiizhh.supabase.co:5432"
+          },
+          "datasource_bound_to_expected_pdc_network": {
+            "const": true
+          },
+          "verify_full_connection_passed": {
+            "const": true
+          },
+          "datasource_health_passed": {
+            "const": true
+          },
+          "five_monitor_views_passed": {
+            "const": true
+          },
+          "negative_permission_tests_passed": {
+            "const": true
+          }
+        }
+      }
+    }
+  ]
+}

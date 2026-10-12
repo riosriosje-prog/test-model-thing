@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "galia-grafana-pdc-binding-contract-v0.11",
+  "title": "GALIA Grafana PDC Official Binding Evidence v0.11",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "stack_url",
+    "stack_id",
+    "pdc_network_id",
+    "pdc_network_name",
+    "pdc_network_region",
+    "pdc_network_status",
+    "connected_agents_count",
+    "datasource_uid",
+    "enable_secure_socks_proxy",
+    "secure_socks_proxy_username_matches_pdc_network_id",
+    "datasource_health_passed",
+    "verify_full_connection_passed",
+    "five_monitor_views_passed",
+    "negative_permission_tests_passed",
+    "secret_material_persisted"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "receipt_type": {
+      "const": "GALIA_GRAFANA_PDC_OFFICIAL_BINDING_EVIDENCE"
+    },
+    "stack_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stack_id": {
+      "type": [
+        "string",
+        "integer"
+      ]
+    },
+    "pdc_network_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pdc_network_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pdc_network_region": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pdc_network_status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pdc_network_discovery_method": {
+      "const": "GRAFANA_CLOUD_ACCESS_POLICY_SURFACE"
+    },
+    "pdc_network_discovery_scope": {
+      "const": "accesspolicies:read"
+    },
+    "pdc_network_modern_scope": {
+      "const": "set:pdc-signing"
+    },
+    "connected_agents_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "datasource_uid": {
+      "const": "galia-cangrejos-postgres"
+    },
+    "enable_secure_socks_proxy": {
+      "const": true
+    },
+    "secure_socks_proxy_username_matches_pdc_network_id": {
+      "const": true
+    },
+    "datasource_health_passed": {
+      "const": true
+    },
+    "verify_full_connection_passed": {
+      "const": true
+    },
+    "five_monitor_views_passed": {
+      "const": true
+    },
+    "negative_permission_tests_passed": {
+      "const": true
+    },
+    "secret_material_persisted": {
+      "const": false
+    }
+  }
+}
