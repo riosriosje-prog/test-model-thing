@@ -42,6 +42,8 @@ def validate_issuer_policy(
     policy = policies.get(issuer_id)
     if not isinstance(policy, IssuerPolicy) or policy.issuer_id != issuer_id:
         raise ValueError("issuer not enrolled")
+    if type(policy.revoked) is not bool:
+        raise ValueError("invalid revocation flag")
     if policy.revoked:
         raise ValueError("issuer revoked")
     if not isinstance(policy.public_key, bytes) or len(policy.public_key) != 32:
