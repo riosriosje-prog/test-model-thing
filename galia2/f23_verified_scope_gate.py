@@ -5,7 +5,6 @@ F22's self-hashed human decision is NOT sufficient authentication.
 """
 from dataclasses import dataclass
 from .authority import AuthorityScope
-from .reconciliation_authority_binding import bind_reconciliation
 
 @dataclass(frozen=True, slots=True)
 class VerifiedScopeAttestation:
@@ -28,7 +27,7 @@ def bind_with_verified_scope(
     expected_provider_id: str,
     expected_external_scope: str,
 ):
-    """Fail closed unless an independently trusted verifier approves exact evidence.
+    """Fail closed because no independently trusted verifier is configured.
 
     No caller-provided verifier is accepted; this is intentionally deny-all.
     """
@@ -56,12 +55,3 @@ def bind_with_verified_scope(
     if reconciliation.get("selected_candidate_id") != attestation.selected_candidate_id:
         raise ValueError("attested selected candidate mismatch")
     raise ValueError("trusted issuer verification unavailable: AUTHORITY_HOLD")
-    return bind_reconciliation(
-        reconciliation,
-        expected_candidate_set_sha256=attestation.candidate_set_sha256,
-        expected_component_sha256=attestation.conflict_component_sha256,
-        expected_selected_candidate_id=attestation.selected_candidate_id,
-        expected_provider_id=expected_provider_id,
-        expected_external_scope=expected_external_scope,
-        p5_scope=p5_scope,
-    )
