@@ -37,6 +37,8 @@ def verify_ed25519_signature(
         raise ValueError("Ed25519 verifier unavailable") from exc
     if not isinstance(trusted_public_keys, Mapping):
         raise ValueError("trusted key mapping required")
+    if not isinstance(attestation, VerifiedScopeAttestation):
+        raise ValueError("attestation type mismatch")
     key_bytes = trusted_public_keys.get(attestation.issuer_id)
     if not isinstance(key_bytes, bytes) or len(key_bytes) != 32:
         raise ValueError("trusted issuer key missing")
@@ -52,4 +54,6 @@ def verify_ed25519_signature(
         Ed25519PublicKey.from_public_bytes(key_bytes).verify(signature, _canonical(attestation))
     except InvalidSignature:
         return False
+    except ValueError as exc:
+        raise ValueError("malformed Ed25519 public key") from exc
     return True
