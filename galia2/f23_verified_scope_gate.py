@@ -1,10 +1,9 @@
 """F23/P5 explicit admission gate; does not authenticate evidence itself.
 
-A separate trusted verifier must supply an immutable attestation. In particular,
+Until a repository-controlled verifier is implemented, this gate denies all bindings. In particular,
 F22's self-hashed human decision is NOT sufficient authentication.
 """
 from dataclasses import dataclass
-from typing import Callable
 from .authority import AuthorityScope
 from .reconciliation_authority_binding import bind_reconciliation
 
@@ -25,20 +24,16 @@ def bind_with_verified_scope(
     reconciliation: dict,
     *,
     attestation: VerifiedScopeAttestation,
-    verify_attestation: Callable[[VerifiedScopeAttestation], bool],
     p5_scope: AuthorityScope,
     expected_provider_id: str,
     expected_external_scope: str,
 ):
     """Fail closed unless an independently trusted verifier approves exact evidence.
 
-    WARNING: verify_attestation must be wired to an authenticated trust root.
-    Passing lambda _: True is unsafe and not an acceptable production integration.
+    No caller-provided verifier is accepted; this is intentionally deny-all.
     """
     if not isinstance(attestation, VerifiedScopeAttestation):
         raise ValueError("verified scope attestation required")
-    if not callable(verify_attestation):
-        raise ValueError("trusted attestation verifier required")
     if not all(isinstance(v, str) and v.strip() for v in (
         attestation.decision_id, attestation.reviewer_id, attestation.issuer_id,
         attestation.case_id, attestation.target_type,
@@ -60,8 +55,7 @@ def bind_with_verified_scope(
         raise ValueError("attested component mismatch")
     if reconciliation.get("selected_candidate_id") != attestation.selected_candidate_id:
         raise ValueError("attested selected candidate mismatch")
-    if verify_attestation(attestation) is not True:
-        raise ValueError("attestation not authenticated")
+    raise ValueError("trusted issuer verification unavailable: AUTHORITY_HOLD")
     return bind_reconciliation(
         reconciliation,
         expected_candidate_set_sha256=attestation.candidate_set_sha256,
