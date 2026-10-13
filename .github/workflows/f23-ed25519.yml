@@ -1,0 +1,28 @@
+name: F23 Ed25519 verification
+on:
+  pull_request:
+    paths:
+      - 'galia2/f23_*'
+      - 'tests/test_f23_verified_scope_gate.py'
+      - '.github/workflows/f23-ed25519.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ed25519:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install cryptographic test dependency
+        run: python -m pip install 'cryptography>=43,<47'
+      - name: Verify Ed25519 dependency and positive test
+        run: |
+          python -c "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey; print('Ed25519 available')"
+          python -m unittest discover -s tests -p test_f23_verified_scope_gate.py -v
