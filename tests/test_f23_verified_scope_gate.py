@@ -66,6 +66,21 @@ class GateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "reconciliation mapping required"):
             call(reconciliation=None)
 
+    def test_ed25519_roundtrip_and_tamper(self):
+        import base64
+        from galia2.f23_attestation_crypto import _canonical, verify_ed25519_signature
+        try:
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+            from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+        except ImportError:
+            self.skipTest('cryptography unavailable')
+        key = Ed25519PrivateKey.generate()
+        pub = key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+        signature = base64.b64encode(key.sign(_canonical(A))).decode('ascii')
+        trusted = {'issuer': pub}
+        self.assertTrue(verify_ed25519_signature(A, signature, trusted_public_keys=trusted))
+        self.assertFalse(verify_ed25519_signature(replace(A, case_id='other'), signature, trusted_public_keys=trusted))
+        self.assertFalse(verify_ed25519_signature(replace(A, selected_candidate_id='other'), signature, trusted_public_keys=trusted))
     def test_no_trust_root_denies_all(self):
         with self.assertRaisesRegex(ValueError, "trusted issuer verification unavailable"):
             call()
