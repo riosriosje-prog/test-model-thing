@@ -40,9 +40,9 @@ def bind_with_verified_scope(
         attestation.conflict_component_sha256, attestation.selected_candidate_id
     )):
         raise ValueError("incomplete attestation")
-    if not attestation.target_ids or len(set(attestation.target_ids)) != len(attestation.target_ids):
+    if (not isinstance(attestation.target_ids, tuple) or not attestation.target_ids\n        or any(not isinstance(v, str) or not v.strip() for v in attestation.target_ids)\n        or len(set(attestation.target_ids)) != len(attestation.target_ids)):
         raise ValueError("invalid attested target ids")
-    if (p5_scope.case_id, p5_scope.target_type, p5_scope.target_ids) != (
+    if not isinstance(p5_scope, AuthorityScope):\n        raise ValueError("P5 scope required")\n    if not isinstance(reconciliation, dict):\n        raise ValueError("reconciliation mapping required")\n    if (p5_scope.case_id, p5_scope.target_type, p5_scope.target_ids) != (
         attestation.case_id, attestation.target_type, attestation.target_ids
     ):
         raise ValueError("P5 scope mismatch")
