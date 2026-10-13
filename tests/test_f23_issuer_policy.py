@@ -45,6 +45,21 @@ class IssuerPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid reviewer policy"):
             self.check(replace(POLICY, allowed_reviewer_ids=("reviewer", "reviewer")))
 
+    def test_policy_identity_mismatch_rejected(self):
+        with self.assertRaisesRegex(ValueError, "issuer not enrolled"):
+            self.check(replace(POLICY, issuer_id="other"))
+
+    def test_naive_policy_bounds_rejected(self):
+        with self.assertRaisesRegex(ValueError, "timezone-aware policy bounds"):
+            self.check(replace(POLICY, valid_from=POLICY.valid_from.replace(tzinfo=None)))
+
+    def test_validity_start_is_inclusive(self):
+        self.assertEqual(self.check(at=POLICY.valid_from), POLICY.public_key)
+
+    def test_missing_registry_rejected(self):
+        with self.assertRaisesRegex(ValueError, "issuer policy registry required"):
+            validate_issuer_policy("issuer", "reviewer", NOW, policies=None)
+
     def test_invalid_policy_bounds_rejected(self):
         with self.assertRaisesRegex(ValueError, "invalid policy interval"):
             self.check(replace(POLICY, valid_until=POLICY.valid_from))
