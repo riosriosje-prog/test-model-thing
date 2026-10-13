@@ -96,6 +96,23 @@ class GateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "AUTHORITY_HOLD"):
             call()
 
+    def test_valid_issuer_policy_does_not_override_authority_hold(self):
+        from datetime import datetime, timedelta, timezone
+        from galia2.f23_issuer_policy import IssuerPolicy, validate_issuer_policy
+        now = datetime(2026, 10, 12, tzinfo=timezone.utc)
+        policy = IssuerPolicy(
+            issuer_id="issuer", public_key=b"k" * 32,
+            allowed_reviewer_ids=("r",),
+            valid_from=now - timedelta(days=1),
+            valid_until=now + timedelta(days=1),
+        )
+        self.assertEqual(
+            validate_issuer_policy("issuer", "r", now, policies={"issuer": policy}),
+            b"k" * 32,
+        )
+        with self.assertRaisesRegex(ValueError, "AUTHORITY_HOLD"):
+            call()
+
     def test_no_trust_root_denies_all(self):
         with self.assertRaisesRegex(ValueError, "trusted issuer verification unavailable"):
             call()
