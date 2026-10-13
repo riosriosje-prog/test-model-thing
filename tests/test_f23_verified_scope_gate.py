@@ -37,6 +37,21 @@ class GateTests(unittest.TestCase):
     def test_reconciliation_mismatch(self):
         with self.assertRaisesRegex(ValueError, "attested reconciliation mismatch"):
             call(reconciliation=dict(R, reconciliation_sha256="d"*64))
+    def test_crypto_rejects_unknown_issuer(self):
+        from galia2.f23_attestation_crypto import verify_ed25519_signature
+        with self.assertRaisesRegex(ValueError, "trusted issuer key missing"):
+            verify_ed25519_signature(A, "", trusted_public_keys={})
+
+    def test_crypto_rejects_invalid_attestation_type(self):
+        from galia2.f23_attestation_crypto import verify_ed25519_signature
+        with self.assertRaisesRegex(ValueError, "attestation type mismatch"):
+            verify_ed25519_signature(None, "", trusted_public_keys={})
+
+    def test_crypto_rejects_malformed_signature(self):
+        from galia2.f23_attestation_crypto import verify_ed25519_signature
+        with self.assertRaisesRegex(ValueError, "malformed signature encoding"):
+            verify_ed25519_signature(A, "not-base64!", trusted_public_keys={"issuer": b"x" * 32})
+
     def test_no_trust_root_denies_all(self):
         with self.assertRaisesRegex(ValueError, "trusted issuer verification unavailable"):
             call()
