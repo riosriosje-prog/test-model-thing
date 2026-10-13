@@ -44,7 +44,11 @@ def bind_with_verified_scope(
         or any(not isinstance(v, str) or not v.strip() for v in attestation.target_ids)
         or len(set(attestation.target_ids)) != len(attestation.target_ids)):
         raise ValueError("invalid attested target ids")
-    if not isinstance(p5_scope, AuthorityScope):\n        raise ValueError("P5 scope required")\n    if not isinstance(reconciliation, dict):\n        raise ValueError("reconciliation mapping required")\n    if (p5_scope.case_id, p5_scope.target_type, p5_scope.target_ids) != (
+    if not isinstance(p5_scope, AuthorityScope):
+        raise ValueError("P5 scope required")
+    if not isinstance(reconciliation, dict):
+        raise ValueError("reconciliation mapping required")
+    if (p5_scope.case_id, p5_scope.target_type, p5_scope.target_ids) != (
         attestation.case_id, attestation.target_type, attestation.target_ids
     ):
         raise ValueError("P5 scope mismatch")
