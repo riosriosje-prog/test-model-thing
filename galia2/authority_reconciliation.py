@@ -5,6 +5,7 @@ F22 reconciles evidence-backed F21/F20/F19 authority candidates. It cannot
 promote GALIA master, close BYTE_IDENTITY/F5, or rewrite upstream history.
 """
 from __future__ import annotations
+import copy
 import hashlib, json
 from datetime import datetime, timezone
 from typing import Any, Dict, List
@@ -14,7 +15,7 @@ DECISION_SCHEMA="GALIA-F22-HUMAN-DECISION/1"
 STATUSES={"CONFLICT_DETECTED","NON_OVERLAPPING_COMPATIBLE","SAME_KEY_CORROBORATED","AUTHORITY_UNRESOLVED","HUMAN_SELECTION_REQUIRED","RECONCILED_BY_EXPLICIT_HUMAN_DECISION"}
 
 def _canonical_json(obj:Any)->bytes:
-    return (json.dumps(obj,sort_keys=True,separators=(",",":"),ensure_ascii=False)+"\n").encode()
+    return (json.dumps(obj,sort_keys=True,separators=(",",":"),ensure_ascii=False,allow_nan=False)+"\n").encode()
 def _hash(obj:Any)->str: return hashlib.sha256(_canonical_json(obj)).hexdigest()
 def _is_hash(v:Any)->bool: return isinstance(v,str) and len(v)==64 and all(c in "0123456789abcdefABCDEF" for c in v)
 def _dt(v:str)->datetime:
@@ -33,7 +34,7 @@ def candidate_core(c:Dict[str,Any])->Dict[str,Any]:
     return {k:c.get(k) for k in sorted(set(c)|{"valid_until_utc"}) if k!="candidate_sha256"}
 
 def seal_candidate(c:Dict[str,Any])->Dict[str,Any]:
-    r=dict(c); r["candidate_sha256"]=_hash(candidate_core(r)); return r
+    r=copy.deepcopy(c); r["candidate_sha256"]=_hash(candidate_core(r)); return r
 def validate_candidate(c:Dict[str,Any])->None:
     if not _is_hash(c.get("candidate_sha256")) or c["candidate_sha256"]!=_hash(candidate_core(c)): raise ValueError("candidate hash mismatch")
 def overlaps(a,b)->bool:
@@ -105,7 +106,7 @@ def reconcile(candidates:List[Dict[str,Any]],human_decision:Dict[str,Any]|None=N
     result={"schema_version":SCHEMA,"control_id":"GALIA-F22","conflict_state":conflict_state,"authority_state":authority_state,"action_required":action_required,
       "candidate_set_sha256":set_hash,"candidate_ids":sorted(ids),"candidate_hashes":{c["candidate_id"]:c["candidate_sha256"] for c in candidates},
       "conflicts":conflicts,"conflict_components":component_records,"same_key_corroborations":corroborations,"compatible_pairs":compatible,"selected_candidate_id":selected,"reconciled_component_sha256":reconciled_component_sha256,
-      "preserved_candidates":[dict(c) for c in candidates],"canonical_effect":"NONE","master_promotion_state":"AUTHORITY_HOLD","byte_identity_effect":"NONE","f5_effect":"NONE",
+      "preserved_candidates":[copy.deepcopy(c) for c in candidates],"canonical_effect":"NONE","master_promotion_state":"AUTHORITY_HOLD","byte_identity_effect":"NONE","f5_effect":"NONE",
       "invariants":["NO_AUTOMATIC_WINNER","RECENCY_IS_NOT_AUTHORITY","MAJORITY_IS_NOT_AUTHORITY","SIGNATURE_VALID_IS_NOT_KEY_AUTHORITY","F22_EXTERNAL_AUTHORITY_IS_NOT_GALIA_MASTER_AUTHORITY","REJECTED_CANDIDATES_REMAIN_PRESERVED","CONFLICT_HISTORY_PERSISTS_AFTER_RECONCILIATION"]}
     result["reconciliation_sha256"]=_hash(result); return result
 
