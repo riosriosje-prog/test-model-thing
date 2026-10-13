@@ -19,6 +19,12 @@ class IssuerPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "issuer not enrolled"):
             self.check(issuer="unknown")
 
+    def test_malformed_revocation_flag_rejected(self):
+        for invalid in (None, 0, "false"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "invalid revocation flag"):
+                    self.check(replace(POLICY, revoked=invalid))
+
     def test_revoked_issuer_rejected(self):
         with self.assertRaisesRegex(ValueError, "issuer revoked"):
             self.check(replace(POLICY, revoked=True))
