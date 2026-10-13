@@ -52,6 +52,20 @@ class GateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "malformed signature encoding"):
             verify_ed25519_signature(A, "not-base64!", trusted_public_keys={"issuer": b"x" * 32})
 
+    def test_invalid_target_ids_are_rejected(self):
+        for invalid in ([], ("",), ("same", "same"), (None,)):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "invalid attested target ids"):
+                    call(attestation=replace(A, target_ids=invalid))
+
+    def test_invalid_scope_type_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "P5 scope required"):
+            call(scope=None)
+
+    def test_invalid_reconciliation_type_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "reconciliation mapping required"):
+            call(reconciliation=None)
+
     def test_no_trust_root_denies_all(self):
         with self.assertRaisesRegex(ValueError, "trusted issuer verification unavailable"):
             call()
