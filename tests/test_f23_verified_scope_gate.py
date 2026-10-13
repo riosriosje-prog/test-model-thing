@@ -18,9 +18,9 @@ S = AuthorityScope(case_id="case-A", target_type="external-candidate", target_id
 R = {"reconciliation_sha256":"a"*64, "candidate_set_sha256":"b"*64,
      "reconciled_component_sha256":"c"*64, "selected_candidate_id":"candidate-A"}
 
-def call(scope=S, attestation=A, verify=lambda _: False, reconciliation=R):
+def call(scope=S, attestation=A, reconciliation=R):
     return bind_with_verified_scope(
-        reconciliation, attestation=attestation, verify_attestation=verify,
+        reconciliation, attestation=attestation,
         p5_scope=scope, expected_provider_id="provider-A", expected_external_scope="external-A")
 
 class GateTests(unittest.TestCase):
@@ -38,13 +38,11 @@ class GateTests(unittest.TestCase):
     def test_reconciliation_mismatch(self):
         with self.assertRaisesRegex(ValueError, "attested reconciliation mismatch"):
             call(reconciliation=dict(R, reconciliation_sha256="d"*64))
-    def test_unauthenticated(self):
-        with self.assertRaisesRegex(ValueError, "attestation not authenticated"):
-            call()
-    def test_matching_attestation_delegates_to_existing_f23(self):
-        with patch("galia2.f23_verified_scope_gate.bind_reconciliation", return_value="BOUND") as inner:
-            self.assertEqual(call(verify=lambda _: True), "BOUND")
-            inner.assert_called_once()
+    def test_no_trust_root_denies_all(self):
+        with patch("galia2.f23_verified_scope_gate.bind_reconciliation") as inner:
+            with self.assertRaisesRegex(ValueError, "trusted issuer verification unavailable"):
+                call()
+            inner.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()
