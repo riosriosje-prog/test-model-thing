@@ -30,11 +30,6 @@ def verify_ed25519_signature(
     Missing cryptography dependency, issuer, malformed input or bad signature
     fails closed. The trusted_public_keys mapping must be independently pinned.
     """
-    try:
-        from cryptography.exceptions import InvalidSignature
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-    except ImportError as exc:
-        raise ValueError("Ed25519 verifier unavailable") from exc
     if not isinstance(trusted_public_keys, Mapping):
         raise ValueError("trusted key mapping required")
     if not isinstance(attestation, VerifiedScopeAttestation):
@@ -50,6 +45,11 @@ def verify_ed25519_signature(
         raise ValueError("malformed signature encoding") from exc
     if len(signature) != 64:
         raise ValueError("malformed signature length")
+    try:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    except ImportError as exc:
+        raise ValueError("Ed25519 verifier unavailable") from exc
     try:
         Ed25519PublicKey.from_public_bytes(key_bytes).verify(signature, _canonical(attestation))
     except InvalidSignature:
