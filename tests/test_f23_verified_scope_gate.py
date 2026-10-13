@@ -113,6 +113,18 @@ class GateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "AUTHORITY_HOLD"):
             call()
 
+    def test_attestation_mutations_never_grant_admission(self):
+        mutations = (
+            {"decision_id": "different"},
+            {"reviewer_id": "different"},
+            {"issuer_id": "different"},
+            {"selected_candidate_id": "different"},
+        )
+        for change in mutations:
+            with self.subTest(change=change):
+                with self.assertRaises(ValueError):
+                    call(attestation=replace(A, **change))
+
     def test_no_trust_root_denies_all(self):
         with self.assertRaisesRegex(ValueError, "trusted issuer verification unavailable"):
             call()
