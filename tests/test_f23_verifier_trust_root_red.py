@@ -22,10 +22,10 @@ class PermissiveVerifierMustNotAuthorize(unittest.TestCase):
         scope = AuthorityScope(case_id="case-A", target_type="external-candidate", target_ids=("candidate-A",))
         # If bind_reconciliation is reached, the caller has bypassed the trust gate.
         with patch("galia2.f23_verified_scope_gate.bind_reconciliation", return_value="UNSAFE_BIND") as inner:
-            with self.assertRaisesRegex(ValueError, "(?i)(trust|issuer|authentic|verifier)"):
+            with self.assertRaisesRegex(ValueError, "trusted issuer verification unavailable"):
                 bind_with_verified_scope(
                     reconciliation, attestation=attestation,
-                    verify_attestation=lambda _: True, p5_scope=scope,
+                    p5_scope=scope,
                     expected_provider_id="provider-A", expected_external_scope="external-A")
             inner.assert_not_called()
 
