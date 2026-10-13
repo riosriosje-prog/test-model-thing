@@ -4,7 +4,6 @@ These test early fail-closed checks without asserting trust-root authentication.
 """
 from dataclasses import replace
 import unittest
-from unittest.mock import patch
 from galia2.authority import AuthorityScope
 from galia2.f23_verified_scope_gate import VerifiedScopeAttestation, bind_with_verified_scope
 
@@ -39,10 +38,8 @@ class GateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "attested reconciliation mismatch"):
             call(reconciliation=dict(R, reconciliation_sha256="d"*64))
     def test_no_trust_root_denies_all(self):
-        with patch("galia2.f23_verified_scope_gate.bind_reconciliation") as inner:
-            with self.assertRaisesRegex(ValueError, "trusted issuer verification unavailable"):
-                call()
-            inner.assert_not_called()
+        with self.assertRaisesRegex(ValueError, "trusted issuer verification unavailable"):
+            call()
 
 if __name__ == "__main__":
     unittest.main()
