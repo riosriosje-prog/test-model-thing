@@ -184,11 +184,25 @@ fn spawn(server:Arc<MandatoryMtlsCheckpointServer>,now:u64)
     let x=build();
     let (a,j1)=spawn(Arc::clone(&x.server),1_800_000_030);
     let (b,j2)=spawn(Arc::clone(&x.server),1_800_000_030);
-    let r1=x.client.exchange(a,&x.trust,&x.policy,
-        &hexhash('3'),1_800_000_000,1_800_000_060);
-    let r2=x.client.exchange(b,&x.trust,&x.policy,
-        &hexhash('3'),1_800_000_000,1_800_000_060);
-    assert_eq!(usize::from(r1.is_ok())+usize::from(r2.is_ok()),1);
+    // True concurrency: both clients initiate separate TLS handshakes and
+    // compete for the same durable nonce under the service's file lock.
+    let client=Arc::new(x.client);
+    let trust=x.trust.clone();
+    let policy=x.policy.clone();
+    let barrier=Arc::new(std::sync::Barrier::new(3));
+    let clients=[a,b].into_iter().map(|addr|{
+        let client=Arc::clone(&client);
+        let trust=trust.clone();
+        let policy=policy.clone();
+        let ready=Arc::clone(&barrier);
+        thread::spawn(move||{
+            ready.wait();
+            client.exchange(addr,&trust,&policy,
+                &hexhash('3'),1_800_000_000,1_800_000_060).is_ok()
+        })
+    }).collect::<Vec<_>>();
+    barrier.wait();
+    assert_eq!(clients.into_iter().map(|j|j.join().unwrap()).filter(|won|*won).count(),1);
     assert_eq!(usize::from(j1.join().unwrap().is_ok())+
         usize::from(j2.join().unwrap().is_ok()),1);
     assert_eq!(x.store.inspect().unwrap(),(1,1));
@@ -271,4 +285,14 @@ fn spawn(server:Arc<MandatoryMtlsCheckpointServer>,now:u64)
         &hexhash('6'),1_800_000_000,1_800_000_060).is_err());
     let _=join.join();
     assert_eq!(x.store.inspect().unwrap(),(1,0));
+}
+
+#[test]fn complete_local_journal_rollback_remains_undetectable_without_external_anchor(){
+    let x=build();
+    assert_eq!(x.store.inspect().unwrap(),(1,0));
+    // Signed checkpoint hash is lost with the single mutable directory.
+    // This intentionally demonstrates the unresolved external high-water gate.
+    std::fs::remove_file(x.dir.path()
+        .join("service/checkpoints/00000000000000000001.json")).unwrap();
+    assert_eq!(x.store.inspect().unwrap(),(0,0));
 }
