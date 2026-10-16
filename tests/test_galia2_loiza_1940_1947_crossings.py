@@ -66,10 +66,31 @@ def gate(candidate):
             if o.get("document_event_date_equivalence") is not False:
                 raise ValueError("document date treated as naming event")
         if o["reference_year"] == 1940:
-            if o["source_id"] != "NARA-1940-ED8-89-90-91":
-                raise ValueError("1940 district bound to wrong source")
-            if o.get("census_district") not in ("ED 8-89", "ED 8-90"):
+            census_sources = {
+                "ED 8-55": "NARA-1940-ED8-55",
+                "ED 8-82": "NARA-1940-ED8-82",
+                "ED 8-83": "NARA-1940-ED8-83-84",
+                "ED 8-84": "NARA-1940-ED8-83-84",
+                "ED 8-89": "NARA-1940-ED8-89-90-91",
+                "ED 8-90": "NARA-1940-ED8-89-90-91",
+            }
+            district = o.get("census_district")
+            if district not in census_sources:
                 raise ValueError("unverified census ED")
+            if o["source_id"] != census_sources[district]:
+                raise ValueError("1940 census district attributed to wrong NARA item")
+            if district == "ED 8-55":
+                if o.get("source_spelling") != "LOIZA RD":
+                    raise ValueError("LOIZA RD spelling was incorrectly normalized")
+                if "LOIZA RD" not in o["referenced_streets"]:
+                    raise ValueError("original road-name form omitted")
+            if district in ("ED 8-82", "ED 8-83", "ED 8-84"):
+                if o.get("source_spelling") != "CALLE LOIZA":
+                    raise ValueError("1940 Calle Loiza transcription drift")
+            if district in ("ED 8-83", "ED 8-84"):
+                expected = {"CALLE MCLEARY", "CARRION COURT", "CALLE CORDERO"}
+                if not expected.issubset(set(o["referenced_streets"])):
+                    raise ValueError("McLeary/Carrion/Cordero boundary evidence lost")
     for flag in (
         "street_name_to_official_nominative_act",
         "kings_court_to_mcleary_same_road",
@@ -89,16 +110,23 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
 
     def test_versioned_manifest_fails_closed(self):
         self.assertTrue(gate(self.candidate))
-        self.assertEqual(len(self.candidate["sources"]), 4)
-        self.assertEqual(len(self.candidate["observations"]), 8)
+        self.assertEqual(len(self.candidate["sources"]), 7)
+        self.assertEqual(len(self.candidate["observations"]), 12)
+        self.assertEqual(
+            {s["discovery_mode"] for s in self.candidate["sources"]
+             if s["source_id"].startswith("NARA-1940-")},
+            {"NARA_METADATA_MIRROR_ONLY"},
+        )
 
     def test_1940_and_1947_are_distinct_documentary_windows(self):
         years = [o["reference_year"] for o in self.candidate["observations"]]
-        self.assertEqual(years.count(1940), 2)
+        self.assertEqual(years.count(1940), 6)
         self.assertEqual(years.count(1947), 6)
         self.assertEqual(
             {o["census_district"] for o in self.candidate["observations"]
-             if o["reference_year"] == 1940}, {"ED 8-89", "ED 8-90"}
+             if o["reference_year"] == 1940},
+            {"ED 8-55", "ED 8-82", "ED 8-83",
+             "ED 8-84", "ED 8-89", "ED 8-90"},
         )
 
     def test_1947_kings_court_is_a_named_crossing_not_mcleary_identity(self):
@@ -116,6 +144,45 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
             "kings_court_to_mcleary_same_road",
             self.candidate["prohibited_promotions"]
         )
+
+    def test_1940_calle_loiza_and_loiza_road_remain_distinct(self):
+        census = {
+            o["census_district"]: o for o in self.candidate["observations"]
+            if o["reference_year"] == 1940
+        }
+        self.assertEqual(census["ED 8-55"]["source_spelling"], "LOIZA RD")
+        for district in ("ED 8-82", "ED 8-83", "ED 8-84"):
+            self.assertEqual(census[district]["source_spelling"], "CALLE LOIZA")
+        for district in ("ED 8-83", "ED 8-84"):
+            self.assertIn("CALLE MCLEARY", census[district]["referenced_streets"])
+            self.assertIn("CARRION COURT", census[district]["referenced_streets"])
+            self.assertIsNone(census[district]["geometry"])
+            self.assertIsNone(census[district]["event_date"])
+        self.assertIn(
+            "1940_loiza_rd_to_calle_loiza_continuity_without_cartographic_verification",
+            self.candidate["prohibited_promotions"],
+        )
+        self.assertIn(
+            "1940_mcleary_carrion_mentions_to_exact_intersection_or_road_naming_date",
+            self.candidate["prohibited_promotions"],
+        )
+
+    def test_1940_source_attribution_or_spelling_drift_is_rejected(self):
+        for label, district, field, value in (
+            ("wrong_naid", "ED 8-83", "source_id", "NARA-1940-ED8-82"),
+            ("false_road_continuity", "ED 8-55", "source_spelling", "CALLE LOIZA"),
+            ("wrong_source_form", "ED 8-84", "source_spelling", "LOIZA RD"),
+            ("lost_mcleary", "ED 8-83", "referenced_streets", ["CALLE LOIZA"]),
+        ):
+            altered = copy.deepcopy(self.candidate)
+            item = next(
+                o for o in altered["observations"]
+                if o.get("census_district") == district
+            )
+            item[field] = value
+            with self.subTest(mutation=label):
+                with self.assertRaises(ValueError):
+                    gate(altered)
 
     def test_unearned_source_hash_approval_or_geometry_are_rejected(self):
         cases = [
