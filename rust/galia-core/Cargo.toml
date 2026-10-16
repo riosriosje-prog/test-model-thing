@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 publish = false
-description = "Rust non-authoritative GALIA 2.0 shadow evaluator and opt-in scratch store"
+description = "Rust non-authoritative GALIA 2.0 shadow evaluator, audit chain and opt-in scratch store"
 
 [lib]
 name = "galia_core_shadow"
@@ -20,6 +20,10 @@ path = "src/bin/galia-preflight-shadow.rs"
 [[bin]]
 name = "galia-persistence-shadow"
 path = "src/bin/galia-persistence-shadow.rs"
+
+[[bin]]
+name = "galia-audit-shadow"
+path = "src/bin/galia-audit-shadow.rs"
 
 [features]
 default = []

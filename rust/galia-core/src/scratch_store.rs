@@ -10,6 +10,7 @@ use fs2::FileExt;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use crate::persistence::{GenerationBytes, GenerationManifest, HeadPointer, VerificationRequest, verify_request};
+use crate::audit::{AuditReceipt,AuditOperation,Checkpoint,sha256,next_receipt,verify_receipts};
 
 const MARKER: &str = ".GALIA_NONCANONICAL_SCRATCH_V1";
 const MARKER_BYTES: &[u8] = b"GALIA_NONCANONICAL_SCRATCH_ONLY_V1\n";
@@ -162,6 +163,7 @@ impl ScratchStore {
         write_new(&root.join(MARKER),MARKER_BYTES)?;
         fs::create_dir(root.join("staging")).map_err(|e|io_err("mkdir staging",e))?;
         fs::create_dir(root.join("generations")).map_err(|e|io_err("mkdir generations",e))?;
+        fs::create_dir(root.join("audit")).map_err(|e|io_err("mkdir audit",e))?;
         write_new(&root.join(LOCK_NAME),b"")?;
         sync_dir(root)?;
         Self::open(root)
@@ -173,6 +175,7 @@ impl ScratchStore {
         if marker!=MARKER_BYTES {return Err(fail("invalid scratch-only marker"));}
         require_real_dir(&root.join("staging"))?;
         require_real_dir(&root.join("generations"))?;
+        require_real_dir(&root.join("audit"))?;
         require_real_file(&root.join(LOCK_NAME))?;
         let canonical=fs::canonicalize(root).map_err(|e|io_err("canonical scratch root",e))?;
         Ok(Self {root:canonical})
@@ -193,6 +196,64 @@ impl ScratchStore {
         }
         Ok(())
     }
+
+    fn read_audit_checked(&self,expected_head:Option<&str>)->Result<Vec<AuditReceipt>,String>{
+        require_real_dir(&self.root.join("audit"))?;
+        let mut files=Vec::new();
+        for entry in fs::read_dir(self.root.join("audit"))
+            .map_err(|e|io_err("scan audit",e))? {
+            let entry=entry.map_err(|e|io_err("audit entry",e))?;
+            require_real_file(&entry.path())?;
+            let name=entry.file_name().into_string().map_err(|_|fail("non-UTF8 audit filename"))?;
+            files.push((name,entry.path()));
+        }
+        files.sort_by(|a,b|a.0.cmp(&b.0));
+        let mut receipts=Vec::new();
+        for (i,(name,path)) in files.into_iter().enumerate(){
+            let expected=format!("{:020}.json",i+1);
+            if name!=expected {return Err(fail("audit receipt gap or undeclared filename"));}
+            let raw=read_file(&path)?;
+            let receipt:AuditReceipt=serde_json::from_slice(&raw)
+                .map_err(|e|format!("invalid audit JSON: {e}"))?;
+            if receipt.canonical_bytes()?!=raw {
+                return Err(fail("noncanonical audit receipt bytes"));
+            }
+            receipts.push(receipt);
+        }
+        let report=verify_receipts(&receipts,None)?;
+        if report.head_sha256.as_deref()!=expected_head{
+            return Err(fail("scratch HEAD and audit chain disagree"));
+        }
+        Ok(receipts)
+    }
+    fn append_audit_locked(&self,receipt:AuditReceipt)->Result<(),String>{
+        let path=self.root.join("audit").join(format!("{:020}.json",receipt.index));
+        write_new(&path,&receipt.canonical_bytes()?)?;
+        sync_dir(&self.root.join("audit"))?;
+        Ok(())
+    }
+    /// A checkpoint is only trusted when independently retained OUTSIDE this
+    /// mutable scratch tree. It is NOT a signature or an authority approval.
+    pub fn audit_checkpoint(&self)->Result<Option<Checkpoint>,String>{
+        let _lock=self.locked()?;
+        let current=checked_head(&self.root)?.map(|(_,raw,_)|sha256(&raw));
+        let records=self.read_audit_checked(current.as_deref())?;
+        let report=verify_receipts(&records,None)?;
+        Ok(report.tip_sha256.map(|tip|Checkpoint{
+            count:report.count,tip_sha256:tip,
+            last_head_sha256:report.head_sha256
+        }))
+    }
+    /// Compare against caller-supplied out-of-band checkpoint; cannot establish
+    /// whether that checkpoint itself is authentic or current.
+    pub fn verify_audit_checkpoint(&self,checkpoint:&Checkpoint)->Result<(),String>{
+        let _lock=self.locked()?;
+        let current=checked_head(&self.root)?.map(|(_,raw,_)|sha256(&raw));
+        let records=self.read_audit_checked(current.as_deref())?;
+        verify_receipts(&records,Some(checkpoint))?;
+        Ok(())
+    }
+
     fn stage_inner(&self, snap:&GenerationBytes) -> Result<String,String> {
         let report=verify_request(&VerificationRequest{
             generation:snap.clone(),parent:None
@@ -230,7 +291,14 @@ impl ScratchStore {
     /// Stages self-consistent supplied test fixture bytes; never advances HEAD.
     pub fn stage_snapshot(&self,snap:&GenerationBytes)->Result<String,String>{
         let _lock=self.locked()?;
-        self.stage_inner(snap)
+        let old=checked_head(&self.root)?.map(|(_,raw,_)|sha256(&raw));
+        let records=self.read_audit_checked(old.as_deref())?;
+        let commit=self.stage_inner(snap)?;
+        let manifest_bytes=hex::decode(&snap.manifest_hex).map_err(|e|e.to_string())?;
+        let receipt=next_receipt(&records,AuditOperation::Staged,&commit,
+            &sha256(&manifest_bytes),old.clone(),old)?;
+        self.append_audit_locked(receipt)?;
+        Ok(commit)
     }
     fn publish_inner(&self,commit:&str,expected_head_hash:Option<&str>,failpoint:bool)
         -> Result<String,String> {
@@ -238,6 +306,7 @@ impl ScratchStore {
         let _lock=self.locked()?;
         let prior=checked_head(&self.root)?;
         let old_raw=prior.as_ref().map(|(_,raw,_)|digest(raw));
+        let records=self.read_audit_checked(old_raw.as_deref())?;
         if old_raw.as_deref()!=expected_head_hash {
             return Err(fail("scratch HEAD compare-and-swap precondition failed"));
         }
@@ -247,6 +316,7 @@ impl ScratchStore {
         let snap=bundle_from_dir(&staged)?;
         let child=verify_request(&VerificationRequest{generation:snap.clone(),parent:None})?;
         if child.commit_id!=commit {return Err(fail("staged commit path mismatch"));}
+        let child_manifest_hash=child.manifest_hash.clone();
         let child_manifest:GenerationManifest=
             serde_json::from_slice(&hex::decode(&snap.manifest_hex).map_err(|e|e.to_string())?)
             .map_err(|e|e.to_string())?;
@@ -275,6 +345,9 @@ impl ScratchStore {
         temp.persist(self.root.join("HEAD"))
             .map_err(|e|format!("atomic scratch HEAD rename: {}",e.error))?;
         sync_dir(&self.root)?;
+        let next=next_receipt(&records,AuditOperation::Published,commit,&child_manifest_hash,
+            old_raw,Some(sha256(&raw)))?;
+        self.append_audit_locked(next)?;
         Ok(digest(&raw))
     }
     /// Advisory scratch HEAD advance. Requires exact expected hash of prior HEAD bytes.
@@ -286,12 +359,16 @@ impl ScratchStore {
     /// Returns hash of actual scratch HEAD bytes, not a canonical authority token.
     pub fn read_head_token(&self)->Result<Option<String>,String>{
         let _lock=self.locked()?;
-        Ok(checked_head(&self.root)?.map(|(_,raw,_)|digest(&raw)))
+        let old=checked_head(&self.root)?.map(|(_,raw,_)|digest(&raw));
+        self.read_audit_checked(old.as_deref())?;
+        Ok(old)
     }
     /// Recoverability inspection only: never rewrites HEAD, deletes or promotes orphans.
     pub fn inspect_recovery(&self)->Result<RecoveryReport,String>{
         let _lock=self.locked()?;
         let prior=checked_head(&self.root)?;
+        let observed_head=prior.as_ref().map(|(_,raw,_)|sha256(raw));
+        self.read_audit_checked(observed_head.as_deref())?;
         let mut reachable=BTreeSet::new();
         let mut current=prior.as_ref().map(|(h,_,_)|h.commit_id.clone());
         while let Some(commit)=current {
@@ -474,4 +551,49 @@ mod tests {
         symlink(s.root.join(".GALIA_NONCANONICAL_SCRATCH_V1"),&victim).unwrap();
         assert!(s.publish_staged("g1",None).is_err());
     }
+    #[test]
+    fn audit_checkpoint_tracks_stage_and_publish(){
+        let (_d,s)=scratch();
+        s.stage_snapshot(&data("g1","GENESIS",1)).unwrap();
+        let staged_cp=s.audit_checkpoint().unwrap().unwrap();
+        assert_eq!(staged_cp.count,1);
+        assert!(staged_cp.last_head_sha256.is_none());
+        let h=s.publish_staged("g1",None).unwrap();
+        let published_cp=s.audit_checkpoint().unwrap().unwrap();
+        assert_eq!(published_cp.count,2);
+        assert_eq!(published_cp.last_head_sha256,Some(h));
+        assert!(s.verify_audit_checkpoint(&published_cp).is_ok());
+        assert!(s.verify_audit_checkpoint(&staged_cp).is_err());
+    }
+    #[test]
+    fn audit_tampering_blocks_all_new_mutations(){
+        let (_d,s)=scratch();
+        s.stage_snapshot(&data("g1","GENESIS",1)).unwrap();
+        let entry=s.root.join("audit/00000000000000000001.json");
+        let mut value:serde_json::Value=serde_json::from_slice(&fs::read(&entry).unwrap()).unwrap();
+        value["commit_id"]=serde_json::json!("forged");
+        fs::write(&entry,serde_json::to_vec(&value).unwrap()).unwrap();
+        assert!(s.publish_staged("g1",None).is_err());
+        assert!(s.stage_snapshot(&data("g2","GENESIS",1)).is_err());
+        assert!(s.inspect_recovery().is_err());
+    }
+    #[test]
+    fn audit_truncation_after_published_head_is_detected(){
+        let (_d,s)=scratch();
+        s.stage_snapshot(&data("g1","GENESIS",1)).unwrap();
+        s.publish_staged("g1",None).unwrap();
+        fs::remove_file(s.root.join("audit/00000000000000000002.json")).unwrap();
+        assert!(s.read_head_token().is_err());
+        assert!(s.inspect_recovery().is_err());
+    }
+    #[test]
+    fn staged_audit_truncation_needs_external_checkpoint(){
+        let (_d,s)=scratch();
+        s.stage_snapshot(&data("g1","GENESIS",1)).unwrap();
+        let cp=s.audit_checkpoint().unwrap().unwrap();
+        fs::remove_file(s.root.join("audit/00000000000000000001.json")).unwrap();
+        assert!(s.audit_checkpoint().unwrap().is_none());
+        assert!(s.verify_audit_checkpoint(&cp).is_err());
+    }
+
 }
