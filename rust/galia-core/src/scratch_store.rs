@@ -4,7 +4,7 @@
 //! Every mutation requires a specially initialized scratch root.
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use fs2::FileExt;
 use serde::Serialize;
@@ -345,7 +345,7 @@ impl ScratchStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::{json,Value};
+    use serde_json::json;
     fn data(commit:&str,parent:&str,seq:u64) -> GenerationBytes {
         let bytes=b"historic source\n";
         let mh_payload=digest(bytes);
@@ -458,7 +458,7 @@ mod tests {
             thread::spawn(move||{barrier.wait();store.publish_staged(commit,Some(&token)).is_ok()})
         }).collect::<Vec<_>>();
         barrier.wait();
-        let wins=threads.into_iter().filter(|j|j.join().unwrap()).count();
+        let wins=threads.into_iter().map(|j|j.join().unwrap()).filter(|won|*won).count();
         assert_eq!(wins,1,"serialized compare-and-swap must elect exactly one winner");
         assert_eq!(shared.inspect_recovery().unwrap().reachable.len(),2);
         assert_eq!(shared.inspect_recovery().unwrap().staged.len(),1);
