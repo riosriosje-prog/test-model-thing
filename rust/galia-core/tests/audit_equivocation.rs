@@ -174,7 +174,7 @@ fn tip(a:&SignedAuditStatement)->String{sha256(&canonical(a))}
     let mut advanced=p;
     advanced.floor_sequence=1;
     advanced.floor_signed_sha256=Some(tip(&a));
-    advanced.floor_checkpoint=a.statement.checkpoint;
+    advanced.floor_checkpoint=a.statement.checkpoint.clone();
     assert!(verify_signed_audit_chain(&advanced,&[b.clone()]).is_ok());
     let c=signed(&advanced,2,Some(tip(&a)),cp(2,"alt"));
     let r=compare_signed_audit_branches(&advanced,&[b],&[c]).unwrap();
