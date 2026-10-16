@@ -188,3 +188,11 @@ fn tip(a:&SignedAuditStatement)->String{sha256(&canonical(a))}
     raw["statement"]["canonical_writeback"]=serde_json::json!(true);
     assert!(serde_json::from_value::<SignedAuditStatement>(raw).is_err());
 }
+
+#[test]fn hex_case_change_of_same_signature_is_not_a_second_auditor_claim(){
+    let p=pin();let a=signed(&p,1,None,cp(1,"a"));
+    let mut recoded=a.clone();
+    recoded.signature_hex=recoded.signature_hex.to_uppercase();
+    // Both hex strings represent identical bytes; do not invent equivocation.
+    assert!(compare_signed_audit_branches(&p,&[a],&[recoded]).is_err());
+}

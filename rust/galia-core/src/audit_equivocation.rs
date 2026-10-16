@@ -64,6 +64,15 @@ pub fn compare_signed_audit_branches(
     left:&[SignedAuditStatement],
     right:&[SignedAuditStatement],
 )->Result<AuditBranchAssessment,String>{
+    // A hex case change encodes the SAME Ed25519 signature, not a second
+    // contradictory auditor attestation. Fail closed on noncanonical signature
+    // representations rather than manufacturing a false fork finding.
+    for record in left.iter().chain(right.iter()){
+        if record.signature_hex.len()!=128||
+            !record.signature_hex.bytes().all(|c|c.is_ascii_digit()||(b'a'..=b'f').contains(&c)){
+            return Err("noncanonical Ed25519 signature hex in audit branch".into())
+        }
+    }
     let (_,left_tip)=verify_signed_audit_chain(pin,left)?;
     let (_,right_tip)=verify_signed_audit_chain(pin,right)?;
     let mut common=0usize;
