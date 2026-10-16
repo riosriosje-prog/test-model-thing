@@ -40,6 +40,46 @@ def gate(candidate):
         for s in sources
     ):
         raise ValueError("invented primary source capture")
+    # A visually checked caption on a later NPS registration is NOT a
+    # visual check of the original Fire Underwriters map cartouche.
+    source_by_id = {s["source_id"]: s for s in sources}
+    nps_id = "NPS-NRHP-LOAIZA-CORDERO-FIG19-1918"
+    if nps_id not in source_by_id:
+        raise ValueError("missing independent institutional map caption")
+    nps = source_by_id[nps_id]
+    crosswalk = candidate["cartographic_comparison_1917_1918"]
+    dates = crosswalk["date_discrepancy"]
+    if (
+        nps["discovery_mode"] !=
+        "INSTITUTIONAL_SECONDARY_FIGURE_CAPTION_VISUALLY_READ"
+        or nps["figure_number"] != 19
+        or nps["reviewed_printed_pages"] != [36]
+        or nps["viewed_pdf_page_index_zero_based"] != 37
+        or nps["figure_caption_map_section"] != "SECOND"
+        or nps["figure_caption_document_date"] != "1918-01-30"
+        or nps["figure_caption_visually_checked"] is not True
+        or nps["original_fire_underwriters_map_cartouche_checked"] is not False
+    ):
+        raise ValueError("Figure 19 caption provenance altered")
+    if (
+        nps_id not in crosswalk["map_sources"]
+        or dates["nps_registration_figure19_caption_date"] !=
+           nps["figure_caption_document_date"]
+        or dates["nps_caption_visually_checked"] is not True
+        or dates["secondary_january_agreement"] is not True
+        or dates["indexed_study_map_approval_date"] !=
+           nps["figure_caption_document_date"]
+        or dates["geo_isla_second_section_date"] != "1918-06-30"
+        or dates["resolution"] != "UNRESOLVED"
+        or dates["cartouche_original_image_checked"] is not False
+        or dates["authoritative_map_revision_date"] is not None
+        or dates["event_date"] is not None
+    ):
+        raise ValueError("secondary date dispute prematurely resolved")
+    if "nrhp_figure_caption_to_original_cartouche_authentication" not in (
+        candidate["prohibited_promotions"]
+    ):
+        raise ValueError("secondary caption promotion prohibition omitted")
     allowed = set(source_ids)
     observations = candidate["observations"]
     ids = [o["observation_id"] for o in observations]
@@ -110,7 +150,7 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
 
     def test_versioned_manifest_fails_closed(self):
         self.assertTrue(gate(self.candidate))
-        self.assertEqual(len(self.candidate["sources"]), 8)
+        self.assertEqual(len(self.candidate["sources"]), 9)
         self.assertEqual(len(self.candidate["observations"]), 12)
         self.assertEqual(
             {s["discovery_mode"] for s in self.candidate["sources"]
@@ -221,6 +261,54 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
         self.assertFalse(dates["cartouche_original_image_checked"])
         self.assertIsNone(dates["authoritative_map_revision_date"])
         self.assertIsNone(dates["event_date"])
+
+    def test_nps_institutional_caption_corrobates_january_not_cartouche(self):
+        dates = self.candidate["cartographic_comparison_1917_1918"][
+            "date_discrepancy"
+        ]
+        source = next(
+            source for source in self.candidate["sources"]
+            if source["source_id"] == "NPS-NRHP-LOAIZA-CORDERO-FIG19-1918"
+        )
+        self.assertEqual(dates["nps_registration_figure19_caption_date"],
+                         "1918-01-30")
+        self.assertEqual(source["figure_caption_document_date"], "1918-01-30")
+        self.assertEqual(source["viewed_pdf_page_index_zero_based"], 37)
+        self.assertEqual(source["reviewed_printed_pages"], [36])
+        self.assertTrue(source["figure_caption_visually_checked"])
+        self.assertFalse(source["original_fire_underwriters_map_cartouche_checked"])
+        self.assertFalse(dates["cartouche_original_image_checked"])
+        self.assertEqual(dates["resolution"], "UNRESOLVED")
+        self.assertIsNone(dates["authoritative_map_revision_date"])
+        self.assertTrue(gate(self.candidate))
+
+    def test_forged_1918_cartouche_approval_and_caption_drift_fail_closed(self):
+        def nps_source(candidate):
+            return next(
+                s for s in candidate["sources"]
+                if s["source_id"] == "NPS-NRHP-LOAIZA-CORDERO-FIG19-1918"
+            )
+        cases = [
+            ("fake_original_checked", lambda d: d[
+                "cartographic_comparison_1917_1918"]["date_discrepancy"]
+                .__setitem__("cartouche_original_image_checked", True)),
+            ("premature_resolution", lambda d: d[
+                "cartographic_comparison_1917_1918"]["date_discrepancy"]
+                .__setitem__("resolution", "RESOLVED")),
+            ("fabricated_original_date", lambda d: d[
+                "cartographic_comparison_1917_1918"]["date_discrepancy"]
+                .__setitem__("authoritative_map_revision_date", "1918-01-30")),
+            ("altered_caption", lambda d: nps_source(d).__setitem__(
+                "figure_caption_document_date", "1918-06-30")),
+            ("fake_source_cartouche", lambda d: nps_source(d).__setitem__(
+                "original_fire_underwriters_map_cartouche_checked", True)),
+        ]
+        for label, mutation in cases:
+            with self.subTest(change=label):
+                candidate = copy.deepcopy(self.candidate)
+                mutation(candidate)
+                with self.assertRaises(ValueError):
+                    gate(candidate)
 
     def test_indexed_1918_map_labels_do_not_authenticate_crossings(self):
         record = self.candidate["cartographic_comparison_1917_1918"]
