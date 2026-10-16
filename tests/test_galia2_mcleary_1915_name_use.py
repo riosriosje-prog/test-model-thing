@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import os
 import tempfile
 import json
+import hashlib
 from pathlib import Path
 import unittest
 
@@ -286,6 +287,7 @@ class McLeary1915NameUseTests(unittest.TestCase):
                 "d.event_date_end, d.content_sha256 AS document_sha, "
                 "d.byte_length AS document_length, d.content_locator, "
                 "s.url AS source_url, s.repository, s.metadata_json AS source_metadata, "
+                "d.metadata_json AS document_metadata, "
                 "c.document_id AS claim_document_id, c.status "
                 "FROM documents d JOIN sources s ON s.source_id=d.source_id "
                 "JOIN claims c ON c.document_id=d.document_id "
@@ -303,14 +305,19 @@ class McLeary1915NameUseTests(unittest.TestCase):
             self.assertEqual(record["content_locator"], obs["url"])
             self.assertEqual(record["source_url"], obs["url"])
             self.assertEqual(record["repository"], "UFDC")
+            source_meta = json.loads(record["source_metadata"])
+            document_meta = json.loads(record["document_metadata"])
+            self.assertEqual(source_meta["reported_page"], obs["reported_page"])
+            self.assertIs(
+                source_meta["source_issue_and_page_independently_read"], False
+            )
             self.assertEqual(
-                json.loads(record["source_metadata"])["reported_page"],
-                obs["reported_page"],
+                document_meta["raw_page_anchor_status"], "PENDING_CAPTURE"
             )
             self.assertEqual(record["status"], "PROPOSED")
             rows = self.store.conn.execute(
                 "SELECT acquisition_state, raw_artifact, preferred_for_review, "
-                "content_sha256, byte_length, source_url "
+                "content_sha256, byte_length, source_url, metadata_json "
                 "FROM document_representations WHERE document_id=?",
                 (obs["document_id"],),
             ).fetchall()
@@ -326,9 +333,27 @@ class McLeary1915NameUseTests(unittest.TestCase):
                 if representation["acquisition_state"] == "LOCATOR_ONLY":
                     self.assertIsNone(representation["content_sha256"])
                     self.assertIsNone(representation["byte_length"])
+                else:
+                    # SHA-256 here authenticates ONLY the exact TEXT_SURROGATE
+                    # bytes, never the missing original newspaper page.
+                    expected_text = b"Avenida MacLeary. Parada 44"
+                    self.assertEqual(
+                        representation["content_sha256"],
+                        hashlib.sha256(expected_text).hexdigest(),
+                    )
+                    self.assertEqual(
+                        representation["byte_length"], len(expected_text)
+                    )
+                    surrogate_meta = json.loads(representation["metadata_json"])
+                    self.assertIs(surrogate_meta["not_a_scan"], True)
+                    self.assertIs(
+                        surrogate_meta["not_sufficient_for_claim_promotion"],
+                        True,
+                    )
             evidence = self.store.conn.execute(
                 "SELECT e.document_id, e.locator, e.role, "
-                "e.representation_id, "
+                "e.representation_id, e.excerpt_sha256, "
+                "r.content_sha256 AS representation_text_sha256, "
                 "r.document_id AS representation_document_id, "
                 "r.acquisition_state AS representation_acquisition_state, "
                 "r.raw_artifact AS representation_raw_artifact, "
@@ -355,6 +380,14 @@ class McLeary1915NameUseTests(unittest.TestCase):
             )
             self.assertEqual(evidence[0]["locator"], obs["url"])
             self.assertEqual(evidence[0]["role"], "supports")
+            self.assertEqual(
+                evidence[0]["excerpt_sha256"],
+                evidence[0]["representation_text_sha256"],
+            )
+            self.assertEqual(
+                evidence[0]["excerpt_sha256"],
+                hashlib.sha256(b"Avenida MacLeary. Parada 44").hexdigest(),
+            )
 
     def test_1915_manifest_binds_to_actual_store_document_lineage(self):
         manifest = json.loads(
@@ -432,6 +465,29 @@ class McLeary1915NameUseTests(unittest.TestCase):
                 "SET preferred_for_review=? WHERE document_id=? "
                 "AND acquisition_state='TEXT_SURROGATE'",
                 (1, self.ids["indexed_26_document_id"]),
+            ),
+            (
+                "falsely_verified_newspaper_page",
+                "UPDATE sources SET metadata_json=? WHERE source_id=("
+                "SELECT source_id FROM documents WHERE document_id=?)",
+                (
+                    json.dumps({
+                        "reported_page": "4",
+                        "source_issue_and_page_independently_read": True,
+                    }),
+                    self.ids["document_id"],
+                ),
+            ),
+            (
+                "surrogate_digest_substitution",
+                "UPDATE document_representations SET content_sha256=? "
+                "WHERE document_id=? AND acquisition_state='TEXT_SURROGATE'",
+                ("b" * 64, self.ids["document_id"]),
+            ),
+            (
+                "evidence_excerpt_digest_substitution",
+                "UPDATE claim_evidence SET excerpt_sha256=? WHERE claim_id=?",
+                ("c" * 64, self.ids["indexed_26_claim_id"]),
             ),
             (
                 "cross_document_evidence_representation_substitution",
