@@ -1,6 +1,11 @@
 name: GALIA Rust shadow conformance
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'rust/galia-core/**'
+      - '.github/workflows/galia-rust-shadow.yml'
   pull_request:
     paths:
       - 'rust/galia-core/**'
