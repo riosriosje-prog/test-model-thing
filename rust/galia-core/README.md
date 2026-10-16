@@ -191,3 +191,17 @@ This does NOT deploy a reliable external server, hardware-bound key custody, ind
 ### Trust and consistency blockers
 
 No independently deployed durable signing, HSM/KMS, authenticated remote anchor CAS service, protected key lifecycle, trusted wall-clock, real multi-host fault test, true distributed atomic transaction or consensus is implemented. The external CAS trait alone cannot prove the configured provider is independent, trustworthy or crash-durable. Mutable memory, files on the same snapshot volume, rollback of both local and external pin, malicious credential holder, or direct legacy write paths break guarantees. No human P5 validation, P2 promotion, archival provenance, Python/Supabase/DW8 canonical writeback or authority transfer is granted. AUTHORITY_HOLD and PR draft remain.
+
+
+## NEW v0.27 — persistent, separately rooted monotonic CAS anchor (NONCANONICAL)
+
+**DRAFT / AUTHORITY_HOLD / FEATURE DISABLED BY DEFAULT / NOT A DEPLOYED TRUST SERVICE**
+
+- Added feature-gated durable_monotonic_anchor.rs, implementing the v0.26 IndependentMonotonicFencingAnchor API. An explicitly brand-new scratch root separate by path from the coordinator hosts its own marker, history and cooperative OS lock. No TLS server, hardware key custody or external operator is deployed by this adapter.
+- Each previous-to-next checkpoint CAS is checked under an exclusive anchor lock; it appends a sequential, immutable, fsynced, canonical JSON record with SHA-256 predecessor linkage. Reopen, reads and new CAS replay the complete history. Valid successors advance exactly one height: an epoch rotation does not consume a nonce, while a same-epoch response commit consumes exactly one nonce. Partial, corrupted, injected, missing or symlinked entries fail closed; duplicate concurrent CAS cannot both succeed when sharing one filesystem.
+- Existing strict TlsFencingRpcServer can use this persistent anchor and reject any coordinator/anchor mismatch before mTLS RPC. The external anchor CAS occurs BEFORE local coordinator write; a crash between operations strands the coordinator and intentionally blocks subsequent strict requests pending independent human review.
+- 14 new local and real TLS 1.3 tests verify reopen after epoch/commit, stale CAS, two competing handles, wrong scope, invalid transitions, failure between external CAS and coordinator append, signed response commit/recovery over strict TLS, unmodified external anchor detects coordinator rollback, corrupted/extra/symlink journal entries and exact nonce contention. The full snapshot rollback of BOTH local roots remains an explicit negative result.
+
+### Mandatory outstanding production gates
+
+These TWO roots are still on one simulated machine; the new anchor is NOT an independently administered monotonic trust authority, multi-host linearizable consensus, KMS/HSM, genuine hardware-separated durable root, trusted clock or protected external publisher. A complete rollback of anchor and coordinator together may evade detection. A malicious filesystem writer can tamper with storage. No cryptographic host identity is established beyond the existing test certificate fixtures. Legacy unanchored coordinator claim/commit and original unguarded test paths remain exposed and may bypass strict mode. There is no cross-filesystem atomic transaction, production key lifecycle, independent P5 human approval, P2 executable promotion or canonical GALIA HEAD/Python/Supabase/DW8 write. All operations remain noncanonical and require separate human security/governance review. AUTHORITY_HOLD.

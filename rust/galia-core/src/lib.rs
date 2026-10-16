@@ -49,3 +49,6 @@ pub mod fenced_coordinator;
 
 #[cfg(feature="tls-transport")]
 pub mod network_fencing;
+
+#[cfg(feature="tls-transport")]
+pub mod durable_monotonic_anchor;
