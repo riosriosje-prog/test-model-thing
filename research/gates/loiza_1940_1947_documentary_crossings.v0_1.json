@@ -106,6 +106,19 @@
       "source_binary_byte_length": null,
       "source_bytes_retained": false,
       "review_state": "PENDING_DIRECT_NARA_IMAGE_REVIEW"
+    },
+    {
+      "source_id": "OECH-CANGREJOS-SANTURCE-S2-INDEXED-REPRODUCTION",
+      "title": "Sepúlveda y Carbonell, Cangrejos-Santurce: historia ilustrada de su desarrollo urbano (1519–1950), indexed reproduction of the General Plan of Santurce, Second Section",
+      "document_year": 1918,
+      "url": "https://docs.pr.gov/files/OECH/Publicaciones%20y%20Recursos/Libros/Cangrejos-Santurce%20Historia%20Ilustrada%20de%20su%20desarrollo%20Urbano%20%281519-1950%29.pdf",
+      "repository": "Oficina Estatal de Conservación Histórica de Puerto Rico, government PDF of historical study",
+      "discovery_mode": "SEARCH_INDEX_EXTRACTED_MAP_CAPTION_NOT_ORIGINAL_MAP",
+      "reviewed_printed_pages": [],
+      "source_binary_sha256": null,
+      "source_binary_byte_length": null,
+      "source_bytes_retained": false,
+      "review_state": "NEEDS_ORIGINAL_CARTOUCHE_VISUAL_VERIFICATION"
     }
   ],
   "observations": [
@@ -370,7 +383,10 @@
     "religious_historic_structure_georeferencing",
     "automatic_canonical_write",
     "1940_loiza_rd_to_calle_loiza_continuity_without_cartographic_verification",
-    "1940_mcleary_carrion_mentions_to_exact_intersection_or_road_naming_date"
+    "1940_mcleary_carrion_mentions_to_exact_intersection_or_road_naming_date",
+    "index_derived_map_label_to_historical_intersection",
+    "conflicted_second_section_date_to_authoritative_cartographic_date",
+    "1918_map_corroboration_to_original_map_custody"
   ],
   "pending_work": [
     "Independently obtain and hash source document binaries.",
@@ -380,6 +396,71 @@
     "Require historian human review before any canonical claim or georeferenced vertex.",
     "Obtain and inspect direct NARA items 5879466, 5879474, and 5879475 against their Commons-imported catalog descriptions.",
     "Evaluate CALLE LOIZA vs LOIZA RD naming form in separate 1940 ED descriptions, without assumed continuous geometry.",
-    "Check whether 1940 Park ED 8-83/84 McLeary/Carrion boundaries correlate to original street corners, without asserting King's Court/McLeary identity."
-  ]
+    "Check whether 1940 Park ED 8-83/84 McLeary/Carrion boundaries correlate to original street corners, without asserting King's Court/McLeary identity.",
+    "Resolve discrepancy in the Second Section cartouche date: indexed historic-study map reads 30 Jan 1918, GeoIsla summary says 30 Jun 1918; obtain original large-scale map.",
+    "Examine Second Section original map for Calle Loíza versus Avenida De Diego, King's Court and McLeary/Carrion Court; no intersection claimed by this indexed secondary reproduction."
+  ],
+  "cartographic_comparison_1917_1918": {
+    "record_type": "RESEARCH_ONLY_CHRONOLOGY_AND_LEGIBILITY_CROSSWALK",
+    "authority_state": "AUTHORITY_HOLD",
+    "map_series": "No. 9 General Plan of Santurce, Porto Rico Board of Fire Underwriters",
+    "target_section": "SECOND",
+    "map_sources": [
+      "GEOISLA-SANTURCE-1917-1918",
+      "OECH-CANGREJOS-SANTURCE-S2-INDEXED-REPRODUCTION"
+    ],
+    "date_discrepancy": {
+      "geo_isla_second_section_date": "1918-06-30",
+      "indexed_study_map_approval_date": "1918-01-30",
+      "resolution": "UNRESOLVED",
+      "reason": "Secondary GeoIsla description and search-index extracted figure/cartouche are inconsistent; no independent full-resolution original cartouche read.",
+      "event_date": null,
+      "authoritative_map_revision_date": null,
+      "cartouche_original_image_checked": false
+    },
+    "indexed_only_map_labels": [
+      "Calle Loiza",
+      "Avenida De Diego"
+    ],
+    "indexed_label_provenance": "Search-index derived visual-element description of the OECH historical study PDF; not read directly from a verified original map scan. Presence of both words does not confirm they meet or that modern alignments are unchanged.",
+    "candidate_crosschecks": [
+      {
+        "candidate_id": "LOIZA-S2-1918-1947-DE-DIEGO",
+        "later_observation_ids": [
+          "LOIZA-1947-DE-DIEGO-TERRAZA"
+        ],
+        "map_assertion_status": "UNTESTED",
+        "original_map_legible_for_named_crossing": false,
+        "geometry": null,
+        "pre_1940_street_intersection_established": false
+      },
+      {
+        "candidate_id": "LOIZA-S2-1918-1947-KINGS-COURT",
+        "later_observation_ids": [
+          "LOIZA-1947-KINGS-COURT-SAN-JORGE"
+        ],
+        "map_assertion_status": "UNTESTED",
+        "original_map_legible_for_named_crossing": false,
+        "geometry": null,
+        "pre_1940_street_intersection_established": false
+      },
+      {
+        "candidate_id": "LOIZA-S2-1918-1940-MCLEARY-CARRION",
+        "later_observation_ids": [
+          "LOIZA-1940-ED8-83-PARK-MCLEARY-CARRION",
+          "LOIZA-1940-ED8-84-PARK-MCLEARY-CARRION"
+        ],
+        "map_assertion_status": "UNTESTED",
+        "original_map_legible_for_named_crossing": false,
+        "geometry": null,
+        "pre_1940_street_intersection_established": false
+      }
+    ],
+    "next_required_checks": [
+      "Locate full-resolution ORIGINAL Porto Rico Board of Fire Underwriters Second Section map and independently read date cartouche, scale and revision wording.",
+      "Disambiguate second-section Jan 30 vs Jun 30 1918 without assuming the years or day/month are image-confirmed.",
+      "Visually inspect original map labels and exact topological intersections before pairing any 1918 label to later 1940/47 boundary descriptions.",
+      "Preserve document issue/map approval date separately from street naming or construction event date."
+    ]
+  }
 }
