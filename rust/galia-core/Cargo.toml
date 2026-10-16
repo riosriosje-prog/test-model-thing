@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.25.0"
+version = "0.26.0"
 edition = "2021"
 publish = false
-description = "GALIA experimental authenticated commit receipt recovery across pinned mTLS clients"
+description = "GALIA experimental independently anchored monotonic commit CAS and strict remote fencing"
 
 [lib]
 name = "galia_core_shadow"

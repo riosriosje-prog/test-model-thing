@@ -109,6 +109,7 @@ struct FencingEntry{
     previous_sha256:Option<String>,
     action:FencingAction,
 }
+#[derive(Clone)]
 struct State{
     count:u64,
     tip:Option<String>,
@@ -210,6 +211,20 @@ pub struct FencedCommitReceipt{
     pub canonical_writeback:bool,
     pub authority_transfer:bool,
 }
+/// Opt-in interface for an OUT-OF-PROCESS, independently provisioned durable
+/// monotonic high-water CAS. Implementations MUST keep scope and checkpoint
+/// outside the attackable coordinator filesystem and acknowledge ONLY after
+/// persisting successor; a local in-memory test fixture is NOT production trust.
+///
+/// The coordinator invokes CAS while holding its own scratch lock, BEFORE
+/// appending the corresponding signed response. If CAS succeeds and the local
+/// write fails, future externally anchored commits must FAIL CLOSED; manual
+/// reconciliation, not re-issuance of nonce, is required.
+pub trait IndependentMonotonicFencingAnchor:Send+Sync{
+    fn current(&self,scope:&FencingScope)->Result<FencingCheckpoint,String>;
+    fn advance(&self,scope:&FencingScope,
+        prior:&FencingCheckpoint,successor:&FencingCheckpoint)->Result<(),String>;
+}
 pub trait FencingAuthority:Send+Sync{
     fn scope(&self)->Result<FencingScope,String>;
     fn claim(&self,grant:&EpochGrant,nonce_sha256:&str)->Result<FencingCheckpoint,String>;
@@ -219,6 +234,13 @@ pub trait FencingAuthority:Send+Sync{
     fn commit_response(&self,_grant:&EpochGrant,_nonce_sha256:&str,
         _response_json:&str)->Result<FencedCommitReceipt,String>{
         Err("commit-boundary fencing is unsupported by this coordinator".into())
+    }
+    /// Secure-mode runtime MUST invoke only anchored commit, not legacy
+    /// commit_response or claim. Default for unsupported adapters is denial.
+    fn commit_response_anchored(&self,_grant:&EpochGrant,_nonce_sha256:&str,
+        _response_json:&str,_anchor:&dyn IndependentMonotonicFencingAnchor
+    )->Result<FencedCommitReceipt,String>{
+        Err("external monotonic anchor not supported: deny commit".into())
     }
 }
 impl DurableFencingCoordinator{
@@ -295,6 +317,30 @@ impl DurableFencingCoordinator{
         write_once(&self.root.join(JOURNAL).join(format!("{:020}.json",entry.sequence)),&bytes)?;
         sync_dir(&self.root.join(JOURNAL))
     }
+    /// Every commit using this method checks the pinned EXTERNAL high-water
+    /// under the same local lock that creates the numbered coordinator record.
+    /// Its safety depends on the external anchor's REAL durability and on
+    /// banning all legacy unanchored write paths from the enclosing runtime.
+    fn append_with_anchor(&self,state:&mut State,action:FencingAction,
+        external:&dyn IndependentMonotonicFencingAnchor)->Result<(),String>{
+        let entry=FencingEntry{
+            format:FORMAT.into(),
+            sequence:state.count.checked_add(1).ok_or("coordinator sequence overflow")?,
+            previous_sha256:state.tip.clone(),action,
+        };
+        let bytes=serialize(&entry)?;
+        let mut projected=state.clone();
+        projected.apply(&entry,&bytes,&self.scope)?;
+        // A separately held epoch+nonce high-water must CAS from the exact
+        // fully replayed state. A snapshot rollback mismatches here.
+        external.advance(&self.scope,&state.checkpoint(),&projected.checkpoint())?;
+        // An I/O fault after external CAS and before this append is deliberately
+        // NOT repaired automatically; a subsequent guarded append fails CAS.
+        write_once(&self.root.join(JOURNAL).join(format!("{:020}.json",entry.sequence)),&bytes)?;
+        sync_dir(&self.root.join(JOURNAL))?;
+        *state=projected;
+        Ok(())
+    }
     /// Explicit controlled failover via CAS. NO wall-clock lease expiry or
     /// automatic takeover: outside governance must authorize the next epoch.
     pub fn advance_epoch(&self,expected_epoch:u64,host_id:&str)->Result<EpochGrant,String>{
@@ -307,6 +353,23 @@ impl DurableFencingCoordinator{
         let epoch=expected_epoch.checked_add(1).ok_or("epoch overflow")?;
         let grant=EpochGrant{host_id:host_id.into(),epoch};
         self.append(&mut state,FencingAction::AcquireEpoch{grant:grant.clone()})?;
+        Ok(grant)
+    }
+    /// Failover itself must advance the separately retained anchor when the
+    /// strict anchored path is in use. This method never auto-elects a holder.
+    pub fn advance_epoch_anchored(&self,expected_epoch:u64,host_id:&str,
+        external:&dyn IndependentMonotonicFencingAnchor)->Result<EpochGrant,String>{
+        if !valid_id(host_id){return Err("invalid fencing holder".into())}
+        let _lock=self.lock()?;
+        let mut state=self.replay()?;
+        if state.epoch!=expected_epoch{
+            return Err("anchored epoch CAS failed".into())
+        }
+        let epoch=expected_epoch.checked_add(1).ok_or("epoch overflow")?;
+        let grant=EpochGrant{host_id:host_id.into(),epoch};
+        self.append_with_anchor(&mut state,FencingAction::AcquireEpoch{
+            grant:grant.clone()
+        },external)?;
         Ok(grant)
     }
     pub fn checkpoint(&self)->Result<FencingCheckpoint,String>{
@@ -399,6 +462,33 @@ impl FencingAuthority for DurableFencingCoordinator{
             response_sha256,checkpoint:state.checkpoint(),
             durable_scratch_record_committed:true,cross_host_consensus_verified:false,
             human_authority_verified:false,canonical_writeback:false,authority_transfer:false,
+        })
+    }
+
+    fn commit_response_anchored(&self,grant:&EpochGrant,nonce_sha256:&str,
+        response_json:&str,external:&dyn IndependentMonotonicFencingAnchor
+    )->Result<FencedCommitReceipt,String>{
+        if !valid_hash(nonce_sha256)||response_json.is_empty()||
+            response_json.len()>1024*1024{
+            return Err("invalid anchored nonce/content length".into())
+        }
+        let response_sha256=sha256(response_json.as_bytes());
+        let _lock=self.lock()?;
+        let mut state=self.replay()?;
+        if state.active.as_ref()!=Some(grant)||state.nonces.contains(nonce_sha256){
+            return Err("anchored storage commit rejected stale holder or nonce".into())
+        }
+        self.append_with_anchor(&mut state,FencingAction::CommitResponse{
+            grant:grant.clone(),nonce_sha256:nonce_sha256.into(),
+            response_sha256:response_sha256.clone(),response_json:response_json.into(),
+        },external)?;
+        Ok(FencedCommitReceipt{
+            status:"EXTERNALLY_CAS_ACKNOWLEDGED_SCRATCH_COMMIT_ONLY".into(),
+            grant:grant.clone(),nonce_sha256:nonce_sha256.into(),
+            response_sha256,checkpoint:state.checkpoint(),
+            durable_scratch_record_committed:true,
+            cross_host_consensus_verified:false,human_authority_verified:false,
+            canonical_writeback:false,authority_transfer:false,
         })
     }
 

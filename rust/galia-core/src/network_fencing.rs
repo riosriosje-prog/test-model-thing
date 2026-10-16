@@ -7,7 +7,7 @@
 use std::collections::{BTreeMap,BTreeSet};
 use std::io::{Read,Write};
 use std::net::{SocketAddr,TcpStream};
-use std::sync::Arc;
+use std::sync::{Arc,OnceLock};
 use std::time::Duration;
 use rustls::{ClientConfig,ClientConnection,ProtocolVersion,RootCertStore,
     ServerConfig,ServerConnection,StreamOwned};
@@ -18,7 +18,8 @@ use crate::audit::sha256;
 use crate::external_transport::{SignedRemoteCheckpointResponse,RESPONSE_DOMAIN};
 use crate::witness_proof::verify_detached;
 use crate::fenced_coordinator::{DurableFencingCoordinator,FencingAuthority,
-    FencingScope,EpochGrant,FencingCheckpoint,FencedCommitReceipt};
+    FencingScope,EpochGrant,FencingCheckpoint,FencedCommitReceipt,
+    IndependentMonotonicFencingAnchor};
 
 const MAX_FRAME:usize=1024*1024+8192;
 fn valid_name(s:&str)->bool{!s.trim().is_empty()&&s.len()<=256&&!s.chars().any(|c|c.is_control())}
@@ -69,6 +70,9 @@ pub struct TlsFencingRpcServer{
     store:Arc<DurableFencingCoordinator>,
     allowed_hosts:BTreeMap<String,String>,
     timeout:Duration,
+    /// Once enabled, strict external-monotonic mode cannot be disabled
+    /// on this running server instance.
+    external_anchor:OnceLock<Arc<dyn IndependentMonotonicFencingAnchor>>,
 }
 impl TlsFencingRpcServer{
     pub fn new(store:Arc<DurableFencingCoordinator>,
@@ -94,7 +98,34 @@ impl TlsFencingRpcServer{
             .with_client_cert_verifier(verifier)
             .with_single_cert(server_certificates,server_private_key)
             .map_err(|e|e.to_string())?;
-        Ok(Self{config:Arc::new(config),store,allowed_hosts:pinned_client_spki_by_host,timeout})
+        Ok(Self{config:Arc::new(config),store,allowed_hosts:pinned_client_spki_by_host,
+            timeout,external_anchor:OnceLock::new()})
+    }
+    /// Opt-in strict scratch mode, set once before serving requests. The
+    /// anchor MUST actually be stored/administered outside the coordinator
+    /// root. Passing a self-referential mock is not independent custody.
+    pub fn enable_strict_external_anchor(
+        &self,anchor:Arc<dyn IndependentMonotonicFencingAnchor>
+    )->Result<(),String>{
+        if self.external_anchor.get().is_some(){
+            return Err("strict external anchor can only be enabled once".into())
+        }
+        let scope=self.store.scope()?;
+        let independently_pinned=anchor.current(&scope)?;
+        if independently_pinned!=self.store.checkpoint()?{
+            return Err("external high-water differs from coordinator before strict activation".into())
+        }
+        self.external_anchor.set(anchor)
+            .map_err(|_|"strict external anchor already installed".into())
+    }
+    fn validate_live_highwater(&self)->Result<(),String>{
+        if let Some(anchor)=self.external_anchor.get(){
+            let scope=self.store.scope()?;
+            if anchor.current(&scope)?!=self.store.checkpoint()?{
+                return Err("coordinator snapshot rollback or unanchored mutation: fail closed".into())
+            }
+        }
+        Ok(())
     }
     pub fn serve_one(&self,mut socket:TcpStream)->Result<(),String>{
         socket.set_read_timeout(Some(self.timeout)).map_err(|e|e.to_string())?;
@@ -113,6 +144,7 @@ impl TlsFencingRpcServer{
             .ok_or("client certificate not pinned to a registered replica")?;
         let mut stream=StreamOwned::new(tls,socket);
         let request:RpcRequest=read_frame(&mut stream)?;
+        self.validate_live_highwater()?;
         let reply=match request{
             RpcRequest::Scope=>RpcReply::Scope{scope:self.store.scope()?},
             RpcRequest::Recover{nonce_sha256}=>{
@@ -138,7 +170,12 @@ impl TlsFencingRpcServer{
                 if grant.host_id!=authenticated_host{
                     RpcReply::Rejected{reason:"epoch holder does not match authenticated client certificate".into()}
                 }else{
-                    match self.store.commit_response(&grant,&nonce_sha256,&response_json){
+                    let committed=match self.external_anchor.get(){
+                        Some(anchor)=>self.store.commit_response_anchored(
+                            &grant,&nonce_sha256,&response_json,anchor.as_ref()),
+                        None=>self.store.commit_response(&grant,&nonce_sha256,&response_json),
+                    };
+                    match committed{
                         Ok(receipt)=>RpcReply::Committed{receipt},
                         Err(e)=>RpcReply::Rejected{reason:e},
                     }
@@ -158,6 +195,8 @@ pub struct RemoteTlsFencingAuthority{
     expected_scope:FencingScope,
     host_id:String,
     timeout:Duration,
+    /// If true, refuse any receipt not explicitly acknowledging external CAS.
+    require_external_anchor:bool,
 }
 impl RemoteTlsFencingAuthority{
     pub fn new(address:SocketAddr,dns_name:&str,
@@ -178,7 +217,14 @@ impl RemoteTlsFencingAuthority{
             .map_err(|e|e.to_string())?;
         Ok(Self{config:Arc::new(config),address,dns_name:dns_name.into(),
             expected_server_spki_sha256:pinned_server_spki_sha256,
-            expected_scope,host_id:host_id.into(),timeout})
+            expected_scope,host_id:host_id.into(),timeout,
+            require_external_anchor:false})
+    }
+    /// Client-side enforcement: a legacy unfenced RPC reply can never be
+    /// mistaken for an externally anchored confirmation.
+    pub fn require_external_anchor(mut self)->Self{
+        self.require_external_anchor=true;
+        self
     }
     /// Read-only authenticated recovery after an ambiguous network failure.
     /// Caller MUST supply the SHA-256 of the exact response it prepared
@@ -273,7 +319,9 @@ impl FencingAuthority for RemoteTlsFencingAuthority{
                 receipt.response_sha256==sha256(response_json.as_bytes()) &&
                 receipt.durable_scratch_record_committed &&
                 !receipt.canonical_writeback&&!receipt.authority_transfer &&
-                !receipt.human_authority_verified&&!receipt.cross_host_consensus_verified
+                !receipt.human_authority_verified&&!receipt.cross_host_consensus_verified &&
+                (!self.require_external_anchor||
+                    receipt.status=="EXTERNALLY_CAS_ACKNOWLEDGED_SCRATCH_COMMIT_ONLY")
                 =>Ok(receipt),
             RpcReply::Rejected{reason}=>Err(format!("remote coordinator denied fenced commit: {reason}")),
             _=>Err("remote coordinator returned invalid or unsafe commit response".into()),
