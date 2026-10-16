@@ -1,6 +1,6 @@
 [package]
 name = "galia-core-shadow"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 publish = false
 description = "Pure, non-authoritative Rust shadow evaluator for GALIA 2.0"
@@ -12,6 +12,10 @@ path = "src/lib.rs"
 [[bin]]
 name = "galia-shadow"
 path = "src/bin/galia-shadow.rs"
+
+[[bin]]
+name = "galia-preflight-shadow"
+path = "src/bin/galia-preflight-shadow.rs"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

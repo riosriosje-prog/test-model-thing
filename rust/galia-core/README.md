@@ -1,31 +1,35 @@
-# GALIA 2.0 — Rust migration, shadow phase v0.1
+# GALIA 2.0 — Rust migration, shadow phase v0.2
 
-**Status: CANDIDATE / ADVISORY_ONLY / NOT_PROMOTED**
+**Status: DRAFT CANDIDATE / ADVISORY_ONLY / NOT_PROMOTED**
 
-This is an additive, isolated Rust implementation of GALIA's **P1 Stage/SourceArtifact** validation and the **P2 state transition table**. It is a *conformance experiment*, not a replacement for the Python code or a deployed GALIA runtime.
+Additive Rust sidecar for **P1/P2** plus **P5 authority-envelope matching** and **P6 structural preflight diagnostics**. This is **not** a deployment, replacement for Python, a source of human authority, or a production cutover.
 
-## Scope actually implemented
+## Implemented and tested
 
-- Strict Rust models for Stage, StageState and SourceArtifact (dates kept separate).
-- Pure P2 transition decisions and immutable Stage replacement.
-- Exact P2 guards, fail-closed rejection, human boundaries and failure isolation.
-- JSON stdin/stdout diagnostic CLI (one request per process).
-- Rust unit tests and Python↔Rust differential vectors.
-- No TMT/MLX import, network, filesystem writes, Supabase, GitHub mutation, stage-persistence, GraphRAG writeback, human-authorization issuance or canonical promotion.
+- P1: Stage and SourceArtifact typed validation; document and event dates remain independent.
+- P2: guarded, pure state transitions and explicit human boundaries; quarantines/recovery.
+- P5 shadow: typed scope and supplied authorization **comparison**, without issuance, authentication or revocation.
+- P6 shadow: 12 deterministic checks (lineage, schema, stages, discrepancy hold, decision, exact authorization binding, exact rollback parent and flags), all advisory. **No emitted preflight guards, no promotion guards and no receipts.**
+- Two JSON stdin/stdout CLI diagnostics: galia-shadow (P2) and galia-preflight-shadow (P6).
+- Unit tests and differential Rust/Python reference tests; CI runs original Python P2 and P6 suites.
 
-**Critical security boundary:** Strings like human_decision_present, preflight_passed and authorization_matches_target are *not verified by this crate*. They are merely P2 inputs. A caller cannot treat an advisory decision or a guard string as an authenticated approval. Until P5/P6/P7 integration validates signed or otherwise authenticated human authorizations, this engine MUST remain read-only.
+### Security warning
 
-## Local usage
+JSON-supplied authorization, known_good and integrity_valid are **untrusted assertions**: exact matching is necessary but never sufficient. There is no cryptographic verification of author identity, rollback bytes or canonical manifests. This crate must NOT feed output back as approval to the Python orchestrator. A reporting passed=true means only that user-supplied P6 **structural inputs** match.
 
-From repository root:
+No canonical database writes, HEAD mutation, promotion, side effects, network, model/MLX invocation, DW8 graph writeback, human signature validation, validated receipts, or authority transfer.
+
+## Local verification
 
 ~~~sh
 cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
-cargo build --manifest-path rust/galia-core/Cargo.toml --bin galia-shadow
+cargo build --manifest-path rust/galia-core/Cargo.toml --bins
+python -m unittest discover -s tests -p 'test_galia2_state_machine.py' -v
+python -m unittest discover -s tests -p 'test_galia2_preflight.py' -v
 python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
 ~~~
 
-Example request (stdin JSON):
+P2 one-shot input example:
 
 ~~~json
 {
@@ -35,31 +39,17 @@ Example request (stdin JSON):
 }
 ~~~
 
-The CLI returns status ADVISORY_ONLY or REJECTED. It *never* writes a canonical commit or grants authority, even if the decision's to_state is CANONICAL.
+P6 one-shot requires exact typed PreflightRequest JSON: config, candidate, rollback, optional authorization, expected_scope. Output is ADVISORY_ONLY or REJECTED, never a canonical receipt.
 
-## Migration sequencing (not yet implemented)
+## Remaining migration
 
-1. P1/P2: Rust shadow evaluation vs current Python fixtures. **This candidate.**
-2. P4: binary-safe Legacy/MLX shadow capture and byte-level differential tests, with separate hash domains.
-3. P3/P7: append-only persistence, atomic HEAD CAS, tamper/replay/recovery; byte-exact manifest/receipt canonical JSON conformance against frozen Python fixtures.
-4. P5/P6: narrowly scoped human authority, revocation, exact target binding, preflight, rollback verification; negative gate tests and non-forgeable provenance.
-5. Historical research: evidence/discrepancy ledger, temporal history, source acquisition, legal-execution adapter.
-6. DW8 read-only projection and publisher; keep Python/MLX and other model tooling behind explicit interfaces until proven equivalent.
-7. Production cutover only after Rust↔Python differential parity, adversarial checks, reproducible builds, independent human review and approved promotion receipt.
+1. Add P4 Legacy/MLX shadow comparison with content-addressed captures and binary-safe hashes.
+2. P3/P7 append-only generation store, integrity, canonical JSON, atomically verified HEAD CAS, replay/rollback, recoverability; match Python frozen fixtures.
+3. P5/P6 authenticated and revocable authority provenance, target+scope binding, independent human approval and negative adversarial verification.
+4. Evidence/discrepancy ledger, historical chronology, case-specific GIS/Legal Execution gates.
+5. DW8 read-only retrieval/publisher ports, keep Python/MLX behind versioned interfaces until parity demonstrated.
+6. Independent human review of safety/performance and separate production deployment/cutover approval.
 
-## Invariants
+**Constitutional invariants:** EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION; HUMAN_PROMOTION_REQUIRED=true; CANONICAL_WRITEBACK_FROM_DW8=false; AUTHORITY_TRANSFER_FROM_LEGAL_EXECUTION=false.
 
-- EVENT_DATE != DOCUMENT_DATE.
-- PROMPT_VERSION != ENGINE_VERSION.
-- Generated images are never historical evidence.
-- Canonical writes and authority transfer are **disabled** here.
-- No automatic promotion, no DW8 writeback.
-- Failed checks route to quarantine, discrepancy review or recovery; not to CANONICAL.
-- Keep original Python code and repository main intact until separately reviewed.
-
-Based on Python reference:
-- galia2/core.py
-- galia2/state_machine.py
-- tests/test_galia2_state_machine.py
-
-This candidate neither alters nor replaces those files.
+Existing Python runtime, main, Supabase and DW8 are untouched; pending explicit review and authorization.

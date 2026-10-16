@@ -3,3 +3,5 @@
 #![forbid(unsafe_code)]
 pub mod core;
 pub mod state_machine;
+pub mod authority;
+pub mod preflight;
