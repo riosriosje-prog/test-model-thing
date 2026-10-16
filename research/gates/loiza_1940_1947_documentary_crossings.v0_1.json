@@ -141,6 +141,34 @@
       "source_binary_byte_length": null,
       "source_bytes_retained": false,
       "review_state": "SECONDARY_CAPTION_CHECKED_ORIGINAL_MAP_UNVERIFIED"
+    },
+    {
+      "source_id": "NPS-NRHP-ASHFORD-LOIZA-ROAD-WILSON-1918-MAP",
+      "title": "Casa Dr. Bailey K. Ashford — National Register of Historic Places registration; nineteenth-century Loíza Road discussion and Figure 29 of 1918 plan",
+      "document_year": null,
+      "url": "https://docs.pr.gov/files/OECH/Lugares%20Historicos/Propiedades%20en%20el%20Registro%20Nacional/San%20Juan/Casa%20Dr.%20Bailey%20K.%20Ashford.pdf",
+      "repository": "National Park Service nomination, hosted by Puerto Rico Oficina Estatal de Conservación Histórica",
+      "discovery_mode": "INSTITUTIONAL_SECONDARY_TEXT_AND_FIGURE_VISUALLY_READ",
+      "reviewed_printed_pages": [
+        30,
+        33
+      ],
+      "reviewed_pdf_page_index_zero_based": [
+        29,
+        32
+      ],
+      "source_binary_sha256": null,
+      "source_binary_byte_length": null,
+      "source_bytes_retained": false,
+      "road_history_footnote_number": 41,
+      "road_history_footnote_referred_work": "Evolución Histórica del Condado — Architecture and Construction Archives, University of Puerto Rico School of Architecture",
+      "road_history_referred_work_independently_checked": false,
+      "map_figure_number": 29,
+      "map_figure_footnote_number": 46,
+      "map_figure_footnote_date": "1918-01-30",
+      "figure_29_visually_checked": true,
+      "original_fire_underwriters_map_cartouche_checked": false,
+      "review_state": "SECONDARY_NPS_PAGES_CHECKED_ORIGINAL_ARCHIVE_RECORDS_PENDING"
     }
   ],
   "observations": [
@@ -409,7 +437,10 @@
     "index_derived_map_label_to_historical_intersection",
     "conflicted_second_section_date_to_authoritative_cartographic_date",
     "1918_map_corroboration_to_original_map_custody",
-    "nrhp_figure_caption_to_original_cartouche_authentication"
+    "nrhp_figure_caption_to_original_cartouche_authentication",
+    "nps_19c_loiza_road_to_verified_wilson_loiza_alignment",
+    "nps_19c_road_narrative_to_municipal_naming_act",
+    "nps_figure29_footnote_to_original_1918_cartouche_authentication"
   ],
   "pending_work": [
     "Independently obtain and hash source document binaries.",
@@ -422,7 +453,9 @@
     "Check whether 1940 Park ED 8-83/84 McLeary/Carrion boundaries correlate to original street corners, without asserting King's Court/McLeary identity.",
     "Resolve discrepancy in the Second Section cartouche date: indexed historic-study map reads 30 Jan 1918, GeoIsla summary says 30 Jun 1918; obtain original large-scale map.",
     "Examine Second Section original map for Calle Loíza versus Avenida De Diego, King's Court and McLeary/Carrion Court; no intersection claimed by this indexed secondary reproduction.",
-    "Compare the NPS NRHP historic district nomination, PDF page index 37 / printed p.36 / Fig.19 (30 January 1918) to the high-resolution original Fire Underwriters Second Section; retain discrepancy with GeoIsla."
+    "Compare the NPS NRHP historic district nomination, PDF page index 37 / printed p.36 / Fig.19 (30 January 1918) to the high-resolution original Fire Underwriters Second Section; retain discrepancy with GeoIsla.",
+    "Obtain University of Puerto Rico School of Architecture archival item Evolución Histórica del Condado cited in NPS Casa Bailey K. Ashford p.30 footnote 41; verify historic Camino de Loíza relation to Wilson and Loíza independently.",
+    "Directly compare NPS Casa Bailey K. Ashford Fig.29 footnote 46 Jan 30 1918 with original Fire Underwriters Second Section cartouche and GeoIsla June 30 claim."
   ],
   "cartographic_comparison_1917_1918": {
     "record_type": "RESEARCH_ONLY_CHRONOLOGY_AND_LEGIBILITY_CROSSWALK",
@@ -432,7 +465,8 @@
     "map_sources": [
       "GEOISLA-SANTURCE-1917-1918",
       "OECH-CANGREJOS-SANTURCE-S2-INDEXED-REPRODUCTION",
-      "NPS-NRHP-LOAIZA-CORDERO-FIG19-1918"
+      "NPS-NRHP-LOAIZA-CORDERO-FIG19-1918",
+      "NPS-NRHP-ASHFORD-LOIZA-ROAD-WILSON-1918-MAP"
     ],
     "date_discrepancy": {
       "geo_isla_second_section_date": "1918-06-30",
@@ -447,7 +481,13 @@
       "nps_figure_pdf_page_index_zero_based": 37,
       "nps_caption_visually_checked": true,
       "secondary_january_agreement": true,
-      "date_weighting_note": "Two public institutional secondary reproductions/index descriptions support 1918-01-30; GeoIsla describes section two as 1918-06-30. This strengthens January as a research candidate but does not authenticate a full-resolution original map cartouche or establish construction/opening date."
+      "date_weighting_note": "OECH historical study indexed reproduction (Jan 30), NRHP Loaiza Cordero Figure 19 (Jan 30), and NRHP Casa Bailey Ashford Figure 29 footnote 46 (Jan 30) versus GeoIsla (Jun 30). These are publication-level readings, not independent original-cartouche review. Exact original date remains UNRESOLVED.",
+      "nps_ashford_figure29_footnote_date": "1918-01-30",
+      "nps_ashford_source_printed_page": 33,
+      "nps_ashford_source_pdf_page_index_zero_based": 32,
+      "nps_ashford_figure29_visually_checked": true,
+      "nps_ashford_original_map_cartouche_checked": false,
+      "january_secondary_references_count": 3
     },
     "indexed_only_map_labels": [
       "Calle Loiza",
@@ -494,5 +534,26 @@
       "Preserve document issue/map approval date separately from street naming or construction event date.",
       "Verify original map cartouche against the NRHP Figure 19 printed-p.36 caption (Jan 30) and GeoIsla's Section Two metadata (Jun 30)."
     ]
+  },
+  "earlier_route_history_hypothesis": {
+    "hypothesis_id": "LOIZA-19C-ROAD-TO-WILSON-AND-LOIZA-CORRIDOR-CANDIDATE",
+    "source_id": "NPS-NRHP-ASHFORD-LOIZA-ROAD-WILSON-1918-MAP",
+    "source_printed_page": 30,
+    "source_pdf_page_index_zero_based": 29,
+    "source_text_form": "Loíza Road (today Wilson Street and Loiza Street)",
+    "source_claimed_period": "nineteenth century",
+    "source_narrative_scope": "NPS registration historical background says development was concentrated along Central Highway and Loíza Road and identifies today's Wilson Street and Loiza Street as its approximate descendant roadway references.",
+    "ultimate_citation": "Evolución Histórica del Condado — University of Puerto Rico Architecture and Construction Archives (footnote 41). Original UPR work unconsulted.",
+    "discovery_tier": "SECONDARY_HISTORICAL_NARRATIVE_NOT_PRIMARY_ROAD_SURVEY",
+    "geometry": null,
+    "specific_shared_segment_verified": false,
+    "historic_to_modern_alignment_verified": false,
+    "nominative_act_verified": false,
+    "road_opening_date": null,
+    "name_change_date": null,
+    "event_date": null,
+    "human_review_state": "PENDING",
+    "canonical_write_authorized": false,
+    "relationship_to_1940_loiza_rd": "UNRESOLVED_NAMING_AND_SEGMENT_EQUIVALENCE"
   }
 }
