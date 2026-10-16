@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.19.0"
+version = "0.24.0"
 edition = "2021"
 publish = false
-description = "GALIA Rust noncanonical TLS 1.3 checkpoint transport adapter plus signed replay anchors"
+description = "GALIA experimental authenticated network fencing RPC with host-pinned TLS client identities"
 
 [lib]
 name = "galia_core_shadow"

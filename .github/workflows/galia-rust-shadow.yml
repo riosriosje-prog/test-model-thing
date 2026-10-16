@@ -21,6 +21,16 @@ jobs:
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features scratch-store
       - name: Opt-in real rustls TLS 1.3 mTLS loopback transport tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features tls-transport
+      - name: Explicit real mTLS server nonce and restart tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport
+      - name: Two isolated server replicas and signed recovery tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport recovery_tests
+      - name: Shared scratch coordinator epoch and real TLS replica race tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport fencing_tests
+      - name: Commit-point epoch fencing and atomic response record tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport fencing_tests
+      - name: Remote authenticated coordinator and real TLS roundtrip tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport network_fencing_tests
       - name: Build six read-only Rust CLIs
         run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
       - name: Original Python P2 P6 P7 reference tests
