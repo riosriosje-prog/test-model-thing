@@ -125,8 +125,116 @@ def seed_mcleary_1915_name_use(store: HistoricalStore) -> dict[str, str]:
         },
         evidence_id="evd_macleary_1915_prior_transcription",
     )
+
+    # Independent discovery channel: a search-index transcription of the
+    # *26 November* issue. Not a verified image of the 22 November item.
+    # Never replace the 22-Nov claim or silently infer "first use".
+    indexed_26_url = (
+        "https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01448/"
+        "1915112601.pdf"
+    )
+    indexed_source = store.register_source(
+        source_type="newspaper",
+        title="El Tiempo, 26 November 1915, p. 4 (indexed OCR)",
+        custodian="University of Florida Digital Collections / dLOC",
+        repository="UFDC",
+        locator="AA/00/09/69/97/01448/1915112601.pdf",
+        url=indexed_26_url,
+        metadata={
+            "reported_page": "4",
+            "discovery_channel": "public_search_index",
+            "source_issue_and_page_independently_read": False,
+            "primary_image_review_status": "PENDING",
+        },
+        source_id="src_macleary_1915_11_26_indexed",
+    )
+    indexed_document = store.register_document(
+        source_id=indexed_source,
+        title="El Tiempo, 26 Nov 1915 — OCR index MacLeary reference",
+        document_date="1915-11-26",
+        # A later printed reference cannot date the naming act.
+        content_locator=indexed_26_url,
+        metadata={
+            "raw_page_anchor_status": "PENDING_CAPTURE",
+            "ocr_index_observation": True,
+            "not_independent_primary_image_review": True,
+        },
+        document_id="doc_macleary_1915_11_26_indexed",
+    )
+    record_acquisition_state(
+        store,
+        document_id=indexed_document,
+        receipt=AcquisitionReceipt(
+            state="LOCATOR_ONLY",
+            source_url=indexed_26_url,
+            representation_type="scanned_newspaper_issue_pdf",
+            raw_artifact=False,
+            note="Indexed page text only; primary scanned page not captured.",
+        ),
+        representation_id="repr_macleary_1915_11_26_pdf_locator",
+    )
+    indexed_text = b"Avenida MacLeary. Parada 44"
+    indexed_surrogate = store.register_document_representation(
+        document_id=indexed_document,
+        representation_type="search_index_ocr_excerpt",
+        acquisition_state="TEXT_SURROGATE",
+        locator=f"surrogate:public-search-index:{indexed_26_url}",
+        mime_type="text/plain; charset=utf-8",
+        content_sha256=hashlib.sha256(indexed_text).hexdigest(),
+        byte_length=len(indexed_text),
+        source_url=indexed_26_url,
+        raw_artifact=False,
+        preferred_for_review=False,
+        metadata={
+            "derivation": "search_engine_extracted_ocr_not_primary_scan",
+            "not_a_scan": True,
+            "not_sufficient_for_claim_promotion": True,
+        },
+        representation_id="repr_macleary_1915_11_26_indexed_ocr",
+    )
+    indexed_claim = store.propose_claim(
+        document_id=indexed_document,
+        subject_entity_id=alias_entity,
+        predicate="indexed_printed_name_use",
+        object_value="Avenida MacLeary. Parada 44",
+        claim_text=(
+            "An OCR search index of El Tiempo, 26 Nov 1915 p. 4, reports "
+            "'Avenida MacLeary. Parada 44' in a rental classified; raw "
+            "page image not independently checked."
+        ),
+        created_by="galia2-search-index-triage",
+        metadata={
+            "verification_state": "INDEXED_OCR_ONLY_RAW_CAPTURE_PENDING",
+            "promotion_blocked_until_raw_capture": True,
+            "not_independent_primary_image_review": True,
+            "does_not_establish": [
+                "1915_11_22_transcription_accuracy", "first_ever_mention",
+                "official_municipal_naming_act", "street_opening_date",
+                "same_road_as_1916_mcleary_taft", "street_geometry",
+                "eponym_identity",
+            ],
+        },
+        claim_id="clm_macleary_indexed_print_name_use_1915_11_26",
+    )
+    store.add_evidence(
+        claim_id=indexed_claim,
+        document_id=indexed_document,
+        representation_id=indexed_surrogate,
+        role="supports",
+        locator=indexed_26_url,
+        excerpt=indexed_text,
+        metadata={
+            "evidence_state": "SEARCH_INDEX_OCR_ONLY",
+            "raw_capture_required": True,
+            "page_anchor_pending": True,
+        },
+        evidence_id="evd_macleary_1915_11_26_indexed_ocr",
+    )
+
     return {
         "alias_entity_id": alias_entity,
         "document_id": document,
         "name_use_claim_id": claim,
+        "indexed_26_document_id": indexed_document,
+        "indexed_26_claim_id": indexed_claim,
     }
