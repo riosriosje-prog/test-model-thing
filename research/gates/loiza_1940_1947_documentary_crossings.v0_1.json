@@ -1,0 +1,265 @@
+{
+  "schema_version": "galia.research.loiza_corridor_candidate.v0.1",
+  "project_id": "galia.cangrejos.calle_loiza",
+  "case_id": "LOIZA-1940-1947-DOCUMENTARY-CROSSINGS",
+  "record_date": "2026-10-16",
+  "state": "AUTHORITY_HOLD",
+  "canonical_write_authorized": false,
+  "raw_capture_complete": false,
+  "reviewed_original_source_bytes": false,
+  "human_review_state": "PENDING",
+  "georeferencing_authorized": false,
+  "evidence_policy": "REMOTE_PRIMARY_PAGE_READING_IS_NOT_IMMUTABLE_SOURCE_CAPTURE",
+  "sources": [
+    {
+      "source_id": "JPUZ-PR-MEM06-1947",
+      "title": "Junta de Planificación, Urbanización y Zonificación de Puerto Rico, Municipio de San Juan: Memoria Suplementaria al Mapa de Límites del Municipio y sus Barrios, Memoria Núm. 6 (1947)",
+      "document_year": 1947,
+      "url": "https://rcm1.rcm.upr.edu/demografia/wp-content/uploads/sites/30/2020/04/Memoria_06_San-Juan-1947.pdf",
+      "repository": "Universidad de Puerto Rico, Recinto de Ciencias Médicas, Programa Graduado de Demografía",
+      "discovery_mode": "PRIMARY_REMOTE_PAGE_VISUAL_READING",
+      "reviewed_printed_pages": [
+        26,
+        28,
+        29,
+        31
+      ],
+      "source_binary_sha256": null,
+      "source_binary_byte_length": null,
+      "source_bytes_retained": false,
+      "review_state": "PENDING_INDEPENDENT_SOURCE_ACQUISITION"
+    },
+    {
+      "source_id": "NARA-1940-ED8-89-90-91",
+      "title": "1940 Census Enumeration District Descriptions, Puerto Rico, San Juan County, ED 8-89, 8-90, 8-91",
+      "document_year": 1940,
+      "url": "https://commons.wikimedia.org/wiki/File:1940_Census_Enumeration_District_Descriptions_-_Puerto_Rico_-_San_Juan_County_-_ED_8-89,_ED_8-90,_ED_8-91_-_NARA_-_5879477.jpg",
+      "repository": "U.S. National Archives and Records Administration, Record Group 29; NAID 5879477, mirrored by Wikimedia Commons",
+      "discovery_mode": "NARA_CATALOG_METADATA_TEXT_READING",
+      "reviewed_printed_pages": [],
+      "source_binary_sha256": null,
+      "source_binary_byte_length": null,
+      "source_bytes_retained": false,
+      "review_state": "PENDING_DIRECT_NARA_RECORD_REVIEW"
+    },
+    {
+      "source_id": "GEOISLA-SANTURCE-1917-1918",
+      "title": "Plano general de Santurce (1917-1918), commentary with dates of three sections",
+      "document_year": 1918,
+      "url": "https://www.geoisla.com/2018/08/plano-general-de-santurce-1917-1918/",
+      "repository": "GeoIsla, links to Archivo Digital Nacional de Puerto Rico",
+      "discovery_mode": "SECONDARY_MAP_DESCRIPTION_ONLY",
+      "reviewed_printed_pages": [],
+      "source_binary_sha256": null,
+      "source_binary_byte_length": null,
+      "source_bytes_retained": false,
+      "review_state": "LOW_RESOLUTION_MAP_UNSUITABLE_FOR_STREET_VERTEX_ASSERTION"
+    },
+    {
+      "source_id": "SJ-ROUTE-LOIZA-CURRENT",
+      "title": "Municipio de San Juan, route stops: Calle Loíza",
+      "document_year": 2026,
+      "url": "https://sanjuan.pr/servicios/NU9qOHQrbjhiOVJJZWpLNmtFZGppdz09",
+      "repository": "Municipio de San Juan",
+      "discovery_mode": "CONTEMPORARY_STREET_NAME_REFERENCE_ONLY",
+      "reviewed_printed_pages": [],
+      "source_binary_sha256": null,
+      "source_binary_byte_length": null,
+      "source_bytes_retained": false,
+      "review_state": "NOT_HISTORICAL_EVIDENCE"
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "LOIZA-1940-ED8-89-SAN-JUAN-MODERNO",
+      "observation_type": "CENSUS_DISTRICT_NORTH_BOUNDARY",
+      "reference_year": 1940,
+      "source_id": "NARA-1940-ED8-89-90-91",
+      "census_district": "ED 8-89",
+      "referenced_streets": [
+        "Calle Loiza",
+        "Calle Diez de Andino",
+        "Avenida San Jorge"
+      ],
+      "description": "Calle Loiza is the northern boundary of San Juan Moderno; Diez de Andino east and San Jorge west in enumerator district description.",
+      "geometry": null,
+      "event_date": null,
+      "human_review_state": "PENDING"
+    },
+    {
+      "observation_id": "LOIZA-1940-ED8-90-SAN-MATEO",
+      "observation_type": "CENSUS_DISTRICT_NORTH_BOUNDARY",
+      "reference_year": 1940,
+      "source_id": "NARA-1940-ED8-89-90-91",
+      "census_district": "ED 8-90",
+      "referenced_streets": [
+        "Calle Loiza",
+        "Avenida San Jorge",
+        "Avenida de Diego",
+        "Calle del Parque"
+      ],
+      "description": "Calle Loiza forms the north boundary of part of San Mateo; San Jorge east and De Diego west. Enumeration boundary is not a street-building date.",
+      "geometry": null,
+      "event_date": null,
+      "human_review_state": "PENDING"
+    },
+    {
+      "observation_id": "LOIZA-1947-DE-DIEGO-TERRAZA",
+      "observation_type": "OFFICIAL_BOUNDARY_TEXT_INTERSECTION",
+      "reference_year": 1947,
+      "source_id": "JPUZ-PR-MEM06-1947",
+      "intersection_street_names": [
+        "Avenida José de Diego",
+        "Calle Loíza",
+        "Terraza del Parque"
+      ],
+      "source_printed_pages": [
+        26,
+        29
+      ],
+      "interpretive_scope": "Minillas; Parque",
+      "document_event_date_equivalence": false,
+      "historical_street_opening_date": null,
+      "geometry": null,
+      "note": "The Parque description directly names a three-way intersection; Minillas independently mentions de Diego × Loíza.",
+      "human_review_state": "PENDING"
+    },
+    {
+      "observation_id": "LOIZA-1947-DEL-PARQUE",
+      "observation_type": "OFFICIAL_BOUNDARY_TEXT_INTERSECTION",
+      "reference_year": 1947,
+      "source_id": "JPUZ-PR-MEM06-1947",
+      "intersection_street_names": [
+        "Calle del Parque",
+        "Calle Loíza"
+      ],
+      "source_printed_pages": [
+        26,
+        31
+      ],
+      "interpretive_scope": "Minillas; San Mateo",
+      "document_event_date_equivalence": false,
+      "historical_street_opening_date": null,
+      "geometry": null,
+      "note": "The San Mateo description uses the named Loíza–Del Parque intersection as boundary start.",
+      "human_review_state": "PENDING"
+    },
+    {
+      "observation_id": "LOIZA-1947-KINGS-COURT-SAN-JORGE",
+      "observation_type": "OFFICIAL_BOUNDARY_TEXT_INTERSECTION",
+      "reference_year": 1947,
+      "source_id": "JPUZ-PR-MEM06-1947",
+      "intersection_street_names": [
+        "Calle Loíza",
+        "King's Court",
+        "Calle San Jorge"
+      ],
+      "source_printed_pages": [
+        31
+      ],
+      "interpretive_scope": "San Mateo; San Juan Moderno",
+      "document_event_date_equivalence": false,
+      "historical_street_opening_date": null,
+      "geometry": null,
+      "note": "The source lists a single named three-street junction; this does not establish that King's Court is McLeary.",
+      "human_review_state": "PENDING"
+    },
+    {
+      "observation_id": "LOIZA-1947-DIEZ-DE-ANDINO",
+      "observation_type": "OFFICIAL_BOUNDARY_TEXT_INTERSECTION",
+      "reference_year": 1947,
+      "source_id": "JPUZ-PR-MEM06-1947",
+      "intersection_street_names": [
+        "Calle Loíza",
+        "Calle Diez de Andino"
+      ],
+      "source_printed_pages": [
+        31
+      ],
+      "interpretive_scope": "San Juan Moderno",
+      "document_event_date_equivalence": false,
+      "historical_street_opening_date": null,
+      "geometry": null,
+      "note": "Calle Loíza is followed northeast from the King's Court/San Jorge junction to Diez de Andino.",
+      "human_review_state": "PENDING"
+    },
+    {
+      "observation_id": "LOIZA-1947-MARIA-MOCZO",
+      "observation_type": "OFFICIAL_BOUNDARY_TEXT_INTERSECTION",
+      "reference_year": 1947,
+      "source_id": "JPUZ-PR-MEM06-1947",
+      "intersection_street_names": [
+        "Calle Loíza",
+        "Calle María Moczo"
+      ],
+      "source_printed_pages": [
+        28,
+        29
+      ],
+      "interpretive_scope": "Parque; Ocean Park",
+      "document_event_date_equivalence": false,
+      "historical_street_opening_date": null,
+      "geometry": null,
+      "note": "Both descriptions locate the Loíza/Maria Moczo crossing and describe distinct adjoining territorial boundaries.",
+      "human_review_state": "PENDING"
+    },
+    {
+      "observation_id": "LOIZA-1947-CARRETERA-57",
+      "observation_type": "OFFICIAL_BOUNDARY_TEXT_INTERSECTION",
+      "reference_year": 1947,
+      "source_id": "JPUZ-PR-MEM06-1947",
+      "intersection_street_names": [
+        "Calle Loíza",
+        "Carretera Insular Núm. 57"
+      ],
+      "source_printed_pages": [
+        28
+      ],
+      "interpretive_scope": "Ocean Park",
+      "document_event_date_equivalence": false,
+      "historical_street_opening_date": null,
+      "geometry": null,
+      "note": "The text describes a crossing of Loíza with Carretera Insular 57; no equivalence with later route numbers inferred.",
+      "human_review_state": "PENDING"
+    }
+  ],
+  "contemporary_separate_reference": {
+    "source_id": "SJ-ROUTE-LOIZA-CURRENT",
+    "order_as_published": [
+      "Del Parque",
+      "Taft",
+      "Las Palmas",
+      "Aponte",
+      "Santa Cecilia",
+      "Tapia",
+      "Rampla del Almirante"
+    ],
+    "interpretation": "The municipal transit stop list supports modern named crossing references only. It cannot independently authenticate historical intersection dates."
+  },
+  "historical_background_separate_reference": {
+    "source_id": "GEOISLA-SANTURCE-1917-1918",
+    "map_sections": [
+      "1917-08-30",
+      "1918-06-30",
+      "1918-02-28"
+    ],
+    "interpretation": "Map section dates are catalog context only; no readable, individually verified Loíza street vertices entered from this source."
+  },
+  "prohibited_promotions": [
+    "1940_or_1947_document_year_to_street_creation_date",
+    "boundary_description_to_precise_polygon_or_geopoint",
+    "street_name_to_official_nominative_act",
+    "kings_court_to_mcleary_same_road",
+    "modern_transit_stop_to_historical_intersection_date",
+    "unreviewed_source_metadata_to_primary_byte_authentication",
+    "religious_historic_structure_georeferencing",
+    "automatic_canonical_write"
+  ],
+  "pending_work": [
+    "Independently obtain and hash source document binaries.",
+    "Compare each 1940 federal district line with 1947 printed page by original page images.",
+    "Inspect readable 1917-1918 cartographic sections before geometrical alignment.",
+    "Retrieve original municipal ordinances on the legal naming of Camino/Carretera/Calle de Loíza.",
+    "Require historian human review before any canonical claim or georeferenced vertex."
+  ]
+}
