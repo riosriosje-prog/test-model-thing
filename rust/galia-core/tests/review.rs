@@ -314,3 +314,117 @@ mod scratch_consumption_tests {
             &fx.policy.pinned_root_public_key_hex,"galia-tenant","case-1").is_err());
     }
 }
+
+
+#[cfg(feature="scratch-store")]
+mod witness_coordination_tests{
+    use super::*;
+    use galia_core_shadow::consumption::ScratchConsumptionStore;
+    use galia_core_shadow::witness::{
+        InMemoryWitness,MonotonicWitness,WitnessConfig,WitnessConsume,
+        WitnessReceipt,WitnessObservation,
+    };
+    use std::sync::{Arc,Barrier};
+    use std::thread;
+    fn registry()->InMemoryWitness{
+        let f=fixture();
+        InMemoryWitness::new(WitnessConfig{
+            namespace:f.policy.expected_namespace.clone(),
+            case_id:f.policy.expected_scope.case_id.clone(),
+            pinned_root_public_key_hex:f.policy.pinned_root_public_key_hex.clone(),
+            initial_registry_epoch:10,
+        }).unwrap()
+    }
+    fn stores()->(tempfile::TempDir,Arc<ScratchConsumptionStore>,Arc<ScratchConsumptionStore>){
+        let root=tempfile::tempdir().unwrap();let f=fixture();
+        let newstore=|name:&str|{
+            Arc::new(ScratchConsumptionStore::initialize_new(
+                root.path().join(name),&f.policy.pinned_root_public_key_hex,
+                &f.policy.expected_namespace,&f.policy.expected_scope.case_id).unwrap())
+        };
+        let a=newstore("sim-host-A");let b=newstore("sim-host-B");
+        (root,a,b)
+    }
+    #[test]fn simulated_hosts_same_authorization_can_only_consume_once(){
+        let (_directory,a,b)=stores();let witness=Arc::new(registry());
+        let barrier=Arc::new(Barrier::new(3));
+        let jobs=[a,b].into_iter().map(|store|{
+            let service=Arc::clone(&witness);let bar=Arc::clone(&barrier);
+            thread::spawn(move||{
+                let request=fixture();bar.wait();
+                store.consume_with_witness(&request,service.as_ref(),None).is_ok()
+            })
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        let winners=jobs.into_iter().map(|j|j.join().unwrap()).filter(|x|*x).count();
+        assert_eq!(winners,1);
+        assert_eq!(witness.observe().unwrap().spent_count,1);
+    }
+    #[test]fn independently_unique_hosts_need_fresh_cas_for_second_commit(){
+        let (_directory,a,b)=stores();let witness=registry();
+        let first=a.consume_with_witness(&fixture(),&witness,None).unwrap();
+        assert!(!first.human_authority_verified&&!first.canonical_writeback&&!first.authority_transfer);
+        assert_eq!(first.witness.as_ref().unwrap().spent_count,1);
+        let mut second=fixture();
+        second.decision.payload.authorization.authorization_id="auth-unique-12".into();
+        second.decision.payload.nonce_sha256=sha(b'2');
+        resign_review(&mut second);
+        assert!(b.consume_with_witness(&second,&witness,None).is_err());
+        assert_eq!(b.inspect().unwrap().0,0);
+        let tip=witness.observe().unwrap().tip_sha256.unwrap();
+        let later=b.consume_with_witness(&second,&witness,Some(&tip)).unwrap();
+        assert_eq!(later.witness.unwrap().spent_count,2);
+        assert_eq!(b.inspect().unwrap().0,1);
+        assert_eq!(witness.observe().unwrap().spent_count,2);
+    }
+    struct Unavailable;
+    impl MonotonicWitness for Unavailable{
+        fn observe(&self)->Result<WitnessObservation,String>{
+            Err("witness unavailable".into())
+        }
+        fn consume(&self,_r:&WitnessConsume)->Result<WitnessReceipt,String>{
+            Err("witness unavailable".into())
+        }
+    }
+    #[test]fn unavailable_witness_fails_without_local_write(){
+        let (_directory,a,_b)=stores();
+        assert!(a.consume_with_witness(&fixture(),&Unavailable,None).is_err());
+        assert_eq!(a.inspect().unwrap().0,0);
+        assert!(a.consume_review(&fixture()).is_ok()); // Explicit scratch legacy mode only.
+    }
+    #[test]fn invalid_review_signature_does_not_burn_witness(){
+        let (_directory,a,_b)=stores();let witness=registry();
+        let mut forged=fixture();
+        forged.decision.reviewer_signature_hex="0".repeat(128);
+        assert!(a.consume_with_witness(&forged,&witness,None).is_err());
+        assert!(witness.observe().unwrap().spent_count==0);
+        assert_eq!(a.inspect().unwrap().0,0);
+        assert!(a.consume_with_witness(&fixture(),&witness,None).is_ok());
+    }
+    #[test]fn independently_pinned_witness_blocks_root_substitution(){
+        let (_directory,a,_b)=stores();let witness=registry();
+        let mut forged=fixture();
+        forged.policy.pinned_root_public_key_hex=
+            hex::encode(signer(99).verifying_key().to_bytes());
+        assert!(a.consume_with_witness(&forged,&witness,None).is_err());
+        assert_eq!(witness.observe().unwrap().spent_count,0);
+    }
+    #[test]fn witness_epoch_floor_blocks_older_root_signed_registry(){
+        let (_directory,a,b)=stores();let witness=registry();
+        let mut future=fixture();
+        future.registry.payload.epoch=12;
+        future.decision.payload.registry_epoch=12;
+        future.policy.minimum_registry_epoch=12;
+        resign_root(&mut future);
+        resign_review(&mut future);
+        a.consume_with_witness(&future,&witness,None).unwrap();
+        let mut stale=fixture();
+        stale.decision.payload.authorization.authorization_id="auth-not-before-seen".into();
+        stale.decision.payload.nonce_sha256=sha(b'2');
+        resign_review(&mut stale);
+        let tip=witness.observe().unwrap().tip_sha256.unwrap();
+        assert!(b.consume_with_witness(&stale,&witness,Some(&tip)).is_err());
+        assert_eq!(b.inspect().unwrap().0,0);
+        assert_eq!(witness.observe().unwrap().registry_epoch,12);
+    }
+}

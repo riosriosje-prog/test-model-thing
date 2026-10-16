@@ -1,25 +1,27 @@
-# GALIA 2.0 Rust shadow v0.8
+# GALIA Rust v0.9 — Witness protocol simulator (CANDIDATE)
 
-**DRAFT / NOT PROMOTED / NONCANONICAL / HUMAN AUTHORITY HOLD**
+**DRAFT / NONCANONICAL / NO PRODUCTION WITNESS / HUMAN_AUTHORITY_HOLD**
 
-This Rust sidecar does NOT replace the existing Python core and never writes to the actual GALIA HEAD, Supabase or DW8.
+The existing GALIA Python system remains authoritative. Rust never writes the canonical GALIA HEAD, Supabase, DW8, live legal evidence, or the production authority ledger.
 
-## Implemented
+## Implemented from v0.1 to v0.8
 
-- P1/P2 typed historical stage contracts, guarded pure state transitions.
-- P5/P6 advisory structural decision matching and 12-check preflight.
-- P7 Python-compatible SHA-256 payload/manifest/HEAD read-only verification and optional parent chain.
-- P3 hash-linked scratch receipts and audit replay; Ed25519 root-signed trust registries and delegated signed checkpoints with externally pinned floors.
-- P5 v0.7 root-signed reviewer key registry, precise signed SELECT decision/case/claim/target/manifest/policy/nonce binding; revoked key and authorization checks. A root-signed reviewer label is NOT a verified person.
-- P7 optional scratch-store local-only immutable generations, lock/CAS, fsync and crash/orphan inspection.
-- NEW v0.8: opt-in feature-only ScratchConsumptionStore, a separate explicitly marked new scratch directory with pinned root public key, namespace and case ID under an exclusive cooperative local file lock.
-  - Full v0.7 review signature check precedes appending. A single create-new and fsync immutable record consumes BOTH authorization ID and nonce SHA-256, preventing reuse among cooperating local processes, including races.
-  - On every write/read, records are replayed against previous SHA-256 links, monotonic root registry epochs, unique authorization IDs and nonces, strict sequence and exact expected root marker.
-  - A subsequent root-signed registry with higher epoch and new delegated reviewer keys can rotate the key; older registry epochs are then rejected once a higher epoch has been consumed locally. Revoked reviewers fail.
-  - An optional externally retained consumption checkpoint detects silent truncation. A caller-provided checkpoint is NOT inherently trustworthy.
-  - No CLI exposes scratch write capability; the default Rust build excludes it.
+- P1/P2 stage state machine, fail-closed guards, typed source events.
+- P5/P6 structural review and preflight; P7 Python-compatible SHA-256 snapshot verifier, parent chain check.
+- P3 SHA-256 audit receipts, separately pinned checkpoints; P5 Ed25519 root-registered reviewer signing and P3 signed checkpoints, all diagnostic only.
+- Optional noncanonical local scratch storage, immutable generations, locked CAS, fsync, fault and orphan inspection.
+- Optional local consume-once journal: review authorization ID and nonce in one scratch record with local file lock; records include monotonic local registry epoch. NOT a real human approval.
 
-## Verify
+## v0.9 NEW — independent monotonic witness protocol, simulated
+
+- Feature-gated witness module introduces a MonotonicWitness interface: independently configured root/namespace/case, observe high-water mark and atomic compare-and-consume operation. An implementation is required to preserve durable monotonicity, identity scope, unique authorization ID and nonce, epoch rollback prevention, and a CAS token.
+- InMemoryWitness implements these semantics using a mutex solely to run deterministic test scenarios. It is **NOT external, persistent, signed, authenticated or deployable**. It loses all spend history on process restart.
+- ScratchConsumptionStore.consume_with_witness verifies the P5 signature and exact local case/root binding, checks local replay history, then requests the witness consume-before-local-append. If witness unavailable, signature invalid, CAS stale, nonce reused or registry epoch old, no local spend record is written.
+- Separate simulated hosts (distinct scratch stores, one shared in-memory witness) are tested against same-authorization races, distinct-ID stale-CAS conflicts, retry after refreshed observation, forged signatures, wrong root, stale epoch and unavailable witness. No CLI exposes a witness or production write path.
+- If external consume succeeds **but the local append fails**, the external spend remains irrevocable; the local record may be missing. The adapter **does not claim a distributed atomic transaction**. Manual fail-closed reconciliation, idempotent intent state and independent evidence are required before production.
+- A witness receipt is returned to the caller but is NOT currently durably attached to the local consumption journal. Consequently future recovery cannot prove an external spend solely from local records.
+
+## How to test
 
     cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
     cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features scratch-store
@@ -29,14 +31,12 @@ This Rust sidecar does NOT replace the existing Python core and never writes to 
     python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
     python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
 
-## Essential boundaries
+## Deployment gates
 
-- The consumed log and pinned root are only LOCAL SCRATCH state. Root provisioning, root trust and the latest epoch require a separately trusted service. Attackers controlling scratch directory can roll back the entire journal and marker.
-- A local lock is NOT malicious-writer safe or distributed consensus. Atomicity is limited to cooperating clients and the single journal record; failure during write or fsync may leave a partial record and subsequent operations fail closed.
-- A successful consumption means a NONCANONICAL test journal was updated, NOT that real human identity, authority or promotion was authenticated. Human authority, executable guards, canonical writing and transfer remain false.
-- Python remains authoritative; true P5 identity governance, distributed fences, KMS, durable external witnesses, formal revocation lifecycle, and P4/MLX parity are pending.
-- Never treat generated images as historic evidence. EVENT_DATE differs from DOCUMENT_DATE; PROMPT_VERSION differs from ENGINE_VERSION. Preserve AUTHORITY_HOLD.
+1. Actually provision independent trust roots, identity verification, controlled human P5 issuance and revocation; avoid caller-selected pins and false authority elevation.
+2. Replace InMemoryWitness with a separately deployed, durable, authenticated service implementing linearizable unique-ID/nonce consumption and epoch CAS; negative tests across real hosts, network splits and restarts.
+3. Resolve witness-success/local-failure with idempotent recoverable intent protocol, retained signed external witness receipts and independent monotonic checkpoints.
+4. Formalize key rotation and revocation chronology, full audit receipts and replay/rollback tests, adversarial OS/filesystem and multi-host testing.
+5. Complete P4 Legacy/MLX and governance review before any authoritative promotion, main merge or production deployment.
 
-## Next
-
-Independent trusted root and monotonic witness, signed registry/key rotation lineage, true external consume-and-commit transaction, adversarial filesystem and multi-host tests, reproducible builds and security review. No deployment or merge without human approval.
+**Invariants:** EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION; AI-rendered imagery is never archival evidence. AUTHORITY_HOLD is unchanged.

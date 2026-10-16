@@ -12,6 +12,7 @@ use ed25519_dalek::VerifyingKey;
 use serde::{Serialize,Deserialize};
 use sha2::{Digest,Sha256};
 use crate::review::{ReviewVerificationRequest,verify_review};
+use crate::witness::{MonotonicWitness,WitnessConsume,WitnessReceipt,FORMAT as WITNESS_FORMAT};
 
 const FORMAT:&str="GALIA_NONCANONICAL_SCRATCH_CONSUMPTION_V1";
 const MARKER:&str=".GALIA_SCRATCH_CONSUMPTION_V1";
@@ -96,6 +97,15 @@ pub struct ConsumptionReport{
     pub executable_guards_issued:bool,pub canonical_writeback:bool,
     pub authority_transfer:bool,pub output_commit:Option<String>,
 }
+#[derive(Clone,Debug,Serialize)]
+pub struct WitnessBoundSpendReport{
+    pub local:ConsumptionReport,
+    pub witness:Option<WitnessReceipt>,
+    pub human_authority_verified:bool,
+    pub canonical_writeback:bool,
+    pub authority_transfer:bool,
+}
+
 #[derive(Clone,Debug)]
 pub struct ScratchConsumptionStore{root:PathBuf,marker:StoreMarker}
 struct LockGuard(File);
@@ -186,6 +196,23 @@ impl ScratchConsumptionStore{
     /// A single immutable record commits both identifiers under one local lock.
     /// Approval and signature authenticity are limited by the caller-supplied policy.
     pub fn consume_review(&self,request:&ReviewVerificationRequest)->Result<ConsumptionReport,String>{
+        Ok(self.consume_inner(request,None)?.local)
+    }
+    /// Simulated cross-root witness gate. The caller must obtain the expected
+    /// CAS tip from its separately configured witness before calling this API.
+    /// The witness spend is BEFORE local append: local I/O failure after
+    /// witness commit burns the token and needs manual fail-closed recovery.
+    /// No end-to-end distributed transaction, human authority or automatic repair.
+    pub fn consume_with_witness(
+        &self,request:&ReviewVerificationRequest,
+        witness:&dyn MonotonicWitness,expected_witness_tip:Option<&str>
+    )->Result<WitnessBoundSpendReport,String>{
+        self.consume_inner(request,Some((witness,expected_witness_tip)))
+    }
+    fn consume_inner(
+        &self,request:&ReviewVerificationRequest,
+        witness:Option<(&dyn MonotonicWitness,Option<&str>)>
+    )->Result<WitnessBoundSpendReport,String>{
         let _guard=self.lock()?;
         let history=self.history()?;
         if request.policy.pinned_root_public_key_hex!=self.marker.pinned_root_public_key_hex
@@ -220,6 +247,36 @@ impl ScratchConsumptionStore{
             signed_review_sha256:sha(&canonical(&request.decision)?),
         };
         record.validate(&self.marker)?;
+        // Commit the independently scoped witness *before* local append.
+        // An unavailable witness rejects without touching the scratch log.
+        let witness_receipt=match witness{
+            Some((service,expected_tip))=>{
+                let stamp=WitnessConsume{
+                    format:WITNESS_FORMAT.into(),
+                    namespace:self.marker.namespace.clone(),
+                    case_id:self.marker.case_id.clone(),
+                    pinned_root_public_key_hex:self.marker.pinned_root_public_key_hex.clone(),
+                    registry_epoch,authorization_id:auth.authorization_id.clone(),
+                    nonce_sha256:payload.nonce_sha256.clone(),
+                    signed_decision_sha256:record.signed_review_sha256.clone(),
+                    expected_tip_sha256:expected_tip.map(str::to_owned)
+                };
+                let receipt=service.consume(&stamp)?;
+                if receipt.format!=WITNESS_FORMAT||
+                    receipt.namespace!=stamp.namespace||
+                    receipt.case_id!=stamp.case_id||
+                    receipt.registry_epoch!=stamp.registry_epoch||
+                    receipt.authorization_id!=stamp.authorization_id||
+                    receipt.nonce_sha256!=stamp.nonce_sha256||
+                    receipt.signed_decision_sha256!=stamp.signed_decision_sha256||
+                    receipt.prior_tip_sha256!=stamp.expected_tip_sha256||
+                    receipt.canonical_writeback||receipt.authority_transfer{
+                    return Err("witness returned mismatched receipt; manual reconciliation required".into())
+                }
+                Some(receipt)
+            }
+            None=>None
+        };
         let encoded=canonical(&record)?;
         let digest=sha(&encoded);
         let path=self.root.join("records").join(format!("{:020}.json",record.index));
@@ -228,13 +285,19 @@ impl ScratchConsumptionStore{
         if !assessed.review_signature_valid{
             return Err("review signature not validated".into())
         }
-        Ok(ConsumptionReport{
-            status:"SCRATCH_SPENT_NONCANONICAL_ONLY",spent_in_scratch_only:true,
-            consumed_count:record.index,tip_sha256:digest,
-            maximum_seen_registry_epoch:registry_epoch,
-            human_identity_verified:false,human_authority_verified:false,
-            executable_guards_issued:false,canonical_writeback:false,
-            authority_transfer:false,output_commit:None,
+        Ok(WitnessBoundSpendReport{
+            local:ConsumptionReport{
+                status:"SCRATCH_SPENT_NONCANONICAL_ONLY",spent_in_scratch_only:true,
+                consumed_count:record.index,tip_sha256:digest,
+                maximum_seen_registry_epoch:registry_epoch,
+                human_identity_verified:false,human_authority_verified:false,
+                executable_guards_issued:false,canonical_writeback:false,
+                authority_transfer:false,output_commit:None,
+            },
+            witness:witness_receipt,
+            human_authority_verified:false,
+            canonical_writeback:false,
+            authority_transfer:false,
         })
     }
     pub fn inspect(&self)->Result<(u64,Option<String>,u64),String>{

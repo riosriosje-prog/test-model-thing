@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2021"
 publish = false
-description = "Noncanonical Rust shadow plus opt-in scratch-only replay consumption"
+description = "GALIA non-authoritative Rust shadow; opt-in local witness protocol simulator"
 
 [lib]
 name = "galia_core_shadow"
