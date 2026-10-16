@@ -265,3 +265,182 @@ impl RemoteCheckpointTransport for MockRemote{
     assert!(check(&x).is_ok());
     assert!(check(&x).is_ok());
 }
+
+
+// v0.17 LOCAL SCRATCH-ONLY atomic replay fence: this is not distributed anti-replay.
+mod durable_replay_tests {
+    use super::*;
+    use std::sync::{Arc,Barrier};
+    use std::thread;
+    use galia_core_shadow::replay_fence::DurableTranscriptReplayFence;
+
+    fn open_new(x:&Fixture)->DurableTranscriptReplayFence{
+        DurableTranscriptReplayFence::initialize_new(
+            x._temporary.path().join("scratch-replay"),&x.trust,&x.policy).unwrap()
+    }
+    fn new_nonce(x:&mut Fixture,character:char){
+        x.challenge.nonce_sha256=h(character);
+        x.response.payload.nonce_sha256=x.challenge.nonce_sha256.clone();
+        x.response.payload.challenge_sha256=sha256(&canonical(&x.challenge));
+        resign(x);
+    }
+    #[test]fn same_valid_transcript_rejected_on_second_accept(){
+        let x=fixture();let fence=open_new(&x);
+        let one=fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).unwrap();
+        assert_eq!(one.accepted_count,1);
+        assert!(one.scratch_consumed);
+        assert!(!one.real_transport_authenticated);
+        assert!(!one.independently_trusted_clock_verified);
+        assert!(!one.independently_pinned_rollback_anchor_verified);
+        assert!(!one.human_authority_verified&&!one.canonical_writeback);
+        assert!(!one.authority_transfer);
+        assert!(fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).is_err());
+        assert_eq!(fence.inspect().unwrap().0,1);
+    }
+    #[test]fn replay_is_denied_after_store_reopened_from_disk(){
+        let x=fixture();let fence=open_new(&x);
+        fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).unwrap();
+        drop(fence);
+        let reopened=DurableTranscriptReplayFence::open(
+            x._temporary.path().join("scratch-replay"),&x.trust,&x.policy).unwrap();
+        assert!(reopened.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).is_err());
+        assert_eq!(reopened.inspect().unwrap().0,1);
+    }
+    #[test]fn two_independent_handles_same_nonce_have_one_winner(){
+        let x=Arc::new(fixture());let left=open_new(&x);
+        let right=DurableTranscriptReplayFence::open(
+            x._temporary.path().join("scratch-replay"),&x.trust,&x.policy).unwrap();
+        let b=Arc::new(Barrier::new(3));
+        let tasks=[left,right].into_iter().map(|fence|{
+            let xx=Arc::clone(&x);let barrier=Arc::clone(&b);
+            thread::spawn(move||{
+                barrier.wait();
+                fence.accept_verified(&xx.board,&xx.policy,&xx.trust,&xx.challenge,
+                    &xx.peer,&xx.response,1_800_000_040).is_ok()
+            })
+        }).collect::<Vec<_>>();
+        b.wait();
+        assert_eq!(tasks.into_iter().map(|job|job.join().unwrap()).filter(|won|*won).count(),1);
+        let reopened=DurableTranscriptReplayFence::open(
+            x._temporary.path().join("scratch-replay"),&x.trust,&x.policy).unwrap();
+        assert_eq!(reopened.inspect().unwrap().0,1);
+    }
+    #[test]fn independently_distinct_nonce_is_accepted_without_reusing_old_one(){
+        let mut x=fixture();let fence=open_new(&x);
+        fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).unwrap();
+        new_nonce(&mut x,'d');
+        let next=fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_045).unwrap();
+        assert_eq!(next.accepted_count,2);
+        assert_eq!(fence.inspect().unwrap().0,2);
+    }
+    #[test]fn failed_signature_and_bad_channel_do_not_consume_nonce(){
+        let mut x=fixture();let fence=open_new(&x);
+        x.response.signature_hex=sign(93,RESPONSE_DOMAIN,&x.response.payload);
+        assert!(fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).is_err());
+        assert_eq!(fence.inspect().unwrap().0,0);
+        resign(&mut x);
+        x.peer.tls_exporter_sha256=h('f');
+        assert!(fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).is_err());
+        assert_eq!(fence.inspect().unwrap().0,0);
+        x.peer.tls_exporter_sha256=h('b');
+        assert!(fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).is_ok());
+    }
+    #[test]fn transport_partition_does_not_consume_nonce(){
+        let x=fixture();let fence=open_new(&x);
+        let unavailable=MockRemote{evidence:x.peer.clone(),response:x.response.clone(),fail:true};
+        assert!(fence.fetch_and_accept(&x.board,&x.policy,&x.trust,&x.challenge,
+            &unavailable,1_800_000_040).is_err());
+        assert_eq!(fence.inspect().unwrap().0,0);
+        let restored=MockRemote{evidence:x.peer.clone(),response:x.response.clone(),fail:false};
+        assert!(fence.fetch_and_accept(&x.board,&x.policy,&x.trust,&x.challenge,
+            &restored,1_800_000_040).is_ok());
+        assert_eq!(fence.inspect().unwrap().0,1);
+    }
+    #[test]fn independently_pinned_configuration_cannot_be_substituted(){
+        let x=fixture();let fence=open_new(&x);
+        let mut wrong=x.trust.clone();
+        wrong.service_id="another-service".into();
+        assert!(DurableTranscriptReplayFence::open(
+            x._temporary.path().join("scratch-replay"),&wrong,&x.policy).is_err());
+        let mut wrong=x.trust.clone();
+        wrong.response_signer_public_key_hex=pubkey(93);
+        assert!(DurableTranscriptReplayFence::open(
+            x._temporary.path().join("scratch-replay"),&wrong,&x.policy).is_err());
+        let mut policy=x.policy.clone();
+        policy.roster_epoch=999;
+        assert!(DurableTranscriptReplayFence::open(
+            x._temporary.path().join("scratch-replay"),&x.trust,&policy).is_err());
+        assert_eq!(fence.inspect().unwrap().0,0);
+    }
+    #[test]fn mutated_or_partial_replay_journal_fails_closed(){
+        let x=fixture();let fence=open_new(&x);
+        fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).unwrap();
+        let path=x._temporary.path()
+            .join("scratch-replay/accepted/00000000000000000001.json");
+        std::fs::write(path,b"{").unwrap();
+        assert!(fence.inspect().is_err());
+        assert!(DurableTranscriptReplayFence::open(
+            x._temporary.path().join("scratch-replay"),&x.trust,&x.policy).is_err());
+        assert!(fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).is_err());
+    }
+    #[test]fn undeclared_journal_entries_are_fail_closed(){
+        let x=fixture();let fence=open_new(&x);
+        std::fs::write(
+            x._temporary.path().join("scratch-replay/accepted/unexpected.bin"),b"no").unwrap();
+        assert!(fence.inspect().is_err());
+    }
+    #[test]fn clock_rollback_after_accepted_valid_transcript_is_denied(){
+        let mut x=fixture();let fence=open_new(&x);
+        fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_050).unwrap();
+        new_nonce(&mut x,'d');
+        // Second message is valid for its challenge, but the supplied time
+        // retreats relative to last accepted (a local consistency check).
+        assert!(fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_045).is_err());
+        assert_eq!(fence.inspect().unwrap().0,1);
+    }
+    #[test]fn loss_of_entire_log_requires_external_anti_rollback_anchor(){
+        let x=fixture();let fence=open_new(&x);
+        fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).unwrap();
+        std::fs::remove_file(
+            x._temporary.path().join("scratch-replay/accepted/00000000000000000001.json"))
+            .unwrap();
+        // Documents the remaining limitation: a local disk-only root can
+        // be rolled back without an independently protected high-water mark.
+        assert_eq!(fence.inspect().unwrap().0,0);
+        assert!(fence.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).is_ok());
+    }
+    #[cfg(unix)]
+    #[test]fn symlink_record_is_never_followed(){
+        use std::os::unix::fs::symlink;
+        let x=fixture();let fence=open_new(&x);
+        let path=x._temporary.path()
+            .join("scratch-replay/accepted/00000000000000000001.json");
+        symlink(x._temporary.path()
+            .join("scratch-replay/.GALIA_NONCANONICAL_REMOTE_REPLAY_FENCE_V1"),&path).unwrap();
+        assert!(fence.inspect().is_err());
+    }
+    #[test]fn root_is_explicitly_new_not_an_existing_repository(){
+        let x=fixture();
+        assert!(DurableTranscriptReplayFence::initialize_new(
+            x._temporary.path().join("scratch-replay"),&x.trust,&x.policy).is_ok());
+        assert!(DurableTranscriptReplayFence::initialize_new(
+            x._temporary.path().join("scratch-replay"),&x.trust,&x.policy).is_err());
+        assert!(DurableTranscriptReplayFence::open(
+            x._temporary.path(),&x.trust,&x.policy).is_err());
+    }
+}

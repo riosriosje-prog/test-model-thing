@@ -28,3 +28,6 @@ pub mod transparency_board;
 pub mod external_checkpoint;
 #[cfg(feature="scratch-store")]
 pub mod external_transport;
+
+#[cfg(feature="scratch-store")]
+pub mod replay_fence;

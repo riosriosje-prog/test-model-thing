@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2021"
 publish = false
-description = "GALIA Rust noncanonical shadow: external TLS-channel and signed checkpoint response contract"
+description = "GALIA Rust noncanonical shadow: optional durable transcript anti-replay diagnostics"
 
 [lib]
 name = "galia_core_shadow"

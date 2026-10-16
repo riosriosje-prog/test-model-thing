@@ -1,4 +1,4 @@
-# GALIA Rust v0.16 — external trust transport protocol (NONCANONICAL)
+# GALIA Rust v0.17 — external trust transport protocol (NONCANONICAL)
 
 **CANDIDATE / DRAFT / NOT DEPLOYED / AUTHORITY_HOLD**
 
@@ -39,3 +39,19 @@ P1/P2 state machine and stage guards; advisory P5/P6 structural decision/preflig
     python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
 
 **Invariants:** EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION; AI-generated historical images cannot become archival evidence. AUTHORITY_HOLD persists.
+
+
+## NEW v0.17: durable LOCAL SCRATCH transcript replay fence
+
+- Feature-gated replay_fence module creates a separate explicitly new scratch root and requires externally provisioned ExternalServiceTrust and ObserverPolicy on every reopen. The local marker pins the digest of both policies but is not independently authenticated.
+- A caller explicitly invokes DurableTranscriptReplayFence.accept_verified or fetch_and_accept. The full v0.16 verifier checks response-signature, claimed TLS channel evidence, nonce, time window, auditor checkpoint chain and full local board replay before an exclusive local file lock commits a one-shot journal record. Repeating a signed response OR challenge nonce rejects, including after a process restart or under concurrent cooperating file handles.
+- Scratch records store only SHA-256 of the challenge and signed response, nonce, final checkpoint digest/sequence and caller supplied accepted time; no secret keys. Each sequential canonical JSON file is immutable create_new+fsync and linked to its predecessor with SHA-256. Reopen/replay enforces unique nonces/responses, monotonic caller times, strict naming and hash linkage. Corrupt/partial/undeclared/symlink records fail closed.
+- 13 new tests cover exact transcript reuse, restart, two concurrent local handles, distinct fresh nonces, forgery, channel mismatch, outage, policy substitution, tampered/undeclared journal, clock regression, symlinks, new root precondition and the known vulnerability of complete rollback of the whole scratch directory.
+
+## Unresolved v0.17 production limits
+
+- The guarantee covers only cooperating processes sharing ONE local scratch filesystem. No distributed anti-replay, HSM, verified real TLS/mTLS, actual external service, independent clock, remote atomic transaction, human authority or canonical writes are implemented.
+- A full snapshot rollback of the entire scratch directory can erase accepted nonces. Only an independently preserved monotonic high-water anchor can detect that; the new module does not install one. Local crash may leave a partial record that blocks further operations and needs controlled human remediation.
+- The v0.16 stateless verifier still permits identical valid transcripts; callers must explicitly use the replay fence for local consume-once semantics. It is not globally authoritative.
+- The TLS evidence structure is supplied by mocked fixtures; a true authenticated TLS adapter must be built separately and its peer verification must be trustworthy.
+- All acceptance reports mark real transport verification, independent clock verification, external rollback anchor, P5 human authority, and canonical writeback as FALSE. AUTHORITY_HOLD is retained. No merge or deployment is authorized.
