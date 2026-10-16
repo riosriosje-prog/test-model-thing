@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Default read-only Rust tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
-      - name: Opt-in durable signed-publication evidence board tests
+      - name: Opt-in externally signed board checkpoint and recovery tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features scratch-store
       - name: Build six read-only Rust CLIs
         run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
@@ -26,5 +26,5 @@ jobs:
           python -m unittest discover -s tests -p 'test_galia2_state_machine.py' -v
           python -m unittest discover -s tests -p 'test_galia2_preflight.py' -v
           python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
-      - name: Python-Rust differential conformance
+      - name: Python Rust differential conformance
         run: python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v

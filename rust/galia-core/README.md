@@ -1,31 +1,30 @@
-# GALIA Rust shadow v0.14 — durable signed-publication evidence board
+# GALIA Rust v0.15 — externally signed checkpoint verification and recovery hold
 
-**DRAFT / NONCANONICAL / NO NETWORK SERVICE / NO HUMAN AUTHORITY / AUTHORITY_HOLD**
+**DRAFT / NONCANONICAL / NOT AN EXTERNAL SERVICE / AUTHORITY_HOLD**
 
-The existing GALIA Python core is authoritative. Nothing in this Rust candidate changes the actual canonical GALIA HEAD, Supabase, DW8, historical evidence, promotion guards or main.
+Python GALIA, the canonical HEAD, Supabase, DW8, historical evidence and all production permissions remain untouched.
 
-## Preserved functionality v0.1–v0.13
+## Retained v0.1–v0.14
 
-Typed P1/P2 stage transitions; advisory P5/P6 structural preflight/review; P7 byte-compatible SHA-256 payload, manifest, HEAD and parent replay; P3 hash-linked receipts and Ed25519 checkpoints; P5 scoped Ed25519 reviewer registry; opt-in scratch generation CAS/consume-once journal, durable local witness, signed witness receipts/observations, dual-signed key rotation, contiguous signed history extension verifier; v0.13 threshold-two signed observer gossip and split-view comparison. Default build and all six CLIs remain read-only.
+P1/P2 typed stage machine; P5/P6 advisory human-decision and preflight structure; P7 Python SHA-256 manifest/HEAD verification; P3 linked audit and Ed25519 checkpoints; P5 signed scoped reviews; opt-in scratch storage/consume-once logs; scratch durable witness; v0.11 signed witness observations and receipts; v0.12 signed complete continuity and dual-key witness rotations; v0.13 observer quorum, split-view detection and offline endorsements; v0.14 immutable signed-publication scratch evidence board, full replay, exported/imported evidence, quarantine and optional caller-supplied checkpoint.
 
-## v0.14 NEW — durable SCRATCH transparency board and peer exchange
+## v0.15 NEW — signed external board checkpoint protocol (OFFLINE)
 
-- New feature-gated DurableTransparencyBoard only initializes a brand-new, explicitly marked noncanonical test directory and demands a separately caller-provisioned ObserverPolicy even on reopen. Local marker configuration is NEVER trusted by itself. Two observer signatures are required for every accepted publication.
-- The board appends canonical JSON journal entries, numbering them strictly and chaining each to the SHA-256 of the previous entry. Files use create-new and fsync, and a cooperative exclusive local lock serializes writes. Reopening **fully replays and re-verifies** observer signatures, journal links, historical continuity proofs and conflict evidence. Corruption, missing entries, inserted entries or symlinks reject without automatic repair.
-- First publication must exactly equal the independently pinned count/tip from the board policy. A strictly higher-count observation requires a full v0.12 signed receipt extension anchored to the previous accepted observation; an unsupported forward jump rejects. Same signed state is idempotent and does not append.
-- Two fully signed and quorum-endorsed observations at the SAME height with incompatible SHA-256 tips or epochs cause both signed envelopes to be retained in a journal record. The board enters a **persistently replay-derived quarantine**, refusing every subsequent write; it never selects a winning fork or rewrites history. When an imported conflicting view carries a signed extension, the verifier first checks that extension against the previously published anchored predecessor; a mismatched proof rejects without triggering quarantine.
-- Offline export and re-import of complete signed publication/extension envelopes allows two scratch boards to exchange evidence. The receiving board rechecks every signature against ITS OWN separately pinned policy. No actual network gossip, transport authentication, independent observer infrastructure or cross-host consensus exists.
-- Inspect, export, checkpoint and evidence APIs are read-only. An externally retained journal-count/tip checkpoint can detect full-directory journal truncation; a checkpoint kept in the same attackable directory is not trustworthy.
-- 12 adversarial integration tests cover restart, signed extension, idempotence, same-height forks and durable quarantine, separate scratch board evidence exchange, corrupted journal, independently pinned policy mismatch, external checkpoint rollback, concurrent handles and symlinks.
+- The feature-gated external_checkpoint module accepts a separately provisioned CheckpointAnchorTrust, never trusting keys or history extracted from the board directory. It requires a distinct Ed25519 checkpoint-signing key (different from P5 review, witness and observer keys), exact observer policy SHA-256, expected tenant/case, external stream identifier, pinned historical sequence and hash, and an exact board floor.
+- Each SignedExternalBoardCheckpoint is signed in a separate Ed25519 domain, binding the exact board journal count/tip, persistent quarantine state, and SHA-256 of the complete stored signed split-view evidence (if quarantined). No runtime private keys or signing service are shipped.
+- verify_anchor_chain demands every intermediate signed checkpoint envelope since the independently pinned floor, exact monotonically increasing sequence and prior-envelope hash. The signed board count cannot decrease, a signed same-count board digest cannot change, and a quarantined board cannot clear quarantine or grow its journal under the same anchored stream.
+- inspect_anchored_board replays every local immutable entry and signature via DurableTransparencyBoard and compares the ACTUAL board state and SHA-256 fork evidence with the terminal externally signed checkpoint. Any alteration, missing historical checkpoint, missing fork evidence or wrong root/roster rejects.
+- A signed checkpoint chain is only as trustworthy as its independently retained trust pin and externally provisioned signing key. The v0.15 module **does not publish checkpoints to another organization or guarantee remote durability**.
+- The recovery outcome for a quarantined fork is a diagnostic requiring **human review**. No code path selects the winning fork, deletes evidence, repairs canonical data, clears quarantine, issues P2 guards or transfers P5 authority.
+- Eleven new signed and adversarial tests cover incremental external floors, signed honest snapshots, key substitution, stream/roster mismatch, missing checkpoint, same-count digest rewrite, synthetic full journal rollback, quarantine durability, evidence digest, forbidden unquarantine and schema smuggling.
+- Six read-only binaries and default Rust remain unchanged; all new code is disabled unless scratch-store is opted in.
 
-## Security and accuracy boundaries
+## Critical security and deployment limits
 
-- **This is not a deployed transparency service.** Local files plus cooperative OS locks do not establish independence across machines, withstand malicious filesystem actors, or ensure distributed rollback/fork resistance.
-- All keys, observer roster and witness root are supplied from a claimed trusted external configuration. This code does NOT prove how they were enrolled, that observers are truly independent, that the roster is fresh or that any one signer did not equivocate.
-- Observers sign witness claims; receipt SHA-256 fields are NOT independently computed from a live production transaction log. Even valid contiguous signed evidence cannot prove all real-world spends or prevent coordinated signers from publishing alternative histories.
-- Quarantine prevents further local scratch writes. It does NOT decide which fork is correct, initiate canonical rollback, infer bad faith, assign real-world blame, grant P5 human authority or issue P2 promotion guards.
-- A full malicious rewrite of journal AND the caller's trust anchor may defeat local integrity. A durable independently managed externally authenticated checkpoint/publication, correct key lifecycle, Byzantine threat analysis and real network observers remain required.
-- This board cannot promote any canon, write into Supabase or DW8, deploy a service, or merge its PR. AUTHORITY_HOLD is preserved.
+1. The external anchor is a **caller-supplied offline trust input**. There is no deployed network checkpoint service, authenticated independent auditor, signing HSM, protected monotonic store or publication/gossip. Signing a fake history with a legitimate/compromised key remains possible. Full rollback of the board and ALL independently anchored trust pins is not prevented.
+2. The extension of signed checkpoint envelopes proves consistency of the signed claimed board snapshots. It does NOT recompute all intermediate spend events from an independently administered transaction database. An external witness could sign alternate chains to two isolated clients without a real transparency/gossip service detecting it.
+3. Recovery is **fail-closed read-only diagnosis**, not automatic repair. Canonical GALIA writes are still prohibited.
+4. Original GALIA governance, identity verification, P4 MLX/Legacy equivalence, security review, live operational KMS, external independent anchors and multi-host network partition testing remain unresolved.
 
 ## Verify
 
@@ -37,8 +36,4 @@ Typed P1/P2 stage transitions; advisory P5/P6 structural preflight/review; P7 by
     python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
     python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
 
-## Remaining production prerequisites
-
-Authenticated externally deployed witness and quorum observers; provisioned independent keys, monotonic checkpoints and trusted key rotation/revocation; crash/network partition/BFT and multi-host consistency testing; P5 identity and governance; legal evidence audit and P4 Legacy/MLX parity; security review plus explicitly authorized human merge. No canonical cutover or publication based solely on shadow tests.
-
-EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION. AI-generated imagery must never be treated as historical evidence.
+EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION. No AI-rendered historical images as evidence. AUTHORITY_HOLD is still mandatory.

@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.14.0"
+version = "0.15.0"
 edition = "2021"
 publish = false
-description = "GALIA noncanonical Rust shadow with optional durable signed evidence board"
+description = "GALIA noncanonical shadow: offline externally signed board checkpoints and fail-closed recovery gate"
 
 [lib]
 name = "galia_core_shadow"
