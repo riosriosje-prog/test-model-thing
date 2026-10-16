@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 publish = false
-description = "Non-authoritative Rust shadow evaluator and offline Ed25519 checkpoint verification"
+description = "Non-authoritative GALIA Rust shadow with offline Ed25519 review-signature consistency"
 
 [lib]
 name = "galia_core_shadow"
@@ -28,6 +28,10 @@ path = "src/bin/galia-audit-shadow.rs"
 [[bin]]
 name = "galia-attestation-shadow"
 path = "src/bin/galia-attestation-shadow.rs"
+
+[[bin]]
+name = "galia-review-shadow"
+path = "src/bin/galia-review-shadow.rs"
 
 [features]
 default = []

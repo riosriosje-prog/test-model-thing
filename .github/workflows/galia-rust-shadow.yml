@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Default Rust shadow and Ed25519 tests
+      - name: Default Rust shadow, Ed25519 and P5 review tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
-      - name: Opt-in scratch store audit concurrency and crash recovery
+      - name: Opt-in scratch store audit, concurrency and recovery
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features scratch-store
       - name: Build all read-only Rust shadow CLIs
         run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
