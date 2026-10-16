@@ -367,5 +367,70 @@ class McLeary1915NameUseTests(unittest.TestCase):
                     self._assert_manifest_matches_seeded_store(changed)
 
 
+    def test_tampered_store_data_fails_1915_document_lineage_gate(self):
+        """Mutations to a test SQLite store cannot masquerade as source review.
+
+        Every simulated edit is reverted with a savepoint. No canonical
+        historical database, archive record, or source artifact is modified.
+        """
+        manifest = json.loads(
+            (
+                Path(__file__).resolve().parents[1]
+                / "research/gates/mcleary_1915_primary_capture_gate.v0_1.json"
+            ).read_text(encoding="utf-8")
+        )
+        self._assert_manifest_matches_seeded_store(manifest)
+
+        mutations = (
+            (
+                "unearned_naming_event",
+                "UPDATE documents SET event_date_start=? WHERE document_id=?",
+                ("1915-11-22", self.ids["document_id"]),
+            ),
+            (
+                "fabricated_primary_pdf_digest",
+                "UPDATE documents SET content_sha256=? WHERE document_id=?",
+                ("a" * 64, self.ids["document_id"]),
+            ),
+            (
+                "unauthorized_claim_promotion",
+                "UPDATE claims SET status=? WHERE claim_id=?",
+                ("CANONICAL", self.ids["indexed_26_claim_id"]),
+            ),
+            (
+                "substituted_archive_url",
+                "UPDATE sources SET url=? WHERE source_id=("
+                "SELECT source_id FROM documents WHERE document_id=?)",
+                (
+                    "https://example.invalid/substituted.pdf",
+                    self.ids["indexed_26_document_id"],
+                ),
+            ),
+            (
+                "surrogate_falsely_preferred_for_review",
+                "UPDATE document_representations "
+                "SET preferred_for_review=? WHERE document_id=? "
+                "AND acquisition_state='TEXT_SURROGATE'",
+                (1, self.ids["indexed_26_document_id"]),
+            ),
+        )
+        for label, statement, parameters in mutations:
+            with self.subTest(tamper=label):
+                self.store.conn.execute("SAVEPOINT galia_1915_tamper")
+                try:
+                    cursor = self.store.conn.execute(statement, parameters)
+                    self.assertEqual(cursor.rowcount, 1)
+                    with self.assertRaises(AssertionError):
+                        self._assert_manifest_matches_seeded_store(manifest)
+                finally:
+                    self.store.conn.execute(
+                        "ROLLBACK TO SAVEPOINT galia_1915_tamper"
+                    )
+                    self.store.conn.execute(
+                        "RELEASE SAVEPOINT galia_1915_tamper"
+                    )
+                self._assert_manifest_matches_seeded_store(manifest)
+
+
 if __name__ == "__main__":
     unittest.main()
