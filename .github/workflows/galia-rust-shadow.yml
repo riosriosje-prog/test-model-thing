@@ -1,0 +1,25 @@
+name: GALIA Rust shadow conformance
+
+on:
+  pull_request:
+    paths:
+      - 'rust/galia-core/**'
+      - '.github/workflows/galia-rust-shadow.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-shadow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust unit and contract tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
+      - name: Build read-only Rust shadow CLI
+        run: cargo build --manifest-path rust/galia-core/Cargo.toml --bin galia-shadow
+      - name: Existing Python P2 reference tests
+        run: python -m unittest discover -s tests -p 'test_galia2_state_machine.py' -v
+      - name: Python and Rust differential conformance
+        run: python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
