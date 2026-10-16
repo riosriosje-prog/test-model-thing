@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.29.0"
+version = "0.30.0"
 edition = "2021"
 publish = false
-description = "GALIA noncanonical signed auditor log-fork evidence and branch continuity"
+description = "GALIA offline distinct signed witness quorum for auditor fork evidence"
 
 [lib]
 name = "galia_core_shadow"

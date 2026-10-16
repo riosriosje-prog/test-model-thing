@@ -41,6 +41,8 @@ jobs:
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport network_fencing_tests
       - name: Offline dual-signed auditor log equivocation adversarial tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test audit_equivocation --features tls-transport
+      - name: Offline signed fork witness quorum and negative controls
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test fork_witness --features tls-transport
       - name: Build six read-only Rust CLIs
         run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
       - name: Original Python P2 P6 P7 reference tests

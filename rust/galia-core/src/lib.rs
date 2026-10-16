@@ -58,3 +58,6 @@ pub mod independent_audit;
 
 #[cfg(feature="tls-transport")]
 pub mod audit_equivocation;
+
+#[cfg(feature="tls-transport")]
+pub mod fork_witness;

@@ -230,3 +230,18 @@ These TWO roots are still on one simulated machine; the new anchor is NOT an ind
 
 ### Remaining release blockers
 True independent public audit publication and protected offsite checkpoint retention, authenticated cross-host gossip, HSM/KMS key governance, key compromise/revocation and signer key rotation, realtime freshness, externally linearizable nonce commits, production network partitions, P4/Legacy comparison and independent human security/governance review. AUTHORITY_HOLD remains mandatory. No production cutover.
+
+
+## NEW v0.30 — OFFLINE separate-key witness quorum on signed auditor fork evidence
+
+**NONCANONICAL / DRAFT / AUTHORITY_HOLD / NOT DEPLOYED**
+
+- Adds feature-gated fork_witness.rs, which re-verifies BOTH complete independent signed audit branches through the v0.29 auditor fork verifier relative to ONE externally retained AuditTrustPin. Only a genuine divergence at a matching AUDIT sequence and signed predecessor is eligible for observer countersignature; identical history and valid prefix extension are categorically excluded.
+- ForkWitnessPolicy must be pinned by the caller outside the untrusted packet. It binds the exact auditor identity/key, scope digest and audit stream, strictly increasing roster epoch, a deterministic sorted/unique witness roster, separately registered Ed25519 keys and revocation status. It rejects key reuse, revoked signatures, observer signers confusing the auditor/service signer roles, and any quorum lower than two independently named active keys. This is a cryptographic *distinct-key* condition, NOT proof of independent organizations or people.
+- Every SignedForkWitnessEndorsement uses a separate Ed25519 signing domain; it binds the complete signed fork evidence SHA-256, left/right conflicting envelope hashes, exact first conflicting audit sequence and signed predecessor, independent audit floor sequence/hash, scope hash, roster epoch and entire pinned policy SHA-256. Signatures on another fork, swapped branches, another signer policy or an unknown/revoked witness are rejected. Test-only private signing keys never enter runtime or source artifacts.
+- verify_fork_witness_quorum verifies every endorsement with its own externally provisioned signer, refuses duplicate/unsorted and noncanonical signatures, and reports a bounded, distinct-signature quorum. All fields for real external custody, gossip/publication, underlying historiographic truth, automatic quarantine/repair, P5 human authority, canonical writeback and authority transfer are FALSE.
+- 16 additional adversarial Rust integration tests for positive 2-of-3 and 3-of-3 signature quorum, insufficiency, key reuse, duplicate signer, forged/role-confused/revoked signer, valid-prefix false fork, replay against another audit fork or roster epoch, altered audit source, wrong auditor key, noncanonical signatures, order confusion and injected authority fields.
+
+### Deployment and epistemic limitations
+
+No deployed witness or auditor network, independent signer key custody, authenticated gossip, immutable publication log, clock or freshness assurance, safe automated quarantine, adjudication of conflicting histories, archived source authenticity, external consensus or cryptographic human identity are supplied. Two test signing keys may be under one operator; quorums in unit tests are not genuine independent witness governance. The audit signer may have been compromised. No P2 guard, P5 human approval, canonical GALIA HEAD, Python, Supabase/DW8, main mutation or deployment. Subsequent work requires external publication and independent witness administration with out-of-band high-water and key rotation/revocation security review.
