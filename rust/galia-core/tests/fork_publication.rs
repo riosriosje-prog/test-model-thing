@@ -682,7 +682,7 @@ mod custody_receipt_tests{
         use galia_core_shadow::custody_disclosure::*;
         let (a,w,p,x,y)=competing_first_receipts();
         let (one,_)=subject_for_fork(&p,&a,&w,&[x.clone()],&[y.clone()]).unwrap();
-        let (two,_)=subject_for_fork(&p,&a,&w,&[y],[x]).unwrap();
+        let (two,_)=subject_for_fork(&p,&a,&w,&[y],&[x]).unwrap();
         assert_eq!(one,two);
     }
     #[test]fn no_fork_or_valid_prefix_extension_cannot_be_disclosed(){
