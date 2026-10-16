@@ -1089,4 +1089,170 @@ mod network_fencing_tests{
         assert_eq!(x.store.inspect().unwrap(),(1,0));
         assert!(n.coordinator.committed_response(&hexhash('9')).unwrap().is_some());
     }
+
+    // v0.25: authenticated, host-scoped read-only recovery after an
+    // ambiguous/forgotten commit acknowledgement, never a new nonce spend.
+    #[test]fn authenticated_origin_recovers_original_response_without_new_commit(){
+        let x=build();let n=net(&x);
+        let grant=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'a');
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        let _forgotten_ack=client.commit_response(&grant,&hexhash('a'),&response).unwrap();
+        let before=n.coordinator.checkpoint().unwrap();
+        let recovered=client.recover_committed(
+            &hexhash('a'),&sha256(response.as_bytes())).unwrap();
+        assert_eq!(recovered,response);
+        assert_eq!(n.coordinator.checkpoint().unwrap(),before);
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+    }
+    #[test]fn old_owner_can_only_read_its_prior_commit_after_epoch_rotation(){
+        let x=build();let n=net(&x);
+        let a=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'b');
+        n.coordinator.commit_response(&a,&hexhash('b'),&response).unwrap();
+        let _b=n.coordinator.advance_epoch(1,"host-b").unwrap();
+        let previous=n.coordinator.checkpoint().unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert_eq!(client.recover_committed(
+            &hexhash('b'),&sha256(response.as_bytes())).unwrap(),response);
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap(),previous);
+    }
+    #[test]fn different_authenticated_host_cannot_read_origins_receipt(){
+        let x=build();let n=net(&x);
+        let a=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'c');
+        n.coordinator.commit_response(&a,&hexhash('c'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let other=remote(&n,addr,"host-b",&n.host_b,None,None);
+        assert!(other.recover_committed(&hexhash('c'),&sha256(response.as_bytes())).is_err());
+        let actual=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert_eq!(actual.recover_committed(
+            &hexhash('c'),&sha256(response.as_bytes())).unwrap(),response);
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn unpinned_tls_client_cannot_recover_receipt_even_with_digest(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'d');
+        n.coordinator.commit_response(&token,&hexhash('d'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let rogue=remote(&n,addr,"host-a",&n.rogue,None,None);
+        assert!(rogue.recover_committed(&hexhash('d'),&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().any(|r|r.is_err()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn original_response_digest_is_mandatory_and_must_match(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'e');
+        n.coordinator.commit_response(&token,&hexhash('e'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert!(client.recover_committed(&hexhash('e'),&hexhash('f')).is_err());
+        // Invalid hashes reject before any connection; one real RPC above.
+        assert!(client.recover_committed("bad",&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn unknown_or_claim_only_nonce_never_recovered_or_recommitted(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        n.coordinator.claim(&token,&hexhash('f')).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert!(client.recover_committed(&hexhash('f'),&hexhash('a')).is_err());
+        assert!(client.recover_committed(&hexhash('9'),&hexhash('a')).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn coordinator_network_partition_prevents_read_only_recovery(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'1');
+        n.coordinator.commit_response(&token,&hexhash('1'),&response).unwrap();
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let address=listener.local_addr().unwrap();drop(listener);
+        let client=remote(&n,address,"host-a",&n.host_a,None,None);
+        assert!(client.recover_committed(
+            &hexhash('1'),&sha256(response.as_bytes())).is_err());
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn wrong_server_spki_refuses_recovery_after_handshake(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'2');
+        n.coordinator.commit_response(&token,&hexhash('2'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,Some(&hexhash('f')),None);
+        assert!(client.recover_committed(
+            &hexhash('2'),&sha256(response.as_bytes())).is_err());
+        let _=done.join().unwrap();
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn different_pinned_service_verification_key_rejects_recovery(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'3');
+        n.coordinator.commit_response(&token,&hexhash('3'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let mut invalid=n.scope.clone();
+        invalid.pinned_response_signer_public_key_hex=pk(99);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,Some(invalid));
+        assert!(client.recover_committed(
+            &hexhash('3'),&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn damaged_commit_record_blocks_read_only_recovery(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'4');
+        n.coordinator.commit_response(&token,&hexhash('4'),&response).unwrap();
+        std::fs::write(n._temp.path()
+            .join("rpc-coordinator/journal/00000000000000000002.json"),b"{").unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert!(client.recover_committed(
+            &hexhash('4'),&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert!(n.coordinator.checkpoint().is_err());
+    }
+    #[test]fn two_simultaneous_origin_lookups_are_read_only(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'5');
+        n.coordinator.commit_response(&token,&hexhash('5'),&response).unwrap();
+        let checkpoint=n.coordinator.checkpoint().unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let barrier=Arc::new(Barrier::new(3));
+        let jobs=(0..2).map(|_|{
+            let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+            let digest=sha256(response.as_bytes());
+            let expected=response.clone();
+            let ready=Arc::clone(&barrier);
+            thread::spawn(move||{
+                ready.wait();
+                client.recover_committed(&hexhash('5'),&digest).map(|s|s==expected).unwrap_or(false)
+            })
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        assert!(jobs.into_iter().all(|j|j.join().unwrap()));
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap(),checkpoint);
+    }
+    #[test]fn explicit_full_scratch_rollback_still_needs_external_anchor(){
+        let x=build();let n=net(&x);
+        let grant=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'6');
+        n.coordinator.commit_response(&grant,&hexhash('6'),&response).unwrap();
+        let highwater=n.coordinator.checkpoint().unwrap();
+        std::fs::remove_file(n._temp.path()
+            .join("rpc-coordinator/journal/00000000000000000002.json")).unwrap();
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
+        assert!(n.coordinator.verify_floor(&highwater).is_err());
+    }
 }

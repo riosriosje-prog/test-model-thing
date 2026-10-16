@@ -116,12 +116,14 @@ struct State{
     active:Option<EpochGrant>,
     nonces:BTreeSet<String>,
     committed:BTreeMap<String,String>,
+    committed_host:BTreeMap<String,String>,
     prefix:Vec<FencingCheckpoint>,
 }
 impl State{
     fn blank()->Self{Self{
         count:0,tip:None,epoch:0,active:None,
-        nonces:BTreeSet::new(),committed:BTreeMap::new(),prefix:Vec::new()
+        nonces:BTreeSet::new(),committed:BTreeMap::new(),
+        committed_host:BTreeMap::new(),prefix:Vec::new()
     }}
     fn checkpoint(&self)->FencingCheckpoint{FencingCheckpoint{
         record_count:self.count,
@@ -173,6 +175,7 @@ impl State{
                     return Err("nonce already committed or claimed".into())
                 }
                 self.committed.insert(nonce_sha256.clone(),response_json.clone());
+                self.committed_host.insert(nonce_sha256.clone(),grant.host_id.clone());
             }
         }
         self.count=next;
@@ -337,6 +340,25 @@ impl DurableFencingCoordinator{
         if !valid_hash(nonce_sha256){return Err("invalid queried nonce".into())}
         let _guard=self.lock()?;
         Ok(self.replay()?.committed.get(nonce_sha256).cloned())
+    }
+    /// Read-only recovery strictly limited to the HOST that committed the
+    /// signed response. Both unknown and foreign-host nonce return None to
+    /// avoid revealing another peer's journal entries across the RPC.
+    /// Original commit lineage and Ed25519 signatures are replay-verified.
+    /// Does NOT modify nonce, epoch, active owner, or any canonical state.
+    pub fn committed_response_for_host(
+        &self,nonce_sha256:&str,authenticated_host_id:&str
+    )->Result<Option<String>,String>{
+        if !valid_hash(nonce_sha256)||!valid_id(authenticated_host_id){
+            return Err("invalid read-only receipt recovery parameters".into())
+        }
+        let _guard=self.lock()?;
+        let state=self.replay()?;
+        if state.committed_host.get(nonce_sha256).map(String::as_str)
+            !=Some(authenticated_host_id){
+            return Ok(None)
+        }
+        Ok(state.committed.get(nonce_sha256).cloned())
     }
 }
 impl FencingAuthority for DurableFencingCoordinator{

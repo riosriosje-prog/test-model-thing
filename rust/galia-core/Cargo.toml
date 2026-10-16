@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.24.0"
+version = "0.25.0"
 edition = "2021"
 publish = false
-description = "GALIA experimental authenticated network fencing RPC with host-pinned TLS client identities"
+description = "GALIA experimental authenticated commit receipt recovery across pinned mTLS clients"
 
 [lib]
 name = "galia_core_shadow"

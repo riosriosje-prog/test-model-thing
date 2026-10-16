@@ -31,6 +31,8 @@ jobs:
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport fencing_tests
       - name: Remote authenticated coordinator and real TLS roundtrip tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport network_fencing_tests
+      - name: Authenticated origin-only receipt recovery and replay tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport network_fencing_tests
       - name: Build six read-only Rust CLIs
         run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
       - name: Original Python P2 P6 P7 reference tests

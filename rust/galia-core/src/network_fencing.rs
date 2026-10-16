@@ -15,6 +15,8 @@ use rustls::pki_types::{CertificateDer,PrivateKeyDer,ServerName};
 use rustls::server::WebPkiClientVerifier;
 use serde::{Deserialize,Serialize};
 use crate::audit::sha256;
+use crate::external_transport::{SignedRemoteCheckpointResponse,RESPONSE_DOMAIN};
+use crate::witness_proof::verify_detached;
 use crate::fenced_coordinator::{DurableFencingCoordinator,FencingAuthority,
     FencingScope,EpochGrant,FencingCheckpoint,FencedCommitReceipt};
 
@@ -50,12 +52,15 @@ fn read_frame<R:Read,T:for<'de>Deserialize<'de>>(stream:&mut R)->Result<T,String
 enum RpcRequest{
     Scope,
     Commit{grant:EpochGrant,nonce_sha256:String,response_json:String},
+    Recover{nonce_sha256:String},
 }
 #[derive(Serialize,Deserialize)]
 #[serde(tag="kind",rename_all="SCREAMING_SNAKE_CASE",deny_unknown_fields)]
 enum RpcReply{
     Scope{scope:FencingScope},
     Committed{receipt:FencedCommitReceipt},
+    Recovered{nonce_sha256:String,response_sha256:String,response_json:String},
+    NotFound,
     Rejected{reason:String},
 }
 /// The only storage authority is one local cooperative scratch coordinator.
@@ -110,6 +115,25 @@ impl TlsFencingRpcServer{
         let request:RpcRequest=read_frame(&mut stream)?;
         let reply=match request{
             RpcRequest::Scope=>RpcReply::Scope{scope:self.store.scope()?},
+            RpcRequest::Recover{nonce_sha256}=>{
+                if !digest(&nonce_sha256){
+                    RpcReply::Rejected{reason:"invalid recovery nonce digest".into()}
+                }else{
+                    // Identity is taken ONLY from validated TLS client SPKI pin.
+                    // Read-only, no epoch takeover, no nonce re-consumption.
+                    match self.store.committed_response_for_host(
+                        &nonce_sha256,&authenticated_host
+                    ){
+                        Ok(Some(response_json))=>RpcReply::Recovered{
+                            nonce_sha256,
+                            response_sha256:sha256(response_json.as_bytes()),
+                            response_json,
+                        },
+                        Ok(None)=>RpcReply::NotFound,
+                        Err(e)=>RpcReply::Rejected{reason:e},
+                    }
+                }
+            },
             RpcRequest::Commit{grant,nonce_sha256,response_json}=>{
                 if grant.host_id!=authenticated_host{
                     RpcReply::Rejected{reason:"epoch holder does not match authenticated client certificate".into()}
@@ -155,6 +179,48 @@ impl RemoteTlsFencingAuthority{
         Ok(Self{config:Arc::new(config),address,dns_name:dns_name.into(),
             expected_server_spki_sha256:pinned_server_spki_sha256,
             expected_scope,host_id:host_id.into(),timeout})
+    }
+    /// Read-only authenticated recovery after an ambiguous network failure.
+    /// Caller MUST supply the SHA-256 of the exact response it prepared
+    /// before the commit. No retry/second consumption is performed.
+    /// A recovered signed response must still undergo the usual independent
+    /// witness/auditor/checkpoint/board verification before scientific use.
+    pub fn recover_committed(
+        &self,nonce_sha256:&str,expected_response_sha256:&str
+    )->Result<String,String>{
+        if !digest(nonce_sha256)||!digest(expected_response_sha256){
+            return Err("valid externally retained nonce and response digests required".into())
+        }
+        match self.exchange(&RpcRequest::Recover{nonce_sha256:nonce_sha256.into()})?{
+            RpcReply::Recovered{
+                nonce_sha256:returned_nonce,response_sha256,response_json
+            }=>{
+                if returned_nonce!=nonce_sha256||
+                    response_sha256!=expected_response_sha256||
+                    sha256(response_json.as_bytes())!=response_sha256||
+                    response_json.is_empty()||response_json.len()>1024*1024{
+                    return Err("recovered response/nonce does not match original intent".into())
+                }
+                let value:serde_json::Value=serde_json::from_str(&response_json)
+                    .map_err(|e|e.to_string())?;
+                let canonical=serde_json::to_vec(&value).map_err(|e|e.to_string())?;
+                if canonical!=response_json.as_bytes(){
+                    return Err("recovered response JSON is not canonical".into())
+                }
+                let signed:SignedRemoteCheckpointResponse=
+                    serde_json::from_str(&response_json).map_err(|e|e.to_string())?;
+                if signed.payload.nonce_sha256!=nonce_sha256||
+                    signed.payload.service_id!=self.expected_scope.service_id{
+                    return Err("recovered response signed for another nonce or service".into())
+                }
+                verify_detached(&self.expected_scope.pinned_response_signer_public_key_hex,
+                    &signed.signature_hex,RESPONSE_DOMAIN,&signed.payload)?;
+                Ok(response_json)
+            },
+            RpcReply::NotFound=>Err("no committed response for authenticated host/nonce".into()),
+            RpcReply::Rejected{reason}=>Err(format!("authenticated recovery refused: {reason}")),
+            _=>Err("unexpected or unsafe receipt recovery RPC response".into()),
+        }
     }
     fn exchange(&self,request:&RpcRequest)->Result<RpcReply,String>{
         let mut socket=TcpStream::connect_timeout(&self.address,self.timeout)
