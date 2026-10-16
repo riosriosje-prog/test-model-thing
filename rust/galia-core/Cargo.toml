@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.20.0"
+version = "0.21.0"
 edition = "2021"
 publish = false
-description = "GALIA noncanonical TLS 1.3 checkpoint server with mandatory client auth and scratch durability"
+description = "GALIA noncanonical signed peer snapshots with safe divergence diagnostics"
 
 [lib]
 name = "galia_core_shadow"

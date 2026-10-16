@@ -296,3 +296,172 @@ fn spawn(server:Arc<MandatoryMtlsCheckpointServer>,now:u64)
         .join("service/checkpoints/00000000000000000001.json")).unwrap();
     assert_eq!(x.store.inspect().unwrap(),(0,0));
 }
+
+
+// v0.21: TWO physically separate scratch roots and offline signed observers.
+// Synthetic keys and local directories do not confer actual host independence.
+mod recovery_tests{
+    use super::*;
+    use galia_core_shadow::service_recovery::*;
+    fn pin(x:&TestContext,host:&str,seed:u8,
+        floor:Option<ServiceSnapshot>)->ServicePeerTrust{
+        ServicePeerTrust{
+            host_id:host.into(),
+            signer_key_id:format!("observer-{}",host),
+            signer_public_key_hex:pk(seed),
+            service_id:x.trust.service_id.clone(),
+            namespace:x.trust.checkpoint.namespace.clone(),
+            case_id:x.trust.checkpoint.case_id.clone(),
+            service_trust_sha256:sha256(&canon(&x.trust)),
+            observer_policy_sha256:policy_digest(&x.policy).unwrap(),
+            floor,
+        }
+    }
+    fn signed(x:&TestContext,p:&ServicePeerTrust,seed:u8)->SignedServicePeerView{
+        let payload=ServicePeerViewPayload{
+            format:SERVICE_VIEW_FORMAT.into(),host_id:p.host_id.clone(),
+            signer_key_id:p.signer_key_id.clone(),
+            service_id:p.service_id.clone(),namespace:p.namespace.clone(),
+            case_id:p.case_id.clone(),
+            service_trust_sha256:p.service_trust_sha256.clone(),
+            observer_policy_sha256:p.observer_policy_sha256.clone(),
+            snapshot:x.store.snapshot().unwrap(),
+        };
+        SignedServicePeerView{
+            signature_hex:sign(seed,SERVICE_VIEW_DOMAIN,&payload),payload,
+        }
+    }
+    fn consume(x:&TestContext,nonce:char){
+        let (addr,join)=spawn(Arc::clone(&x.server),1_800_000_030);
+        let result=x.client.exchange(addr,&x.trust,&x.policy,
+            &hexhash(nonce),1_800_000_000,1_800_000_060);
+        assert!(result.is_ok(),"synthetic mTLS consume failed: {:?}",result.err());
+        assert!(join.join().unwrap().is_ok());
+    }
+    #[test]fn two_signed_empty_peers_agree_but_do_not_establish_consensus(){
+        let a=build();let b=build();
+        let pa=pin(&a,"host-a",101,None);let pb=pin(&b,"host-b",102,None);
+        let sa=signed(&a,&pa,101);let sb=signed(&b,&pb,102);
+        inspect_local_peer(&a.store,&sa,&pa,&a.trust,&a.policy).unwrap();
+        inspect_local_peer(&b.store,&sb,&pb,&b.trust,&b.policy).unwrap();
+        let r=compare_peer_views(&sa,&pa,&a.trust,&sb,&pb,&b.trust,&a.policy).unwrap();
+        assert_eq!(r.kind,PeerComparisonKind::IdenticalSignedState);
+        assert!(!r.automatic_recovery_permitted&&!r.cross_host_consensus_verified);
+        assert!(!r.real_host_independence_verified&&!r.canonical_writeback);
+    }
+    #[test]fn one_isolated_service_advances_but_extension_is_unproven(){
+        let a=build();let b=build();
+        consume(&a,'1');
+        let pa=pin(&a,"host-a",101,None);let pb=pin(&b,"host-b",102,None);
+        let r=compare_peer_views(&signed(&a,&pa,101),&pa,&a.trust,
+            &signed(&b,&pb,102),&pb,&b.trust,&a.policy).unwrap();
+        assert_eq!(r.kind,PeerComparisonKind::DifferentHeightsConsistencyUnproven);
+        assert!(!r.signed_divergence_evidence&&!r.automatic_recovery_permitted);
+    }
+    #[test]fn two_partitions_accept_distinct_nonces_at_same_height_and_diverge(){
+        let a=build();let b=build();
+        consume(&a,'1');consume(&b,'2');
+        let pa=pin(&a,"host-a",101,None);let pb=pin(&b,"host-b",102,None);
+        let sa=signed(&a,&pa,101);let sb=signed(&b,&pb,102);
+        let r=compare_peer_views(&sa,&pa,&a.trust,&sb,&pb,&b.trust,&a.policy).unwrap();
+        assert_eq!(r.kind,PeerComparisonKind::SignedStateDivergence);
+        assert!(r.signed_divergence_evidence);
+        assert!(r.exact_checkpoint_match&&!r.exact_nonce_history_match);
+        assert_ne!(r.left_signed_view_sha256,r.right_signed_view_sha256);
+        assert!(!r.automatic_recovery_permitted&&!r.authority_transfer);
+    }
+    #[test]fn duplicate_nonce_can_succeed_on_two_separate_roots_global_gap(){
+        let a=build();let b=build();
+        consume(&a,'3');consume(&b,'3');
+        // Both isolated journals accepted the same logical nonce. This is a
+        // deliberate non-production counterexample to global replay safety.
+        assert_eq!(a.store.inspect().unwrap(),(1,1));
+        assert_eq!(b.store.inspect().unwrap(),(1,1));
+        let pa=pin(&a,"host-a",101,None);let pb=pin(&b,"host-b",102,None);
+        let r=compare_peer_views(&signed(&a,&pa,101),&pa,&a.trust,
+            &signed(&b,&pb,102),&pb,&b.trust,&a.policy).unwrap();
+        // Different TLS exporter/channel hashes also diverge in the journals,
+        // but BOTH stores accepted the same nonce: no distributed uniqueness.
+        assert_eq!(r.kind,PeerComparisonKind::SignedStateDivergence);
+        assert!(!r.cross_host_consensus_verified);
+    }
+    #[test]fn out_of_band_signed_highwater_detects_local_nonce_rollback(){
+        let a=build();consume(&a,'4');
+        let pa=pin(&a,"host-a",101,None);
+        let prior=signed(&a,&pa,101);
+        let pinned=pin(&a,"host-a",101,Some(prior.payload.snapshot.clone()));
+        std::fs::remove_file(a.dir.path()
+            .join("service/nonce_claims/00000000000000000001.json")).unwrap();
+        assert_eq!(a.store.snapshot().unwrap().nonce_count,0);
+        assert!(inspect_local_peer(&a.store,&prior,&pinned,&a.trust,&a.policy).is_err());
+        assert!(a.store.verify_external_floor(&prior.payload.snapshot).is_err());
+    }
+    #[test]fn independently_retained_prior_floor_verifies_after_later_growth(){
+        let a=build();consume(&a,'5');
+        let floor=a.store.snapshot().unwrap();
+        let pa=pin(&a,"host-a",101,Some(floor.clone()));
+        consume(&a,'6');
+        let later=signed(&a,&pa,101);
+        assert_eq!(later.payload.snapshot.nonce_count,2);
+        let checked=inspect_local_peer(&a.store,&later,&pa,&a.trust,&a.policy).unwrap();
+        assert_eq!(checked.nonce_count,2);
+        assert_eq!(a.store.verify_external_floor(&floor).unwrap().nonce_count,2);
+    }
+    #[test]fn signed_but_false_local_snapshot_is_detected_on_direct_inspection(){
+        let a=build();let pa=pin(&a,"host-a",101,None);
+        let mut reported=signed(&a,&pa,101);
+        reported.payload.snapshot.nonce_count=1;
+        reported.payload.snapshot.nonce_tip_sha256=Some(hexhash('f'));
+        reported.signature_hex=sign(101,SERVICE_VIEW_DOMAIN,&reported.payload);
+        assert!(verify_peer_view(&reported,&pa,&a.trust,&a.policy).is_ok());
+        assert!(inspect_local_peer(&a.store,&reported,&pa,&a.trust,&a.policy).is_err());
+    }
+    #[test]fn forged_peer_signature_and_key_substitution_are_rejected(){
+        let a=build();let pa=pin(&a,"host-a",101,None);
+        let mut v=signed(&a,&pa,101);
+        v.signature_hex=sign(103,SERVICE_VIEW_DOMAIN,&v.payload);
+        assert!(verify_peer_view(&v,&pa,&a.trust,&a.policy).is_err());
+        let mut bad=pa.clone();bad.signer_public_key_hex=pk(92);
+        assert!(bad.validate(&a.trust,&a.policy).is_err());
+        let mut bad=pa.clone();bad.signer_public_key_hex=pk(91);
+        assert!(bad.validate(&a.trust,&a.policy).is_err());
+    }
+    #[test]fn host_scope_and_policy_digest_confusion_fail_closed(){
+        let a=build();let pa=pin(&a,"host-a",101,None);
+        let v=signed(&a,&pa,101);
+        let mut wrong=pa.clone();wrong.host_id="host-z".into();
+        assert!(verify_peer_view(&v,&wrong,&a.trust,&a.policy).is_err());
+        let mut wrong=pa.clone();wrong.service_trust_sha256=hexhash('f');
+        assert!(verify_peer_view(&v,&wrong,&a.trust,&a.policy).is_err());
+        let mut wrong=pa.clone();wrong.case_id="wrong".into();
+        assert!(verify_peer_view(&v,&wrong,&a.trust,&a.policy).is_err());
+    }
+    #[test]fn two_pins_for_same_signer_cannot_be_misreported_as_independent(){
+        let a=build();let b=build();
+        let pa=pin(&a,"host-a",101,None);let pb=pin(&b,"host-b",101,None);
+        assert!(compare_peer_views(&signed(&a,&pa,101),&pa,&a.trust,
+            &signed(&b,&pb,101),&pb,&b.trust,&a.policy).is_err());
+    }
+    #[test]fn signed_floor_at_equal_count_cannot_change_digest(){
+        let a=build();consume(&a,'7');
+        let mut f=a.store.snapshot().unwrap();
+        f.nonce_tip_sha256=Some(hexhash('a'));
+        let p=pin(&a,"host-a",101,Some(f));
+        assert!(verify_peer_view(&signed(&a,&p,101),&p,&a.trust,&a.policy).is_err());
+    }
+    #[test]fn corrupt_journal_blocks_trusted_recovery_not_auto_repaired(){
+        let a=build();consume(&a,'8');
+        let pa=pin(&a,"host-a",101,None);
+        let view=signed(&a,&pa,101);
+        std::fs::write(a.dir.path()
+            .join("service/nonce_claims/00000000000000000001.json"),b"{").unwrap();
+        assert!(inspect_local_peer(&a.store,&view,&pa,&a.trust,&a.policy).is_err());
+        assert!(a.store.snapshot().is_err());
+    }
+    #[test]fn unknown_authority_fields_are_rejected_by_strict_schema(){
+        let a=build();let pa=pin(&a,"host-a",101,None);
+        let mut v=serde_json::to_value(signed(&a,&pa,101)).unwrap();
+        v["payload"]["canonical_promotion"]=serde_json::json!(true);
+        assert!(serde_json::from_value::<SignedServicePeerView>(v).is_err());
+    }
+}

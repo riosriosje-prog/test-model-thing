@@ -129,6 +129,27 @@ struct NonceHistory{
     tip:Option<String>,
     seen:BTreeSet<String>,
 }
+
+/// Verified *local scratch* service journal heads; not independently anchored.
+#[derive(Clone,Debug,Serialize,Deserialize,PartialEq,Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ServiceSnapshot {
+    pub checkpoint_count:u64,
+    pub checkpoint_tip_sha256:Option<String>,
+    pub nonce_count:u64,
+    pub nonce_tip_sha256:Option<String>,
+}
+impl ServiceSnapshot{
+    pub fn validate(&self)->Result<(),String>{
+        if (self.checkpoint_count==0)!=self.checkpoint_tip_sha256.is_none()
+            ||(self.nonce_count==0)!=self.nonce_tip_sha256.is_none()
+            ||self.checkpoint_tip_sha256.as_ref().is_some_and(|s|!digest(s))
+            ||self.nonce_tip_sha256.as_ref().is_some_and(|s|!digest(s)){
+            return Err("invalid local service snapshot count/hash".into())
+        }
+        Ok(())
+    }
+}
 struct Guard(File);
 impl Drop for Guard{
     fn drop(&mut self){let _=FileExt::unlock(&self.0);}
@@ -272,6 +293,64 @@ impl ScratchCheckpointServiceStore{
         let raw=canonical(&e)?;
         write_new(&self.root.join(NONCES).join(format!("{sequence:020}.json")),&raw)?;
         sync_dir(&self.root.join(NONCES))
+    }
+    /// Snapshot is generated under one filesystem lock after BOTH journals are
+    /// completely replayed. It has no independent authenticity without a
+    /// separately retained signature/key and trusted monotonic high-water.
+    pub fn snapshot(&self)->Result<ServiceSnapshot,String>{
+        let _guard=self.lock()?;
+        self.snapshot_locked()
+    }
+    fn snapshot_locked(&self)->Result<ServiceSnapshot,String>{
+        let chain=self.checkpoints()?;
+        let nonce=self.nonces()?;
+        let snapshot=ServiceSnapshot{
+            checkpoint_count:u64::try_from(chain.len()).map_err(|_|"checkpoint count overflow")?,
+            checkpoint_tip_sha256:chain.last()
+                .map(|last|canonical(last).map(|raw|sha256(&raw))).transpose()?,
+            nonce_count:nonce.count,
+            nonce_tip_sha256:nonce.tip,
+        };
+        snapshot.validate()?;
+        Ok(snapshot)
+    }
+    /// Fail-closed read-only check against a checkpoint pinned OUTSIDE this
+    /// mutable scratch root. A prior head remains comparable after growth:
+    /// both historical prefix hashes must be byte-for-byte identical.
+    pub fn verify_external_floor(&self,pinned:&ServiceSnapshot)->Result<ServiceSnapshot,String>{
+        pinned.validate()?;
+        let _guard=self.lock()?;
+        let chain=self.checkpoints()?;
+        let nonces=self.nonces()?;
+        let saved=usize::try_from(pinned.checkpoint_count)
+            .map_err(|_|"checkpoint floor count overflow")?;
+        if saved>chain.len()||pinned.nonce_count>nonces.count{
+            return Err("local scratch service was truncated below external signed floor".into())
+        }
+        let checkpoint_tip=if saved==0{None}else{
+            Some(sha256(&canonical(&chain[saved-1])?))
+        };
+        // nonce entries are completely validated before checking historical
+        // bytes, under the same cooperative local lock.
+        let raw_nonce=numbered_files(&self.root.join(NONCES))?;
+        let nonce_tip=if pinned.nonce_count==0{None}else{
+            let index=usize::try_from(pinned.nonce_count-1)
+                .map_err(|_|"nonce floor count overflow")?;
+            Some(sha256(raw_nonce.get(index).ok_or("nonce floor truncated")?))
+        };
+        if checkpoint_tip!=pinned.checkpoint_tip_sha256||
+            nonce_tip!=pinned.nonce_tip_sha256{
+            return Err("service journal prefix diverges from independently pinned snapshot".into())
+        }
+        let current=ServiceSnapshot{
+            checkpoint_count:u64::try_from(chain.len()).map_err(|_|"count overflow")?,
+            checkpoint_tip_sha256:chain.last()
+                .map(|last|canonical(last).map(|raw|sha256(&raw))).transpose()?,
+            nonce_count:nonces.count,
+            nonce_tip_sha256:nonces.tip,
+        };
+        current.validate()?;
+        Ok(current)
     }
     pub fn inspect(&self)->Result<(u64,u64),String>{
         let _lock=self.lock()?;
