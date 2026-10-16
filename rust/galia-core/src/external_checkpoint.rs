@@ -5,8 +5,8 @@
 use std::collections::BTreeSet;
 use serde::{Serialize,Deserialize};
 use crate::audit::sha256;
-use crate::transparency::{ObserverPolicy,SplitViewEvidence};
-use crate::transparency_board::{BoardCheckpoint,DurableTransparencyBoard};
+use crate::transparency::ObserverPolicy;
+use crate::transparency_board::{BoardCheckpoint,DurableTransparencyBoard,SplitViewEvidence};
 use crate::witness_proof::{validate_public_key,verify_detached};
 
 pub const CHECKPOINT_FORMAT:&str="GALIA_NONCANONICAL_EXTERNAL_CHECKPOINT_V1";
