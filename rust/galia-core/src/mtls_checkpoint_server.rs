@@ -32,7 +32,6 @@ use crate::external_transport::{
 use crate::transparency::ObserverPolicy;
 use crate::witness_proof::verify_detached;
 use crate::fenced_coordinator::{FencingAuthority,EpochGrant};
-use crate::external_checkpoint::policy_digest;
 
 const MARKER:&str=".GALIA_NONCANONICAL_MTLS_CHECKPOINT_SERVER_V1";
 const CHECKPOINTS:&str="checkpoints";
