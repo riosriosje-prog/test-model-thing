@@ -110,7 +110,7 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
 
     def test_versioned_manifest_fails_closed(self):
         self.assertTrue(gate(self.candidate))
-        self.assertEqual(len(self.candidate["sources"]), 7)
+        self.assertEqual(len(self.candidate["sources"]), 8)
         self.assertEqual(len(self.candidate["observations"]), 12)
         self.assertEqual(
             {s["discovery_mode"] for s in self.candidate["sources"]
@@ -205,6 +205,58 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
                 mutation(altered)
                 with self.assertRaises(ValueError):
                     gate(altered)
+
+    def test_second_section_date_discrepancy_remains_unresolved(self):
+        record = self.candidate["cartographic_comparison_1917_1918"]
+        dates = record["date_discrepancy"]
+        self.assertEqual(record["authority_state"], "AUTHORITY_HOLD")
+        self.assertEqual(record["target_section"], "SECOND")
+        self.assertEqual(dates["geo_isla_second_section_date"], "1918-06-30")
+        self.assertEqual(dates["indexed_study_map_approval_date"], "1918-01-30")
+        self.assertNotEqual(
+            dates["geo_isla_second_section_date"],
+            dates["indexed_study_map_approval_date"],
+        )
+        self.assertEqual(dates["resolution"], "UNRESOLVED")
+        self.assertFalse(dates["cartouche_original_image_checked"])
+        self.assertIsNone(dates["authoritative_map_revision_date"])
+        self.assertIsNone(dates["event_date"])
+
+    def test_indexed_1918_map_labels_do_not_authenticate_crossings(self):
+        record = self.candidate["cartographic_comparison_1917_1918"]
+        self.assertEqual(
+            set(record["indexed_only_map_labels"]),
+            {"Calle Loiza", "Avenida De Diego"},
+        )
+        self.assertEqual(len(record["candidate_crosschecks"]), 3)
+        later_ids = {
+            obs["observation_id"] for obs in self.candidate["observations"]
+        }
+        for candidate in record["candidate_crosschecks"]:
+            self.assertEqual(candidate["map_assertion_status"], "UNTESTED")
+            self.assertFalse(candidate["original_map_legible_for_named_crossing"])
+            self.assertFalse(candidate["pre_1940_street_intersection_established"])
+            self.assertIsNone(candidate["geometry"])
+            self.assertTrue(
+                set(candidate["later_observation_ids"]).issubset(later_ids)
+            )
+        for required in (
+            "index_derived_map_label_to_historical_intersection",
+            "conflicted_second_section_date_to_authoritative_cartographic_date",
+            "1918_map_corroboration_to_original_map_custody",
+        ):
+            self.assertIn(required, self.candidate["prohibited_promotions"])
+        repro = next(
+            source for source in self.candidate["sources"]
+            if source["source_id"] ==
+            "OECH-CANGREJOS-SANTURCE-S2-INDEXED-REPRODUCTION"
+        )
+        self.assertEqual(
+            repro["discovery_mode"],
+            "SEARCH_INDEX_EXTRACTED_MAP_CAPTION_NOT_ORIGINAL_MAP",
+        )
+        self.assertIsNone(repro["source_binary_sha256"])
+        self.assertFalse(repro["source_bytes_retained"])
 
     def test_current_transit_stops_remain_contemporary_only(self):
         reference = self.candidate["contemporary_separate_reference"]
