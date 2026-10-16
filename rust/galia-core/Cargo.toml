@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2021"
 publish = false
-description = "GALIA Rust shadow; opt-in single-filesystem durable scratch witness and recovery"
+description = "Noncanonical GALIA Rust shadow with opt-in signed witness protocol adapter"
 
 [lib]
 name = "galia_core_shadow"
