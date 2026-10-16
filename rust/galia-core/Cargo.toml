@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.31.0"
+version = "0.32.0"
 edition = "2021"
 publish = false
-description = "GALIA noncanonical signed-fork evidence custody with pinned append-only local publication journal"
+description = "GALIA noncanonical offline signed third-party custody receipts with independently pinned history"
 
 [lib]
 name = "galia_core_shadow"

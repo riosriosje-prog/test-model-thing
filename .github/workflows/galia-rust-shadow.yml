@@ -45,6 +45,8 @@ jobs:
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test fork_witness --features tls-transport
       - name: Durable scratch fork evidence publication and historical high-water tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test fork_publication --features tls-transport
+      - name: Offline separately signed custodian receipts and dual-key checks
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test fork_publication --features tls-transport custody_receipt_tests
       - name: Build six read-only Rust CLIs
         run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
       - name: Original Python P2 P6 P7 reference tests

@@ -262,3 +262,18 @@ No deployed witness or auditor network, independent signer key custody, authenti
 ### Next independently gated work
 
 Authenticated third-party publication/custody outside the local scratch filesystem; signer identity and revocation lifecycle; independently retained monotonic receipts enforced against simultaneous restore/rollback; anti-equivocation public gossip/replica consistency checks with independently governed operators. Synthetic unit-test quorum != real organizations.
+
+
+## NEW v0.32 — offline independently pinned signed custodian receipts
+
+**DRAFT / FEATURE-GATED / NONCANONICAL / NO LIVE CUSTODIAN / AUTHORITY_HOLD**
+
+- New custody_attestation.rs defines domain-separated Ed25519 SignedCustodyReceipt envelopes that bind exact independently supplied custodian ID and verifier key, auditor trust hash, fork-witness roster/policy hash, publication stream, strict signed receipt sequence, previous signed-receipt SHA-256, exact local full-replay publication checkpoint count/SHA-256 and the SHA-256 of each complete signed auditor/witness evidence bundle.
+- Custodian key is rejected if it aliases the separately pinned auditor, service response signer or any fork-witness signing key. No private custodian keys are held by the production library. Every signature is checked relative to the caller-supplied public key; the caller must independently provision key, roster policy and retained monotonic receipt floor OUTSIDE the scratch journal and any purported custodian.
+- verify_receipt_chain rejects gaps, reordered receipts, signature forgery, scope/policy substitution and nonmonotonic publication heights. verify_custody_against_local replays the complete v0.31 fork publication chain and its underlying signed auditor fork/witness evidence. Every signed custodian checkpoint MUST match its exact historical local prefix; the complete serialized bundle MUST also hash to the custodian-signed payload.
+- assess_two_custodians requires DISTINCT pinned custodian IDs and public keys, verifies each signed receipt chain against the same fully revalidated local store and requires exact terminal checkpoint agreement. This proves ONLY agreement of synthetic signed claims relative to independent caller-provided pins, not organizational independence, independent storage or public transparency.
+- Twelve new adversarial tests cover two valid distinct-key claims, forged signature, wrong pinned trust policy, auditor/witness/service key-role confusion, wrong signed bundle digest, rollback after external receipt survives, strict two-step historical receipt sequence, missing/reordered chain, saved receipt high-water after growth, duplicate key identities and strict rejection of injected human-authority fields.
+
+### Production readiness blockers
+
+There is NO independent remote custodian, no real publication delivery protocol or network, no real KMS/HSM/revocation/enrollment, no authenticated proof of operator independence, no independently administered monotonic publication registry or trusted timestamp service, and no external simultaneous-rollback detection if a malicious party controls BOTH scratch journal and supposed pins. Two signatures generated in unit tests may belong to the SAME simulated operator. Valid signatures do not prove the historical truth of the audit's claims and do not authorize automatic quarantine, human P5 approval, P2 guards, P7 writeback, promotion or canonical GALIA, Python, Supabase/DW8 changes. All positive reports MUST explicitly leave external independent custody, public publication, human authority, canonical writeback and authority transfer FALSE. Legacy experimental unfenced APIs persist. AUTHORITY_HOLD remains.

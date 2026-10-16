@@ -287,3 +287,208 @@ fn new_store()->(tempfile::TempDir,ScratchForkPublication,PublishedForkBundle){
     data["canonical_writeback"]=serde_json::json!(true);
     assert!(serde_json::from_value::<PublishedForkBundle>(data).is_err());
 }
+
+
+// v0.32 offline synthetically signed custody receipts. No real third-party.
+mod custody_receipt_tests{
+    use super::*;
+    use galia_core_shadow::custody_attestation::*;
+
+    fn trust(a:&AuditTrustPin,w:&ForkWitnessPolicy,id:&str,seed:u8)
+        ->CustodianTrustPin{
+        CustodianTrustPin{
+            custodian_id:id.into(),custodian_public_key_hex:pubkey(seed),
+            publication_stream_id:a.stream_id.clone(),
+            audit_pin_sha256:sha256(&canonical(a)),
+            witness_policy_sha256:sha256(&canonical(w)),
+            floor_receipt_sequence:0,floor_receipt_sha256:None,
+            floor_publication_checkpoint:PublicationCheckpoint{
+                entry_count:0,last_entry_sha256:None,
+            },
+        }
+    }
+    fn sign_receipt(
+        t:&CustodianTrustPin,seed:u8,sequence:u64,
+        previous:Option<String>,checkpoint:PublicationCheckpoint,
+        packet:&PublishedForkBundle
+    )->SignedCustodyReceipt{
+        let payload=CustodyReceiptPayload{
+            format:CUSTODY_RECEIPT_FORMAT.into(),
+            custodian_id:t.custodian_id.clone(),
+            publication_stream_id:t.publication_stream_id.clone(),
+            audit_pin_sha256:t.audit_pin_sha256.clone(),
+            witness_policy_sha256:t.witness_policy_sha256.clone(),
+            sequence,previous_signed_receipt_sha256:previous,
+            publication_checkpoint:checkpoint,
+            published_bundle_sha256:sha256(&canonical(packet)),
+        };
+        let key=SigningKey::from_bytes(&[seed;32]);
+        SignedCustodyReceipt{
+            signature_hex:hex::encode(key.sign(
+                &signing_preimage(CUSTODY_RECEIPT_DOMAIN,&payload).unwrap()
+            ).to_bytes()),
+            payload,
+        }
+    }
+    fn second_bundle()->PublishedForkBundle{
+        let (a,old_left,_old_right)=histories();
+        let policy=roster(&a);
+        let root=old_left[0].clone();
+        let prev=Some(sha256(&canonical(&root)));
+        let left=vec![root.clone(),
+            sign_audit(&a,2,prev.clone(),checkpoint(2,"second-left"))];
+        let right=vec![root,sign_audit(&a,2,prev,checkpoint(2,"second-right"))];
+        let witnesses=vec![
+            vote(&a,&policy,&left,&right,"a",111),
+            vote(&a,&policy,&left,&right,"b",112),
+        ];
+        PublishedForkBundle{
+            left_audit_branch:left,right_audit_branch:right,witnesses,
+        }
+    }
+    #[test]fn independently_pinned_signed_custody_matches_fully_verified_local_bundle(){
+        let (_root,store,packet)=new_store();
+        let cp=store.append(packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();
+        let pin=trust(&a,&w,"custodian-one",121);
+        let signed=sign_receipt(&pin,121,1,None,cp,&packet);
+        let report=verify_custody_against_local(&store,&pin,&a,&w,&[signed]).unwrap();
+        assert_eq!(report.latest_receipt_sequence,1);
+        assert!(report.all_historical_publication_prefixes_replayed);
+        assert!(!report.externally_hosted_custodian_verified);
+        assert!(!report.genuine_independent_signer_custody_verified);
+        assert!(!report.human_authority_verified&&!report.canonical_writeback);
+    }
+    #[test]fn two_distinct_custodian_signatures_agree_but_not_real_organizations(){
+        let (_root,store,packet)=new_store();
+        let cp=store.append(packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();
+        let t1=trust(&a,&w,"custodian-a",121);
+        let t2=trust(&a,&w,"custodian-b",122);
+        let r1=sign_receipt(&t1,121,1,None,cp.clone(),&packet);
+        let r2=sign_receipt(&t2,122,1,None,cp,&packet);
+        let result=assess_two_custodians(&store,&a,&w,&t1,&[r1],&t2,&[r2]).unwrap();
+        assert!(result.exact_terminal_publication_agreement);
+        assert!(result.distinct_pinned_custodian_keys);
+        assert!(!result.signer_organizational_independence_verified);
+        assert!(!result.real_public_gossip_verified);
+        assert!(!result.automatic_recovery_permitted);
+    }
+    #[test]fn two_custodian_labels_cannot_reuse_the_same_public_key(){
+        let (_root,store,packet)=new_store();
+        let cp=store.append(packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();
+        let t1=trust(&a,&w,"custodian-a",121);
+        let t2=trust(&a,&w,"custodian-b",121);
+        let x=sign_receipt(&t1,121,1,None,cp.clone(),&packet);
+        let y=sign_receipt(&t2,121,1,None,cp,&packet);
+        assert!(assess_two_custodians(&store,&a,&w,&t1,&[x],&t2,&[y]).is_err());
+    }
+    #[test]fn custodian_signer_must_not_alias_auditor_or_witness_or_service(){
+        let (a,w,_)=bundle();
+        let mut p=trust(&a,&w,"bad",121);
+        p.custodian_public_key_hex=a.auditor_public_key_hex.clone();
+        assert!(p.validate(&a,&w).is_err());
+        p.custodian_public_key_hex=w.witnesses[0].public_key_hex.clone();
+        assert!(p.validate(&a,&w).is_err());
+        p.custodian_public_key_hex=a.scope.pinned_response_signer_public_key_hex.clone();
+        assert!(p.validate(&a,&w).is_err());
+    }
+    #[test]fn forged_signature_rejected_without_treating_receipt_as_external_custody(){
+        let (_root,store,packet)=new_store();
+        let cp=store.append(packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();let pin=trust(&a,&w,"custodian",121);
+        let forged=sign_receipt(&pin,123,1,None,cp,&packet);
+        assert!(verify_custody_against_local(&store,&pin,&a,&w,&[forged]).is_err());
+    }
+    #[test]fn wrong_scope_policy_and_key_pins_are_rejected(){
+        let (_root,store,packet)=new_store();
+        let cp=store.append(packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();let pin=trust(&a,&w,"custodian",121);
+        let receipt=sign_receipt(&pin,121,1,None,cp,&packet);
+        let mut wrong=pin.clone();
+        wrong.witness_policy_sha256="f".repeat(64);
+        assert!(verify_receipt_chain(&wrong,&a,&w,&[receipt.clone()]).is_err());
+        let mut wrong=pin.clone();
+        wrong.publication_stream_id="another-stream".into();
+        assert!(verify_receipt_chain(&wrong,&a,&w,&[receipt.clone()]).is_err());
+        let mut wrong=pin;
+        wrong.custodian_public_key_hex=pubkey(124);
+        assert!(verify_receipt_chain(&wrong,&a,&w,&[receipt]).is_err());
+    }
+    #[test]fn signed_wrong_bundle_digest_fails_historical_content_check(){
+        let (_root,store,packet)=new_store();
+        let cp=store.append(packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();let pin=trust(&a,&w,"custodian",121);
+        let mut signed=sign_receipt(&pin,121,1,None,cp,&packet);
+        signed.payload.published_bundle_sha256="f".repeat(64);
+        let key=SigningKey::from_bytes(&[121;32]);
+        signed.signature_hex=hex::encode(key.sign(
+            &signing_preimage(CUSTODY_RECEIPT_DOMAIN,&signed.payload).unwrap()
+        ).to_bytes());
+        assert!(verify_receipt_chain(&pin,&a,&w,&[signed.clone()]).is_ok());
+        assert!(verify_custody_against_local(&store,&pin,&a,&w,&[signed]).is_err());
+    }
+    #[test]fn publication_truncation_detected_if_signed_receipt_survives_outside(){
+        let (root,store,packet)=new_store();
+        let cp=store.append(packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();let pin=trust(&a,&w,"custodian",121);
+        let signed=sign_receipt(&pin,121,1,None,cp,&packet);
+        std::fs::remove_file(root.path().join(
+            "fork-custody/entries/00000000000000000001.json")).unwrap();
+        assert_eq!(store.checkpoint().unwrap().entry_count,0);
+        assert!(verify_custody_against_local(&store,&pin,&a,&w,&[signed]).is_err());
+    }
+    #[test]fn proper_two_step_receipt_chain_checks_every_bundle_and_prefix(){
+        let (_root,store,packet)=new_store();
+        let first=store.append(packet.clone()).unwrap().checkpoint;
+        let second_packet=second_bundle();
+        let second=store.append(second_packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();let pin=trust(&a,&w,"custodian",121);
+        let r1=sign_receipt(&pin,121,1,None,first,&packet);
+        let r2=sign_receipt(&pin,121,2,Some(sha256(&canonical(&r1))),
+            second,&second_packet);
+        let v=verify_custody_against_local(&store,&pin,&a,&w,&[r1,r2]).unwrap();
+        assert_eq!(v.latest_receipt_sequence,2);
+        assert_eq!(v.receipt_count,2);
+    }
+    #[test]fn skipped_sequence_and_modified_previous_receipt_hash_fail(){
+        let (_root,store,packet)=new_store();
+        let first=store.append(packet.clone()).unwrap().checkpoint;
+        let second_packet=second_bundle();
+        let second=store.append(second_packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();let pin=trust(&a,&w,"custodian",121);
+        let r1=sign_receipt(&pin,121,1,None,first,&packet);
+        let bad_seq=sign_receipt(&pin,121,3,
+            Some(sha256(&canonical(&r1))),second.clone(),&second_packet);
+        assert!(verify_receipt_chain(&pin,&a,&w,&[r1.clone(),bad_seq]).is_err());
+        let bad_prev=sign_receipt(&pin,121,2,
+            Some("f".repeat(64)),second,&second_packet);
+        assert!(verify_receipt_chain(&pin,&a,&w,&[r1,bad_prev]).is_err());
+    }
+    #[test]fn externally_retained_signed_receipt_floor_can_be_rechecked_after_growth(){
+        let (_root,store,packet)=new_store();
+        let first=store.append(packet.clone()).unwrap().checkpoint;
+        let second_packet=second_bundle();
+        let second=store.append(second_packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();let original=trust(&a,&w,"custodian",121);
+        let r1=sign_receipt(&original,121,1,None,first.clone(),&packet);
+        let mut pinned=original.clone();
+        pinned.floor_receipt_sequence=1;
+        pinned.floor_receipt_sha256=Some(sha256(&canonical(&r1)));
+        pinned.floor_publication_checkpoint=first;
+        let r2=sign_receipt(&pinned,121,2,
+            pinned.floor_receipt_sha256.clone(),second,&second_packet);
+        let v=verify_custody_against_local(&store,&pinned,&a,&w,&[r2]).unwrap();
+        assert_eq!(v.latest_receipt_sequence,2);
+    }
+    #[test]fn injected_authority_field_is_rejected_at_strict_deserialization(){
+        let (_root,store,packet)=new_store();
+        let cp=store.append(packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();let pin=trust(&a,&w,"custodian",121);
+        let mut data=serde_json::to_value(sign_receipt(
+            &pin,121,1,None,cp,&packet)).unwrap();
+        data["payload"]["human_authority_verified"]=serde_json::json!(true);
+        assert!(serde_json::from_value::<SignedCustodyReceipt>(data).is_err());
+    }
+}

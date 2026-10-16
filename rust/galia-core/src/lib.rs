@@ -64,3 +64,6 @@ pub mod fork_witness;
 
 #[cfg(feature="tls-transport")]
 pub mod fork_publication;
+
+#[cfg(feature="tls-transport")]
+pub mod custody_attestation;
