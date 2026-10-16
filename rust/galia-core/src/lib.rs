@@ -26,3 +26,5 @@ pub mod transparency;
 pub mod transparency_board;
 #[cfg(feature="scratch-store")]
 pub mod external_checkpoint;
+#[cfg(feature="scratch-store")]
+pub mod external_transport;
