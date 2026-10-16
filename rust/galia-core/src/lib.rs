@@ -61,3 +61,6 @@ pub mod audit_equivocation;
 
 #[cfg(feature="tls-transport")]
 pub mod fork_witness;
+
+#[cfg(feature="tls-transport")]
+pub mod fork_publication;
