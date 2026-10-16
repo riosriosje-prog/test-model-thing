@@ -1,4 +1,4 @@
-//! GALIA 2.0 Rust shadow core. No P5 human authority or production writes.
+//! GALIA 2.0 Rust shadow core; no verified P5 human authority or canonical writes.
 #![forbid(unsafe_code)]
 pub mod core;
 pub mod state_machine;
@@ -8,17 +8,19 @@ pub mod persistence;
 pub mod audit;
 pub mod attestation;
 pub mod review;
-#[cfg(feature = "scratch-store")]
+#[cfg(feature="scratch-store")]
 pub mod scratch_store;
-#[cfg(feature = "scratch-store")]
+#[cfg(feature="scratch-store")]
 pub mod consumption;
-#[cfg(feature = "scratch-store")]
+#[cfg(feature="scratch-store")]
 pub mod witness;
-#[cfg(feature = "scratch-store")]
+#[cfg(feature="scratch-store")]
 pub mod durable_witness;
-#[cfg(feature = "scratch-store")]
+#[cfg(feature="scratch-store")]
 pub mod witness_proof;
-#[cfg(feature = "scratch-store")]
+#[cfg(feature="scratch-store")]
 pub mod witness_continuity;
-#[cfg(feature = "scratch-store")]
+#[cfg(feature="scratch-store")]
 pub mod transparency;
+#[cfg(feature="scratch-store")]
+pub mod transparency_board;

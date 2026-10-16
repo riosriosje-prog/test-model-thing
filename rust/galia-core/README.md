@@ -1,30 +1,31 @@
-# GALIA Rust shadow v0.13 — signed observer gossip and split-view detection
+# GALIA Rust shadow v0.14 — durable signed-publication evidence board
 
-**STATUS: DRAFT / NONCANONICAL / NO DEPLOYED GOSSIP / AUTHORITY_HOLD**
+**DRAFT / NONCANONICAL / NO NETWORK SERVICE / NO HUMAN AUTHORITY / AUTHORITY_HOLD**
 
-The original Python GALIA core remains authoritative. No production GALIA HEAD, P2 promotion guard, Supabase, DW8 or historical evidentiary record is modified.
+The existing GALIA Python core is authoritative. Nothing in this Rust candidate changes the actual canonical GALIA HEAD, Supabase, DW8, historical evidence, promotion guards or main.
 
-## Retained functionality
+## Preserved functionality v0.1–v0.13
 
-P1/P2 typed event/stage state machine, advisory P5/P6 exact-scope decision/preflight, P7 byte-exact Python SHA-256 manifest/payload/HEAD/parent verification, P3 hash-linked audit and Ed25519 checkpoints, P5 signed review structure and revocation, opt-in local immutable scratch store and authorization/nonce consume-once journal, scratch durable witness, signed witness receipts and the v0.12 contiguous signed receipt + dual-signed key rotation verifier. Six existing CLIs are read-only.
+Typed P1/P2 stage transitions; advisory P5/P6 structural preflight/review; P7 byte-compatible SHA-256 payload, manifest, HEAD and parent replay; P3 hash-linked receipts and Ed25519 checkpoints; P5 scoped Ed25519 reviewer registry; opt-in scratch generation CAS/consume-once journal, durable local witness, signed witness receipts/observations, dual-signed key rotation, contiguous signed history extension verifier; v0.13 threshold-two signed observer gossip and split-view comparison. Default build and all six CLIs remain read-only.
 
-## NEW v0.13 — pure offline observer transparency protocol
+## v0.14 NEW — durable SCRATCH transparency board and peer exchange
 
-- ObserverPolicy specifies an **out-of-band provisioned** witness verification anchor, observer roster epoch, independent Ed25519 public keys and a minimum quorum of **two** nonrevoked, unique observer keys. The code rejects observer keys identical to the review root or witness signer key, duplicate IDs/public keys and unavailable quorum.
-- SignedGossipEndorsement binds its observer identity, namespace, case, roster epoch, signed witness observation **envelope SHA-256**, reported count, tip and registry epoch to a separate domain-separated Ed25519 signature. A publication passes only if the original witness observation is itself signature-valid, every endorsement is correct, and quorum is achieved. Unknown, duplicate, revoked or substituted observers fail closed.
-- compare_publications() examines two independently endorsed signed witness observations. If BOTH have the same count but different signed tips or registry epochs, it returns **ConflictingSignedState** with the hashes of both signed observation envelopes for preservation as split-view evidence. Same state is not a conflict. DIFFERENT counts are always reported **DifferentHeightExtensionNotEstablished** (neither evidence of tampering nor proof of consistency).
-- verify_publication_extension() requires endorsed earlier and later observations under an unchanged pinned observer roster, plus a full v0.12 chain of signed intervening receipts and optional root-authorized witness key rotations. It only returns VerifiedSignedExtension once starting count/tip/epoch, terminal signed observation, and final signer are EXACTLY bound to the published views. A new witness signing key may be used only if verified via the historical rotation proof.
-- NEW 14 targeted tests validate quorum, revocation, role/key separation, forged endorsements, split-view signatures, same-state comparison, missing/reordered receipts, provenance-pinned endpoints, and changed observer roster.
-- Feature gated behind scratch-store (disabled by default), no network, background gossip, publishing service or canonical write path.
+- New feature-gated DurableTransparencyBoard only initializes a brand-new, explicitly marked noncanonical test directory and demands a separately caller-provisioned ObserverPolicy even on reopen. Local marker configuration is NEVER trusted by itself. Two observer signatures are required for every accepted publication.
+- The board appends canonical JSON journal entries, numbering them strictly and chaining each to the SHA-256 of the previous entry. Files use create-new and fsync, and a cooperative exclusive local lock serializes writes. Reopening **fully replays and re-verifies** observer signatures, journal links, historical continuity proofs and conflict evidence. Corruption, missing entries, inserted entries or symlinks reject without automatic repair.
+- First publication must exactly equal the independently pinned count/tip from the board policy. A strictly higher-count observation requires a full v0.12 signed receipt extension anchored to the previous accepted observation; an unsupported forward jump rejects. Same signed state is idempotent and does not append.
+- Two fully signed and quorum-endorsed observations at the SAME height with incompatible SHA-256 tips or epochs cause both signed envelopes to be retained in a journal record. The board enters a **persistently replay-derived quarantine**, refusing every subsequent write; it never selects a winning fork or rewrites history.
+- Offline export and re-import of complete signed publication/extension envelopes allows two scratch boards to exchange evidence. The receiving board rechecks every signature against ITS OWN separately pinned policy. No actual network gossip, transport authentication, independent observer infrastructure or cross-host consensus exists.
+- Inspect, export, checkpoint and evidence APIs are read-only. An externally retained journal-count/tip checkpoint can detect full-directory journal truncation; a checkpoint kept in the same attackable directory is not trustworthy.
+- 11 new adversarial integration tests cover restart, signed extension, idempotence, same-height forks and durable quarantine, separate scratch board evidence exchange, corrupted journal, independently pinned policy mismatch, external checkpoint rollback, concurrent handles and symlinks.
 
-## Exact security boundaries
+## Security and accuracy boundaries
 
-1. Both observer roster and witness root are **caller-supplied**. The module does not independently authenticate their origin, true organizational independence, public key custody, freshness or revocation chronology. Test keys are synthetic and cannot be regarded as real independent observers.
-2. If a witness key signs different tips or epochs at the SAME count, two valid publications constitute checkable signed-conflict evidence. This does NOT identify the malicious actor, prove an actual remote log diverged, or establish real-world observer identity.
-3. For differing heights, a complete signed suffix establishes a **claimed cryptographic extension only**. Receipts' tip digests are not independently recomputed from a production transaction log; a compromised witness and rotation root can collude or equivocate. Authentic trusted publication/gossip, external immutable checkpoint retention, and independent ledger replay are required.
-4. Duplicate authorization and nonce checks in the suffix do NOT validate against every item of the independently absent historic prefix. Signed witnesses do not prove the prior registry was complete.
-5. This is an offline verifier, NOT a deployed transparency system. It cannot create signatures, perform cross-host networking, guarantee consensus, issue verified human approval or promote anything.
-6. AUTHORITY_HOLD persists. Human governance, reviewer credential verification, KMS/HSM custody, witness Byzantine threat modeling, P4 MLX/Legacy parity, filesystem rollback protection and independent security review remain production blockers.
+- **This is not a deployed transparency service.** Local files plus cooperative OS locks do not establish independence across machines, withstand malicious filesystem actors, or ensure distributed rollback/fork resistance.
+- All keys, observer roster and witness root are supplied from a claimed trusted external configuration. This code does NOT prove how they were enrolled, that observers are truly independent, that the roster is fresh or that any one signer did not equivocate.
+- Observers sign witness claims; receipt SHA-256 fields are NOT independently computed from a live production transaction log. Even valid contiguous signed evidence cannot prove all real-world spends or prevent coordinated signers from publishing alternative histories.
+- Quarantine prevents further local scratch writes. It does NOT decide which fork is correct, initiate canonical rollback, infer bad faith, assign real-world blame, grant P5 human authority or issue P2 promotion guards.
+- A full malicious rewrite of journal AND the caller's trust anchor may defeat local integrity. A durable independently managed externally authenticated checkpoint/publication, correct key lifecycle, Byzantine threat analysis and real network observers remain required.
+- This board cannot promote any canon, write into Supabase or DW8, deploy a service, or merge its PR. AUTHORITY_HOLD is preserved.
 
 ## Verify
 
@@ -36,4 +37,8 @@ P1/P2 typed event/stage state machine, advisory P5/P6 exact-scope decision/prefl
     python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
     python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
 
-**Invariants:** EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION. AI-generated historical images are not evidence. Do not merge or deploy without an independently authorized human decision.
+## Remaining production prerequisites
+
+Authenticated externally deployed witness and quorum observers; provisioned independent keys, monotonic checkpoints and trusted key rotation/revocation; crash/network partition/BFT and multi-host consistency testing; P5 identity and governance; legal evidence audit and P4 Legacy/MLX parity; security review plus explicitly authorized human merge. No canonical cutover or publication based solely on shadow tests.
+
+EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION. AI-generated imagery must never be treated as historical evidence.
