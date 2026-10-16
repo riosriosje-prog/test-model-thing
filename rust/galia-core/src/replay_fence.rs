@@ -112,7 +112,7 @@ impl ReplayEntry{
 }
 struct ReplayHistory{
     count:u64,tip:Option<String>,nonces:BTreeSet<String>,
-    responses:BTreeSet<String>,
+    responses:BTreeSet<String>,last_accepted_time:u64,
 }
 struct Guard(File);
 impl Drop for Guard{
@@ -213,7 +213,7 @@ impl DurableTranscriptReplayFence{
             tip=Some(sha256(&raw));
         }
         Ok(ReplayHistory{count:u64::try_from(entries.len()).map_err(|_|"count overflow")?,
-            tip,nonces,responses})
+            tip,nonces,responses,last_accepted_time:last_time})
     }
     pub fn inspect(&self)->Result<(u64,Option<String>),String>{
         let _guard=self.lock()?;let h=self.history()?;Ok((h.count,h.tip))
@@ -237,6 +237,9 @@ impl DurableTranscriptReplayFence{
         let challenge_hash=sha256(&canonical(challenge)?);
         let _guard=self.lock()?;
         let history=self.history()?;
+        if trusted_now_unix_seconds<history.last_accepted_time{
+            return Err("local scratch accepted-time rollback; external trusted clock required".into())
+        }
         if history.nonces.contains(&challenge.nonce_sha256)||
             history.responses.contains(&response_hash){
             return Err("signed remote transcript already consumed by local replay fence".into())
