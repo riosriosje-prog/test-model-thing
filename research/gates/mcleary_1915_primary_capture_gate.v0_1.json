@@ -1,0 +1,67 @@
+{
+  "schema_version": "galia.research.primary_capture_gate.v0.1",
+  "project_id": "mcleary",
+  "case_id": "MCLEARY-1915-NAME-USE",
+  "record_date": "2026-10-16",
+  "state": "AUTHORITY_HOLD",
+  "authority_mutation": false,
+  "raw_capture_complete": false,
+  "claim_scope": "Printed street-name usage only; no historical event date or municipal act inferred",
+  "documentary_observations": [
+    {
+      "document_id": "doc_macleary_1915_11_22",
+      "claim_id": "clm_macleary_reported_print_name_use_1915_11_22",
+      "issue_date": "1915-11-22",
+      "publication": "El Tiempo",
+      "reported_page": "4",
+      "url": "https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01444/1915112201.pdf",
+      "discovery_tier": "PRIOR_PROJECT_TRANSCRIPTION_ONLY",
+      "primary_pdf_available_to_current_review": false,
+      "pdf_sha256": null,
+      "captured_pdf_byte_length": null,
+      "verified_page_image_sha256": null,
+      "page_image_visually_checked": false,
+      "typography_verified": false,
+      "retrieval_observation": "Direct PDF opening failed through web source; no raw source downloaded",
+      "human_review_state": "PENDING"
+    },
+    {
+      "document_id": "doc_macleary_1915_11_26_indexed",
+      "claim_id": "clm_macleary_indexed_print_name_use_1915_11_26",
+      "issue_date": "1915-11-26",
+      "publication": "El Tiempo",
+      "reported_page": "4",
+      "url": "https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01448/1915112601.pdf",
+      "discovery_tier": "SEARCH_INDEX_OCR_ONLY",
+      "primary_pdf_available_to_current_review": false,
+      "pdf_sha256": null,
+      "captured_pdf_byte_length": null,
+      "verified_page_image_sha256": null,
+      "page_image_visually_checked": false,
+      "typography_verified": false,
+      "retrieval_observation": "Search engine indexed rental classified referring to 'Avenida MacLeary. Parada 44'; full PDF opening rejected for 44,932,618-byte response. Reported transfer size is not a captured-file byte count.",
+      "human_review_state": "PENDING"
+    }
+  ],
+  "requirements_before_raw_capture_record": [
+    "Acquire source issue bytes from custodian-controlled endpoint into designated artifact vault.",
+    "Verify PDF signature, count, physical issue date, masthead and specific printed page.",
+    "Calculate SHA-256 and byte_length from locally retained source bytes; store immutable artifact locator.",
+    "Render scanned page; visually inspect address spelling against image and document reviewer identity.",
+    "Cross-check OCR transcription against typography; preserve discrepancies and alternate readings.",
+    "Keep historical event date, street opening, municipal naming act, eponym, geometry and first-use claims unasserted."
+  ],
+  "forbidden_promotions": [
+    "source_index_to_raw_capture",
+    "document_date_to_street_naming_event",
+    "printed_name_to_municipal_act",
+    "provisional_1915_alias_to_1916_street_identity",
+    "search_snippet_to_primary_source",
+    "automatic_canonical_write"
+  ],
+  "external_access_limitations": [
+    "No independently captured PDF bytes or page image in this review.",
+    "No page-specific SHA-256 may be inferred from a URL, OCR, download header or external file size.",
+    "A valid public OCR search result supports discovery, not independently verified exact typography."
+  ]
+}
