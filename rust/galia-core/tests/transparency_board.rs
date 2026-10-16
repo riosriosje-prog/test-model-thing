@@ -217,16 +217,25 @@ fn boot(board:&DurableTransparencyBoard){
         })
     }).collect::<Vec<_>>();
     barrier.wait();
-    let mut results=jobs.into_iter().map(|j|j.join().unwrap()).collect::<Vec<_>>();
+    let results=jobs.into_iter().map(|j|j.join().unwrap()).collect::<Vec<_>>();
     assert_eq!(results.len(),2);
-    let successes=results.iter().filter(|r|r.is_ok()).count();
-    // Same height conflict must not supply an extension proof. In the losing
-    // write the caller can reimport only its signed view without extension.
-    assert_eq!(successes,1);
-    let loser=if results.remove(0).is_err(){'a'}else{'b'};
+    // Both properly signed but incompatible claims are retained, not silently
+    // refused; the second triggers permanent fail-closed quarantine.
+    assert!(results.iter().all(|r|r.is_ok()));
+    assert!(results.iter().any(|r|r.as_ref().unwrap().quarantined));
     let reopened=DurableTransparencyBoard::open(dir.path().join("board"),policy()).unwrap();
-    assert!(reopened.publish(publication(1,Some(h(loser)),10),None).unwrap().quarantined);
+    assert!(reopened.inspect().unwrap().quarantined);
     assert_eq!(reopened.inspect().unwrap().journal_count,3);
+}
+#[test]fn tampered_conflicting_extension_does_not_trigger_false_quarantine(){
+    let (_dir,b)=new_board();boot(&b);
+    let (first,p1)=transition(0,None,'a',10);
+    b.publish(first,Some(p1)).unwrap();
+    let (fork,mut bad)=transition(0,None,'b',10);
+    bad.extension[0].receipt.prior_tip_sha256=Some(h('f'));
+    assert!(b.publish(fork,Some(bad)).is_err());
+    assert!(!b.inspect().unwrap().quarantined);
+    assert_eq!(b.inspect().unwrap().journal_count,2);
 }
 #[cfg(unix)]
 #[test]fn symlinked_journal_file_is_denied(){

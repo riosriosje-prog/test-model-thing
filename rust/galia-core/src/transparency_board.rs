@@ -136,8 +136,22 @@ impl State{
                 let comparison=compare_publications(old,&transfer.view,policy)?;
                 match comparison.kind {
                     ComparisonKind::ConflictingSignedState=>{
-                        if transfer.extension.is_some(){
-                            return Err("conflicting signed view cannot smuggle an extension".into())
+                        // A transferred fork may legitimately contain its own
+                        // signed extension from the SAME prior anchored view.
+                        // Verify that full proof instead of discarding it. A
+                        // malicious proof must never be treated as evidence.
+                        if let Some(proof)=&transfer.extension{
+                            let predecessor=self.journal.iter()
+                                .filter(|prior|prior.transfer.view.signed_observation.observation.spent_count
+                                    <published.count)
+                                .max_by_key(|prior|
+                                    prior.transfer.view.signed_observation.observation.spent_count)
+                                .ok_or("conflicting signed proof lacks a pinned predecessor")?;
+                            let cmp=verify_publication_extension(
+                                &predecessor.transfer.view,&transfer.view,policy,policy,proof)?;
+                            if cmp.kind!=ComparisonKind::VerifiedSignedExtension{
+                                return Err("conflicting signed proof does not connect to predecessor".into())
+                            }
                         }
                         self.conflict=Some(SplitViewEvidence{
                             format:FORMAT,count:published.count,
