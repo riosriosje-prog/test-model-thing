@@ -104,5 +104,57 @@ class McLeary1915NameUseTests(unittest.TestCase):
         )
 
 
+    def test_26_nov_ocr_index_is_separate_proposed_claim(self):
+        self.assertNotEqual(
+            self.ids["name_use_claim_id"], self.ids["indexed_26_claim_id"]
+        )
+        a = self.store.claim_bundle(self.ids["name_use_claim_id"])
+        b = self.store.claim_bundle(self.ids["indexed_26_claim_id"])
+        self.assertEqual(
+            a["claim"]["subject_entity_id"], b["claim"]["subject_entity_id"]
+        )
+        self.assertEqual(a["claim"]["status"], "PROPOSED")
+        self.assertEqual(b["claim"]["status"], "PROPOSED")
+        row = self.store.conn.execute(
+            "SELECT document_date, event_date_start FROM documents "
+            "WHERE document_id=?",
+            (self.ids["indexed_26_document_id"],),
+        ).fetchone()
+        self.assertEqual(row["document_date"], "1915-11-26")
+        self.assertIsNone(row["event_date_start"])
+        self.assertEqual(
+            self.store.conn.execute(
+                "SELECT COUNT(*) FROM claims WHERE status='CANONICAL'"
+            ).fetchone()[0], 0,
+        )
+
+    def test_26_nov_indexed_ocr_fails_closed_to_hold(self):
+        rows = self.store.conn.execute(
+            "SELECT acquisition_state, raw_artifact FROM "
+            "document_representations WHERE document_id=?",
+            (self.ids["indexed_26_document_id"],),
+        ).fetchall()
+        self.assertEqual(
+            {r["acquisition_state"] for r in rows},
+            {"LOCATOR_ONLY", "TEXT_SURROGATE"},
+        )
+        self.assertFalse(any(r["raw_artifact"] for r in rows))
+        result = self.bridge.mirror_to_hold(
+            store=self.store,
+            case=self.case,
+            stage=Stage(
+                stage_id="stage-mcleary-1915-ocr-index",
+                case_id=self.case.case_id,
+                stage_type="HISTORICAL_CLAIM_SHADOW",
+                state=StageState.DISCOVERED,
+            ),
+            claim_id=self.ids["indexed_26_claim_id"],
+        )
+        self.assertEqual(result.status, HistoricalShadowStatus.AUTHORITY_HOLD)
+        self.assertEqual(result.stage.state, StageState.AUTHORITY_HOLD)
+        self.assertIn("RAW_CAPTURE_REQUIRED", result.promotion_blocker_codes)
+        self.assertTrue(all(r.output_commit is None for r in result.receipts))
+
+
 if __name__ == "__main__":
     unittest.main()
