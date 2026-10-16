@@ -15,13 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Rust unit and contract tests
+      - name: Rust tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
       - name: Build read-only Rust shadow CLIs
         run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
-      - name: Existing Python P2 and P6 reference tests
+      - name: Existing Python P2 P6 P7 reference tests
         run: |
           python -m unittest discover -s tests -p 'test_galia2_state_machine.py' -v
           python -m unittest discover -s tests -p 'test_galia2_preflight.py' -v
-      - name: Python and Rust differential conformance
+          python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
+      - name: Python/Rust differential conformance
         run: python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
