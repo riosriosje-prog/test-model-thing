@@ -37,3 +37,6 @@ pub mod replay_anchor;
 
 #[cfg(feature="tls-transport")]
 pub mod tls_checkpoint;
+
+#[cfg(feature="tls-transport")]
+pub mod mtls_checkpoint_server;
