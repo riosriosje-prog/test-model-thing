@@ -49,3 +49,27 @@ pub mod fenced_coordinator;
 
 #[cfg(feature="tls-transport")]
 pub mod network_fencing;
+
+#[cfg(feature="tls-transport")]
+pub mod durable_monotonic_anchor;
+
+#[cfg(feature="tls-transport")]
+pub mod independent_audit;
+
+#[cfg(feature="tls-transport")]
+pub mod audit_equivocation;
+
+#[cfg(feature="tls-transport")]
+pub mod fork_witness;
+
+#[cfg(feature="tls-transport")]
+pub mod fork_publication;
+
+#[cfg(feature="tls-transport")]
+pub mod custody_attestation;
+
+#[cfg(feature="tls-transport")]
+pub mod custody_equivocation;
+
+#[cfg(feature="tls-transport")]
+pub mod custody_disclosure;

@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.24.0"
+version = "0.34.0"
 edition = "2021"
 publish = false
-description = "GALIA experimental authenticated network fencing RPC with host-pinned TLS client identities"
+description = "GALIA offline quorum corroboration of same-key signed custody contradictions"
 
 [lib]
 name = "galia_core_shadow"

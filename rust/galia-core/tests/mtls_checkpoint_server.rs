@@ -1089,4 +1089,714 @@ mod network_fencing_tests{
         assert_eq!(x.store.inspect().unwrap(),(1,0));
         assert!(n.coordinator.committed_response(&hexhash('9')).unwrap().is_some());
     }
+
+    // v0.25: authenticated, host-scoped read-only recovery after an
+    // ambiguous/forgotten commit acknowledgement, never a new nonce spend.
+    #[test]fn authenticated_origin_recovers_original_response_without_new_commit(){
+        let x=build();let n=net(&x);
+        let grant=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'a');
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        let _forgotten_ack=client.commit_response(&grant,&hexhash('a'),&response).unwrap();
+        let before=n.coordinator.checkpoint().unwrap();
+        let recovered=client.recover_committed(
+            &hexhash('a'),&sha256(response.as_bytes())).unwrap();
+        assert_eq!(recovered,response);
+        assert_eq!(n.coordinator.checkpoint().unwrap(),before);
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+    }
+    #[test]fn old_owner_can_only_read_its_prior_commit_after_epoch_rotation(){
+        let x=build();let n=net(&x);
+        let a=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'b');
+        n.coordinator.commit_response(&a,&hexhash('b'),&response).unwrap();
+        let _b=n.coordinator.advance_epoch(1,"host-b").unwrap();
+        let previous=n.coordinator.checkpoint().unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert_eq!(client.recover_committed(
+            &hexhash('b'),&sha256(response.as_bytes())).unwrap(),response);
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap(),previous);
+    }
+    #[test]fn different_authenticated_host_cannot_read_origins_receipt(){
+        let x=build();let n=net(&x);
+        let a=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'c');
+        n.coordinator.commit_response(&a,&hexhash('c'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let other=remote(&n,addr,"host-b",&n.host_b,None,None);
+        assert!(other.recover_committed(&hexhash('c'),&sha256(response.as_bytes())).is_err());
+        let actual=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert_eq!(actual.recover_committed(
+            &hexhash('c'),&sha256(response.as_bytes())).unwrap(),response);
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn unpinned_tls_client_cannot_recover_receipt_even_with_digest(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'d');
+        n.coordinator.commit_response(&token,&hexhash('d'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let rogue=remote(&n,addr,"host-a",&n.rogue,None,None);
+        assert!(rogue.recover_committed(&hexhash('d'),&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().any(|r|r.is_err()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn original_response_digest_is_mandatory_and_must_match(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'e');
+        n.coordinator.commit_response(&token,&hexhash('e'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert!(client.recover_committed(&hexhash('e'),&hexhash('f')).is_err());
+        // Invalid hashes reject before any connection; one real RPC above.
+        assert!(client.recover_committed("bad",&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn unknown_or_claim_only_nonce_never_recovered_or_recommitted(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        n.coordinator.claim(&token,&hexhash('f')).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert!(client.recover_committed(&hexhash('f'),&hexhash('a')).is_err());
+        assert!(client.recover_committed(&hexhash('9'),&hexhash('a')).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn coordinator_network_partition_prevents_read_only_recovery(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'1');
+        n.coordinator.commit_response(&token,&hexhash('1'),&response).unwrap();
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let address=listener.local_addr().unwrap();drop(listener);
+        let client=remote(&n,address,"host-a",&n.host_a,None,None);
+        assert!(client.recover_committed(
+            &hexhash('1'),&sha256(response.as_bytes())).is_err());
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn wrong_server_spki_refuses_recovery_after_handshake(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'2');
+        n.coordinator.commit_response(&token,&hexhash('2'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,Some(&hexhash('f')),None);
+        assert!(client.recover_committed(
+            &hexhash('2'),&sha256(response.as_bytes())).is_err());
+        let _=done.join().unwrap();
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn different_pinned_service_verification_key_rejects_recovery(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'3');
+        n.coordinator.commit_response(&token,&hexhash('3'),&response).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let mut invalid=n.scope.clone();
+        invalid.pinned_response_signer_public_key_hex=pk(99);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,Some(invalid));
+        assert!(client.recover_committed(
+            &hexhash('3'),&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn damaged_commit_record_blocks_read_only_recovery(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'4');
+        n.coordinator.commit_response(&token,&hexhash('4'),&response).unwrap();
+        std::fs::write(n._temp.path()
+            .join("rpc-coordinator/journal/00000000000000000002.json"),b"{").unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert!(client.recover_committed(
+            &hexhash('4'),&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert!(n.coordinator.checkpoint().is_err());
+    }
+    #[test]fn two_simultaneous_origin_lookups_are_read_only(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'5');
+        n.coordinator.commit_response(&token,&hexhash('5'),&response).unwrap();
+        let checkpoint=n.coordinator.checkpoint().unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let barrier=Arc::new(Barrier::new(3));
+        let jobs=(0..2).map(|_|{
+            let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+            let digest=sha256(response.as_bytes());
+            let expected=response.clone();
+            let ready=Arc::clone(&barrier);
+            thread::spawn(move||{
+                ready.wait();
+                client.recover_committed(&hexhash('5'),&digest).map(|s|s==expected).unwrap_or(false)
+            })
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        assert!(jobs.into_iter().all(|j|j.join().unwrap()));
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap(),checkpoint);
+    }
+    #[test]fn explicit_full_scratch_rollback_still_needs_external_anchor(){
+        let x=build();let n=net(&x);
+        let grant=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let response=signed_response(&x,'6');
+        n.coordinator.commit_response(&grant,&hexhash('6'),&response).unwrap();
+        let highwater=n.coordinator.checkpoint().unwrap();
+        std::fs::remove_file(n._temp.path()
+            .join("rpc-coordinator/journal/00000000000000000002.json")).unwrap();
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
+        assert!(n.coordinator.verify_floor(&highwater).is_err());
+    }
+
+    // v0.26: synthetic high-water store held OUTSIDE the coordinator's
+    // attackable filesystem, but only in memory in these tests. This tests
+    // the CAS contract; it does NOT deploy independent durable custody.
+    struct MemoryAnchor{
+        scope:FencingScope,
+        current:std::sync::Mutex<FencingCheckpoint>,
+        blocked:std::sync::Mutex<bool>,
+    }
+    impl MemoryAnchor{
+        fn new(n:&Network)->Self{
+            Self{
+                scope:n.scope.clone(),
+                current:std::sync::Mutex::new(n.coordinator.checkpoint().unwrap()),
+                blocked:std::sync::Mutex::new(false),
+            }
+        }
+        fn block(&self){*self.blocked.lock().unwrap()=true;}
+        fn snapshot(&self)->FencingCheckpoint{self.current.lock().unwrap().clone()}
+    }
+    impl IndependentMonotonicFencingAnchor for MemoryAnchor{
+        fn current(&self,scope:&FencingScope)->Result<FencingCheckpoint,String>{
+            if scope!=&self.scope||*self.blocked.lock().unwrap(){
+                return Err("independently held checkpoint unavailable/mismatched".into())
+            }
+            Ok(self.snapshot())
+        }
+        fn advance(&self,scope:&FencingScope,old:&FencingCheckpoint,
+            next:&FencingCheckpoint)->Result<(),String>{
+            if scope!=&self.scope||*self.blocked.lock().unwrap(){
+                return Err("independent highwater CAS partitioned".into())
+            }
+            let mut floor=self.current.lock().unwrap();
+            if *floor!=*old||next.record_count!=old.record_count+1||
+                next.journal_tip_sha256==old.journal_tip_sha256{
+                return Err("independent highwater mismatch/rollback/invalid successor".into())
+            }
+            *floor=next.clone();
+            Ok(())
+        }
+    }
+    fn enable(n:&Network)->Arc<MemoryAnchor>{
+        let a=Arc::new(MemoryAnchor::new(n));
+        let pinned:Arc<dyn IndependentMonotonicFencingAnchor>=a.clone();
+        n.server.enable_strict_external_anchor(pinned).unwrap();
+        a
+    }
+    #[test]fn strict_external_anchor_server_commit_advances_both_cas_and_local_log(){
+        let x=build();let n=net(&x);
+        let anchor=enable(&n);
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        assert_eq!(anchor.snapshot(),n.coordinator.checkpoint().unwrap());
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None).require_external_anchor();
+        let record=signed_response(&x,'a');
+        let receipt=client.commit_response(&grant,&hexhash('a'),&record).unwrap();
+        assert_eq!(receipt.status,"EXTERNALLY_CAS_ACKNOWLEDGED_SCRATCH_COMMIT_ONLY");
+        assert!(!receipt.canonical_writeback&&!receipt.human_authority_verified);
+        assert_eq!(client.recover_committed(&hexhash('a'),&sha256(record.as_bytes())).unwrap(),record);
+        assert!(done.join().unwrap().iter().all(|v|v.is_ok()));
+        assert_eq!(anchor.snapshot(),n.coordinator.checkpoint().unwrap());
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn strict_server_rejects_snapshot_rollback_before_serving_recovery(){
+        let x=build();let n=net(&x);
+        let anchor=enable(&n);
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        let response=signed_response(&x,'b');
+        n.coordinator.commit_response_anchored(&grant,&hexhash('b'),&response,
+            anchor.as_ref()).unwrap();
+        let highwater=anchor.snapshot();
+        std::fs::remove_file(n._temp.path()
+            .join("rpc-coordinator/journal/00000000000000000002.json")).unwrap();
+        assert!(n.coordinator.verify_floor(&highwater).is_err());
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None).require_external_anchor();
+        assert!(client.recover_committed(&hexhash('b'),&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().any(|v|v.is_err()));
+        assert_eq!(anchor.snapshot(),highwater);
+    }
+    #[test]fn external_anchor_partition_denies_prepared_signed_commit_without_local_write(){
+        let x=build();let n=net(&x);
+        let anchor=enable(&n);
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        anchor.block();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None).require_external_anchor();
+        assert!(client.commit_response(&grant,&hexhash('c'),&signed_response(&x,'c')).is_err());
+        assert!(done.join().unwrap().iter().any(|v|v.is_err()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
+    }
+    #[test]fn non_anchored_legacy_mutation_blocks_all_strict_rpc_requests(){
+        let x=build();let n=net(&x);
+        let anchor=enable(&n);
+        let grant=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        assert_ne!(anchor.snapshot(),n.coordinator.checkpoint().unwrap());
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None).require_external_anchor();
+        assert!(client.commit_response(&grant,&hexhash('d'),&signed_response(&x,'d')).is_err());
+        assert!(done.join().unwrap().iter().any(|v|v.is_err()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
+    }
+    #[test]fn strict_mode_activation_rejects_stale_or_wrongly_scoped_floor(){
+        let x=build();let n=net(&x);
+        n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let mut wrong=MemoryAnchor::new(&n);
+        wrong.scope.case_id="wrong".into();
+        let pin:Arc<dyn IndependentMonotonicFencingAnchor>=Arc::new(wrong);
+        assert!(n.server.enable_strict_external_anchor(pin).is_err());
+        let a=Arc::new(MemoryAnchor::new(&n));
+        let p:Arc<dyn IndependentMonotonicFencingAnchor>=a.clone();
+        n.server.enable_strict_external_anchor(p).unwrap();
+        let p:Arc<dyn IndependentMonotonicFencingAnchor>=a;
+        assert!(n.server.enable_strict_external_anchor(p).is_err());
+    }
+    #[test]fn two_clients_one_nonce_one_external_highwater_advance(){
+        let x=build();let n=net(&x);
+        let anchor=enable(&n);
+        let token=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let barrier=Arc::new(Barrier::new(3));
+        let attempts=(0..2).map(|_|{
+            let client=remote(&n,addr,"host-a",&n.host_a,None,None).require_external_anchor();
+            let grant=token.clone();let body=signed_response(&x,'e');
+            let barrier=Arc::clone(&barrier);
+            thread::spawn(move||{barrier.wait();
+                client.commit_response(&grant,&hexhash('e'),&body).is_ok()
+            })
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        assert_eq!(attempts.into_iter().map(|j|j.join().unwrap()).filter(|v|*v).count(),1);
+        // The losing TLS handler may reject with a normal RPC denial OR
+        // fail closed during the narrow external-CAS-before-local-fsync gap.
+        // Only the client-visible one-winner property is guaranteed.
+        let handled=done.join().unwrap();
+        assert_eq!(handled.len(),2);
+        assert!(handled.iter().any(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap(),anchor.snapshot());
+        assert_eq!(anchor.snapshot().nonce_claim_count,1);
+    }
+    #[test]fn anchor_advanced_but_local_write_missing_requires_manual_repair(){
+        let x=build();let n=net(&x);
+        let anchor=enable(&n);
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        let old=anchor.snapshot();
+        let mut promised=old.clone();
+        promised.record_count+=1;promised.nonce_claim_count+=1;
+        promised.journal_tip_sha256=Some(hexhash('f'));
+        // This simulates external CAS durably succeeding before a crash stops
+        // local create_new/fsync. Automatic retry MUST NOT clear the pin.
+        anchor.advance(&n.scope,&old,&promised).unwrap();
+        let current=n.coordinator.checkpoint().unwrap();
+        assert_eq!(current,old);
+        assert!(n.coordinator.commit_response_anchored(
+            &grant,&hexhash('f'),&signed_response(&x,'f'),anchor.as_ref()).is_err());
+        assert_eq!(n.coordinator.checkpoint().unwrap(),current);
+        assert_eq!(anchor.snapshot(),promised);
+    }
+    #[test]fn strict_anchor_after_two_epochs_stale_grant_rejected_at_commit_boundary(){
+        let x=build();let n=net(&x);
+        let anchor=enable(&n);
+        let old=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        let content=signed_response(&x,'1');
+        let _new=n.coordinator.advance_epoch_anchored(1,"host-b",anchor.as_ref()).unwrap();
+        assert!(n.coordinator.commit_response_anchored(
+            &old,&hexhash('1'),&content,anchor.as_ref()).is_err());
+        assert_eq!(anchor.snapshot(),n.coordinator.checkpoint().unwrap());
+    }
+    #[test]fn client_can_demand_anchor_receipt_and_reject_legacy_server_commit(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None).require_external_anchor();
+        // Legacy server STILL writes in this test: this proves a strict
+        // client-side status rejection is NOT the same as server enforcement.
+        assert!(client.commit_response(&token,&hexhash('2'),&signed_response(&x,'2')).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+
+    // v0.27: external-by-path, locally durable NONCANONICAL anchor.
+    // These fixtures are one machine, never a real independent trust service.
+    fn disk_anchor(n:&Network)->Arc<galia_core_shadow::durable_monotonic_anchor::DurableLocalMonotonicAnchor>{
+        Arc::new(galia_core_shadow::durable_monotonic_anchor::DurableLocalMonotonicAnchor::initialize_new(
+            n._temp.path().join("external-anchor-scratch"),
+            n.scope.clone()).unwrap())
+    }
+    #[test]fn disk_anchor_bootstraps_exact_genesis_separate_from_coordinator(){
+        let x=build();let n=net(&x);
+        let anchor=disk_anchor(&n);
+        let (count,floor)=anchor.inspect().unwrap();
+        assert_eq!(count,0);
+        assert_eq!(floor,n.coordinator.checkpoint().unwrap());
+        assert!(anchor.current(&n.scope).is_ok());
+        assert_eq!(n.coordinator.checkpoint().unwrap().record_count,0);
+    }
+    #[test]fn anchored_epoch_and_commit_survive_disk_anchor_reopen(){
+        let x=build();let n=net(&x);
+        let anchor=disk_anchor(&n);
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        let content=signed_response(&x,'1');
+        n.coordinator.commit_response_anchored(
+            &grant,&hexhash('1'),&content,anchor.as_ref()).unwrap();
+        assert_eq!(anchor.inspect().unwrap().0,2);
+        drop(anchor);
+        let reopened=galia_core_shadow::durable_monotonic_anchor::DurableLocalMonotonicAnchor::open(
+            n._temp.path().join("external-anchor-scratch"),n.scope.clone()).unwrap();
+        assert_eq!(reopened.current(&n.scope).unwrap(),n.coordinator.checkpoint().unwrap());
+        assert_eq!(n.coordinator.committed_response(&hexhash('1')).unwrap(),Some(content));
+    }
+    #[test]fn separate_anchor_handle_rejects_stale_cas_after_reopen(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        let previous=anchor.current(&n.scope).unwrap();
+        n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        let next=anchor.current(&n.scope).unwrap();
+        let secondary=galia_core_shadow::durable_monotonic_anchor::DurableLocalMonotonicAnchor::open(
+            n._temp.path().join("external-anchor-scratch"),n.scope.clone()).unwrap();
+        assert!(secondary.advance(&n.scope,&previous,&next).is_err());
+        assert_eq!(secondary.current(&n.scope).unwrap(),next);
+    }
+    #[test]fn independently_reopened_anchor_shares_exclusive_lock_under_parallel_cas(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        let secondary=Arc::new(
+            galia_core_shadow::durable_monotonic_anchor::DurableLocalMonotonicAnchor::open(
+                n._temp.path().join("external-anchor-scratch"),n.scope.clone()).unwrap());
+        let prior=anchor.current(&n.scope).unwrap();
+        let temp=tempfile::tempdir().unwrap();
+        let probe=DurableFencingCoordinator::initialize_new(
+            temp.path().join("projection"),n.scope.clone()).unwrap();
+        probe.advance_epoch(0,"host-a").unwrap();
+        let next=probe.checkpoint().unwrap();
+        let barrier=Arc::new(Barrier::new(3));
+        let jobs=[anchor.clone(),secondary].into_iter().map(|a|{
+            let prior=prior.clone();let next=next.clone();
+            let scope=n.scope.clone();let barrier=Arc::clone(&barrier);
+            thread::spawn(move||{
+                barrier.wait();
+                a.advance(&scope,&prior,&next).is_ok()
+            })
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        assert_eq!(jobs.into_iter().map(|x|x.join().unwrap()).filter(|b|*b).count(),1);
+        assert_eq!(anchor.inspect().unwrap().0,1);
+    }
+    #[test]fn disk_anchor_rejects_wrong_scope_and_existing_root(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        let mut wrong=n.scope.clone();wrong.case_id="foreign".into();
+        assert!(anchor.current(&wrong).is_err());
+        assert!(galia_core_shadow::durable_monotonic_anchor::DurableLocalMonotonicAnchor::open(
+            n._temp.path().join("external-anchor-scratch"),wrong).is_err());
+        assert!(galia_core_shadow::durable_monotonic_anchor::DurableLocalMonotonicAnchor::initialize_new(
+            n._temp.path().join("external-anchor-scratch"),n.scope.clone()).is_err());
+    }
+    #[test]fn durable_anchor_rejects_invalid_successor_height_and_nonce_counter(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        let prior=anchor.current(&n.scope).unwrap();
+        let mut bogus=prior.clone();
+        bogus.record_count=1;bogus.journal_tip_sha256=Some(hexhash('a'));
+        bogus.nonce_claim_count=1;
+        assert!(anchor.advance(&n.scope,&prior,&bogus).is_err());
+        bogus.nonce_claim_count=0;
+        bogus.active_grant=Some(EpochGrant{host_id:"a".into(),epoch:9});
+        assert!(anchor.advance(&n.scope,&prior,&bogus).is_err());
+        assert_eq!(anchor.inspect().unwrap().0,0);
+    }
+    #[test]fn failed_local_write_after_external_anchor_cas_stays_stranded(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        let previous=anchor.current(&n.scope).unwrap();
+        let scratch=tempfile::tempdir().unwrap();
+        let projection=DurableFencingCoordinator::initialize_new(
+            scratch.path().join("projection"),n.scope.clone()).unwrap();
+        projection.advance_epoch(0,"host-a").unwrap();
+        let projected=projection.checkpoint().unwrap();
+        anchor.advance(&n.scope,&previous,&projected).unwrap();
+        // Synthetic crash between external CAS and local fsync.
+        assert_eq!(n.coordinator.checkpoint().unwrap(),previous);
+        assert!(n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).is_err());
+        assert_ne!(anchor.current(&n.scope).unwrap(),n.coordinator.checkpoint().unwrap());
+        assert!(n.server.enable_strict_external_anchor(anchor).is_err());
+    }
+    #[test]fn durable_anchor_blocks_coordinator_snapshot_rollback_in_strict_tls(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        let provider:Arc<dyn IndependentMonotonicFencingAnchor>=anchor.clone();
+        n.server.enable_strict_external_anchor(provider).unwrap();
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        let response=signed_response(&x,'2');
+        n.coordinator.commit_response_anchored(&grant,&hexhash('2'),&response,
+            anchor.as_ref()).unwrap();
+        std::fs::remove_file(n._temp.path()
+            .join("rpc-coordinator/journal/00000000000000000002.json")).unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None).require_external_anchor();
+        assert!(client.recover_committed(&hexhash('2'),&sha256(response.as_bytes())).is_err());
+        assert!(done.join().unwrap().iter().any(|r|r.is_err()));
+        assert_eq!(anchor.current(&n.scope).unwrap().record_count,2);
+    }
+    #[test]fn strict_tls_commit_uses_durable_anchor_and_keeps_receipt_read_only(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        let provider:Arc<dyn IndependentMonotonicFencingAnchor>=anchor.clone();
+        n.server.enable_strict_external_anchor(provider).unwrap();
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        let response=signed_response(&x,'3');
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None).require_external_anchor();
+        let accepted=client.commit_response(&grant,&hexhash('3'),&response).unwrap();
+        assert_eq!(accepted.status,"EXTERNALLY_CAS_ACKNOWLEDGED_SCRATCH_COMMIT_ONLY");
+        let pinned=anchor.current(&n.scope).unwrap();
+        assert_eq!(pinned,n.coordinator.checkpoint().unwrap());
+        assert_eq!(client.recover_committed(
+            &hexhash('3'),&sha256(response.as_bytes())).unwrap(),response);
+        assert_eq!(anchor.current(&n.scope).unwrap(),pinned);
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+    }
+    #[test]fn tampered_anchor_entry_fails_all_future_cas_and_restart(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        let _=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        std::fs::write(n._temp.path()
+            .join("external-anchor-scratch/cas_history/00000000000000000001.json"),b"{").unwrap();
+        assert!(anchor.current(&n.scope).is_err());
+        assert!(galia_core_shadow::durable_monotonic_anchor::DurableLocalMonotonicAnchor::open(
+            n._temp.path().join("external-anchor-scratch"),n.scope.clone()).is_err());
+        assert!(n.coordinator.advance_epoch_anchored(1,"host-b",anchor.as_ref()).is_err());
+    }
+    #[test]fn unexpected_anchor_file_is_fail_closed(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        std::fs::write(n._temp.path().join("external-anchor-scratch/cas_history/other.json"),
+            b"{}").unwrap();
+        assert!(anchor.inspect().is_err());
+    }
+    #[cfg(unix)]
+    #[test]fn symlinked_anchor_record_is_never_followed(){
+        use std::os::unix::fs::symlink;
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        symlink(n._temp.path().join("external-anchor-scratch/.GALIA_NONCANONICAL_DURABLE_ANCHOR_V1"),
+            n._temp.path().join("external-anchor-scratch/cas_history/00000000000000000001.json")).unwrap();
+        assert!(anchor.inspect().is_err());
+    }
+    #[test]fn concurrent_strict_commits_against_same_disk_anchor_are_one_winner(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        let response=signed_response(&x,'4');
+        let barrier=Arc::new(Barrier::new(3));
+        let jobs=(0..2).map(|_|{
+            let coordinator=Arc::clone(&n.coordinator);
+            let anchor=Arc::clone(&anchor);
+            let grant=grant.clone();let response=response.clone();
+            let ready=Arc::clone(&barrier);
+            thread::spawn(move||{
+                ready.wait();
+                coordinator.commit_response_anchored(
+                    &grant,&hexhash('4'),&response,anchor.as_ref()).is_ok()
+            })
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        assert_eq!(jobs.into_iter().map(|j|j.join().unwrap()).filter(|won|*won).count(),1);
+        assert_eq!(anchor.current(&n.scope).unwrap(),n.coordinator.checkpoint().unwrap());
+        assert_eq!(anchor.inspect().unwrap().0,2);
+    }
+    #[test]fn whole_anchor_and_coordinator_rollback_still_undetectable_without_third_root(){
+        let x=build();let n=net(&x);let anchor=disk_anchor(&n);
+        n.coordinator.advance_epoch_anchored(0,"host-a",anchor.as_ref()).unwrap();
+        std::fs::remove_file(n._temp.path()
+            .join("external-anchor-scratch/cas_history/00000000000000000001.json")).unwrap();
+        std::fs::remove_file(n._temp.path()
+            .join("rpc-coordinator/journal/00000000000000000001.json")).unwrap();
+        // Counterexample: both mutable roots restored to genesis; only an
+        // independent surviving external high-water would detect this.
+        assert_eq!(anchor.inspect().unwrap().0,0);
+        assert_eq!(n.coordinator.checkpoint().unwrap().record_count,0);
+    }
+
+    // v0.28 — signed offline audit survives simultaneous rollback of both
+    // local roots *only when the signed floor survives independently*.
+    fn audit_pin(n:&Network)->galia_core_shadow::independent_audit::AuditTrustPin{
+        use galia_core_shadow::independent_audit::AuditTrustPin;
+        AuditTrustPin{
+            auditor_id:"independent-auditor".into(),
+            auditor_public_key_hex:pk(110),
+            stream_id:"noncanonical-antirollback-stream".into(),
+            scope:n.scope.clone(),floor_sequence:0,
+            floor_signed_sha256:None,
+            floor_checkpoint:FencingCheckpoint{
+                record_count:0,journal_tip_sha256:None,
+                active_grant:None,nonce_claim_count:0,
+            },
+        }
+    }
+    fn audit_statement(
+        pin:&galia_core_shadow::independent_audit::AuditTrustPin,
+        cp:FencingCheckpoint,seq:u64,prior:Option<String>,
+    )->galia_core_shadow::independent_audit::SignedAuditStatement{
+        use galia_core_shadow::independent_audit::*;
+        let p=AuditStatement{
+            format:AUDIT_FORMAT.into(),auditor_id:pin.auditor_id.clone(),
+            stream_id:pin.stream_id.clone(),
+            scope_sha256:sha256(&canon(&pin.scope)),
+            sequence:seq,previous_signed_sha256:prior,checkpoint:cp,
+        };
+        SignedAuditStatement{signature_hex:sign(110,AUDIT_DOMAIN,&p),statement:p}
+    }
+    fn audit_hash(r:&galia_core_shadow::independent_audit::SignedAuditStatement)->String{
+        sha256(&canon(r))
+    }
+    #[test]fn independent_audit_of_empty_two_roots_passes_without_authority(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);
+        let pin=audit_pin(&n);
+        let statement=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        let result=assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[statement]).unwrap();
+        assert!(result.historical_signed_prefixes_verified);
+        assert!(result.coordinator_and_anchor_exactly_match);
+        assert!(!result.real_independent_auditor_deployed);
+        assert!(!result.current_external_audit_freshness_verified);
+        assert!(!result.human_authority_verified&&!result.canonical_writeback);
+    }
+    #[test]fn signed_dual_root_historical_extension_validates_both_prefixes(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);
+        let pin=audit_pin(&n);
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",external.as_ref()).unwrap();
+        let first=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        let response=signed_response(&x,'1');
+        n.coordinator.commit_response_anchored(
+            &grant,&hexhash('1'),&response,external.as_ref()).unwrap();
+        let second=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),2,
+            Some(audit_hash(&first)));
+        let report=assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[first.clone(),second.clone()]).unwrap();
+        assert_eq!(report.latest_audit_sequence,2);
+        assert_eq!(report.signed_observations_verified,2);
+        assert_eq!(report.current_checkpoint.nonce_claim_count,1);
+        // An externally re-pinned historical floor can omit earlier envelopes
+        // only if the caller retains their authenticated digest and exact CP.
+        let mut retained=pin;
+        retained.floor_sequence=1;
+        retained.floor_signed_sha256=Some(audit_hash(&first));
+        retained.floor_checkpoint=first.statement.checkpoint;
+        assert_eq!(assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&retained,&[second]).unwrap()
+            .latest_audit_sequence,2);
+    }
+    #[test]fn signed_offsite_evidence_detects_simultaneous_local_root_rollback(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);
+        let pin=audit_pin(&n);
+        n.coordinator.advance_epoch_anchored(0,"host-a",external.as_ref()).unwrap();
+        let recorded=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        std::fs::remove_file(n._temp.path()
+            .join("rpc-coordinator/journal/00000000000000000001.json")).unwrap();
+        std::fs::remove_file(n._temp.path()
+            .join("external-anchor-scratch/cas_history/00000000000000000001.json")).unwrap();
+        // Both local heads now agree: only separately retained signature
+        // can identify the removed historical height.
+        assert_eq!(n.coordinator.checkpoint().unwrap(),
+            external.current(&n.scope).unwrap());
+        assert!(assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[recorded]).is_err());
+    }
+    #[test]fn untrusted_signer_or_wrong_pinned_auditor_key_is_rejected(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let mut statement=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        statement.signature_hex=sign(111,AUDIT_DOMAIN,&statement.statement);
+        assert!(verify_signed_audit_chain(&pin,&[statement]).is_err());
+        let mut alias=pin;
+        alias.auditor_public_key_hex=n.scope.pinned_response_signer_public_key_hex.clone();
+        assert!(alias.validate().is_err());
+    }
+    #[test]fn changed_audited_case_or_policy_does_not_verify(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let statement=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        let mut changed=pin.clone();
+        changed.scope.case_id="different-case".into();
+        assert!(verify_signed_audit_chain(&changed,&[statement.clone()]).is_err());
+        let mut changed=pin;
+        changed.scope.pinned_observer_policy_sha256=hexhash('f');
+        assert!(verify_signed_audit_chain(&changed,&[statement]).is_err());
+    }
+    #[test]fn audit_sequence_skip_and_previous_envelope_rewrite_fail_closed(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let cp=n.coordinator.checkpoint().unwrap();
+        let first=audit_statement(&pin,cp.clone(),1,None);
+        let skipped=audit_statement(&pin,cp.clone(),3,Some(audit_hash(&first)));
+        assert!(verify_signed_audit_chain(&pin,&[first.clone(),skipped]).is_err());
+        let wrong=audit_statement(&pin,cp,2,Some(hexhash('f')));
+        assert!(verify_signed_audit_chain(&pin,&[first,wrong]).is_err());
+    }
+    #[test]fn valid_signature_over_invented_future_journal_does_not_validate(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);let pin=audit_pin(&n);
+        let mut invented=n.coordinator.checkpoint().unwrap();
+        invented.record_count=1;
+        invented.journal_tip_sha256=Some(hexhash('f'));
+        invented.active_grant=Some(EpochGrant{host_id:"host-a".into(),epoch:1});
+        let claim=audit_statement(&pin,invented,1,None);
+        assert!(verify_signed_audit_chain(&pin,&[claim.clone()]).is_ok());
+        assert!(assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[claim]).is_err());
+    }
+    #[test]fn same_height_conflicting_signed_head_is_rejected(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let cp=n.coordinator.checkpoint().unwrap();
+        let first=audit_statement(&pin,cp.clone(),1,None);
+        let mut conflicting=cp;
+        conflicting.record_count=1;
+        conflicting.journal_tip_sha256=Some(hexhash('e'));
+        conflicting.active_grant=Some(EpochGrant{host_id:"host-a".into(),epoch:1});
+        let second=audit_statement(&pin,conflicting,2,Some(audit_hash(&first)));
+        // Different height is not proof of equivocation without a prefix:
+        // the full local journal is required to refute a fabricated link.
+        assert!(verify_signed_audit_chain(&pin,&[first,second]).is_ok());
+    }
+    #[test]fn corrupted_local_anchor_or_coordinator_blocks_signed_audit(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);let pin=audit_pin(&n);
+        n.coordinator.advance_epoch_anchored(0,"host-a",external.as_ref()).unwrap();
+        let signed=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        std::fs::write(n._temp.path()
+            .join("external-anchor-scratch/cas_history/00000000000000000001.json"),b"{").unwrap();
+        assert!(assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[signed]).is_err());
+    }
+    #[test]fn unsigned_claim_only_and_epoch_changes_do_not_grant_authority(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);let pin=audit_pin(&n);
+        n.coordinator.advance_epoch_anchored(0,"host-a",external.as_ref()).unwrap();
+        let statement=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        let audit=assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[statement]).unwrap();
+        assert!(!audit.authority_transfer&&!audit.canonical_writeback);
+        assert!(!audit.real_independent_auditor_deployed);
+    }
+    #[test]fn strict_schema_rejects_injected_evidentiary_promotion_claims(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let mut value=serde_json::to_value(
+            audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None)).unwrap();
+        value["statement"]["human_authority_verified"]=serde_json::json!(true);
+        assert!(serde_json::from_value::<SignedAuditStatement>(value).is_err());
+    }
 }
