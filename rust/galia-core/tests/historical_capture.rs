@@ -24,8 +24,9 @@ fn verified_fixture_yields_only_authority_hold() {
     assert!(!result.canonical_write_authorized);
     assert_eq!(result.project_id, "mcleary");
     assert_eq!(result.observed_claim_ids.len(), 2);
-    assert!(result.observed_claim_ids[0].contains("1915_11_22"));
-    assert!(result.observed_claim_ids[1].contains("1915_11_26"));
+    assert!(result.observed_claim_ids.iter().any(|id| id.contains("1915_11_22")));
+    assert!(result.observed_claim_ids.iter().any(|id| id.contains("1915_11_26")));
+    assert!(result.observed_claim_ids.windows(2).all(|pair| pair[0] <= pair[1]));
 }
 
 #[test]
