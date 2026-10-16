@@ -1,0 +1,32 @@
+name: GALIA Rust shadow conformance
+
+on:
+  pull_request:
+    paths:
+      - 'rust/galia-core/**'
+      - '.github/workflows/galia-rust-shadow.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-shadow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Default read-only Rust tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
+      - name: Opt-in signed replay anchors and durable rollback/race tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features scratch-store
+      - name: Opt-in real rustls TLS 1.3 mTLS loopback transport tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features tls-transport
+      - name: Build six read-only Rust CLIs
+        run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
+      - name: Original Python P2 P6 P7 reference tests
+        run: |
+          python -m unittest discover -s tests -p 'test_galia2_state_machine.py' -v
+          python -m unittest discover -s tests -p 'test_galia2_preflight.py' -v
+          python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
+      - name: Python Rust differential conformance
+        run: python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
