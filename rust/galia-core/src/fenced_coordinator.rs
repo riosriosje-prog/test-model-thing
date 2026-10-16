@@ -5,13 +5,15 @@
 //! Without access to this coordinator, a fenced request MUST FAIL CLOSED.
 //! A filesystem snapshot rollback, stolen role/key or unguarded legacy service
 //! can bypass these local-only properties. Human AUTHORITY_HOLD is unchanged.
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet,BTreeMap};
 use std::fs::{self,File,OpenOptions};
 use std::io::Write;
 use std::path::{Path,PathBuf};
 use fs2::FileExt;
 use serde::{Serialize,Deserialize};
 use crate::audit::sha256;
+use crate::external_transport::{SignedRemoteCheckpointResponse,RESPONSE_DOMAIN};
+use crate::witness_proof::{validate_public_key,verify_detached};
 
 const FORMAT:&str="GALIA_NONCANONICAL_EPOCH_FENCING_V1";
 const MARKER:&str=".GALIA_NONCANONICAL_EPOCH_FENCING_V1";
@@ -51,6 +53,8 @@ pub struct FencingScope{
     pub service_id:String,
     /// SHA-256 of an independently pinned, shared observer policy for the federation.
     pub pinned_observer_policy_sha256:String,
+    /// Independently pinned service signing key; not self-declared by a reply.
+    pub pinned_response_signer_public_key_hex:String,
 }
 impl FencingScope{
     pub fn validate(&self)->Result<(),String>{
@@ -58,6 +62,7 @@ impl FencingScope{
             !valid_hash(&self.pinned_observer_policy_sha256){
             return Err("invalid independently supplied fencing scope".into())
         }
+        validate_public_key(&self.pinned_response_signer_public_key_hex)?;
         Ok(())
     }
 }
@@ -94,6 +99,7 @@ impl FencingCheckpoint{
 enum FencingAction{
     AcquireEpoch{grant:EpochGrant},
     ConsumeNonce{grant:EpochGrant,nonce_sha256:String},
+    CommitResponse{grant:EpochGrant,nonce_sha256:String,response_sha256:String,response_json:String},
 }
 #[derive(Clone,Debug,Serialize,Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -109,12 +115,13 @@ struct State{
     epoch:u64,
     active:Option<EpochGrant>,
     nonces:BTreeSet<String>,
+    committed:BTreeMap<String,String>,
     prefix:Vec<FencingCheckpoint>,
 }
 impl State{
     fn blank()->Self{Self{
         count:0,tip:None,epoch:0,active:None,
-        nonces:BTreeSet::new(),prefix:Vec::new()
+        nonces:BTreeSet::new(),committed:BTreeMap::new(),prefix:Vec::new()
     }}
     fn checkpoint(&self)->FencingCheckpoint{FencingCheckpoint{
         record_count:self.count,
@@ -122,7 +129,7 @@ impl State{
         active_grant:self.active.clone(),
         nonce_claim_count:self.nonces.len() as u64,
     }}
-    fn apply(&mut self,entry:&FencingEntry,raw:&[u8])->Result<(),String>{
+    fn apply(&mut self,entry:&FencingEntry,raw:&[u8],scope:&FencingScope)->Result<(),String>{
         let next=self.count.checked_add(1).ok_or("coordinator sequence overflow")?;
         if entry.format!=FORMAT||entry.sequence!=next||
             entry.previous_sha256!=self.tip||serialize(entry)?!=raw{
@@ -141,6 +148,31 @@ impl State{
                     !self.nonces.insert(nonce_sha256.clone()){
                     return Err("fencing claim stale, duplicate or invalid".into())
                 }
+            },
+            FencingAction::CommitResponse{grant,nonce_sha256,response_sha256,response_json}=>{
+                if self.active.as_ref()!=Some(grant)||
+                    !valid_hash(nonce_sha256)||!valid_hash(response_sha256)||
+                    response_json.is_empty()||response_json.len()>1024*1024||
+                    sha256(response_json.as_bytes())!=*response_sha256 {
+                    return Err("invalid or stale commit-point fencing and content hash".into())
+                }
+                let json:serde_json::Value=serde_json::from_str(response_json)
+                    .map_err(|e|e.to_string())?;
+                if serialize(&json)?!=response_json.as_bytes(){
+                    return Err("commit response must be canonical JSON".into())
+                }
+                let signed:SignedRemoteCheckpointResponse=serde_json::from_str(response_json)
+                    .map_err(|e|e.to_string())?;
+                if signed.payload.nonce_sha256!=*nonce_sha256||
+                    signed.payload.service_id!=scope.service_id {
+                    return Err("commit transcript wrong nonce or service scope".into())
+                }
+                verify_detached(&scope.pinned_response_signer_public_key_hex,
+                    &signed.signature_hex,RESPONSE_DOMAIN,&signed.payload)?;
+                if !self.nonces.insert(nonce_sha256.clone()){
+                    return Err("nonce already committed or claimed".into())
+                }
+                self.committed.insert(nonce_sha256.clone(),response_json.clone());
             }
         }
         self.count=next;
@@ -159,9 +191,31 @@ pub struct DurableFencingCoordinator{
 /// Protocol boundary for a real authenticated coordinator adapter. The only
 /// implementation in v0.22 is local cooperative scratch storage. If a remote
 /// coordinator is unreachable, an adapter MUST return Err without fallback.
+/// Every storage commit must compare the epoch under the SAME lock as the
+/// actual durable record append. A preflight check plus later write is unsafe.
+#[derive(Clone,Debug,Serialize)]
+pub struct FencedCommitReceipt{
+    pub status:&'static str,
+    pub grant:EpochGrant,
+    pub nonce_sha256:String,
+    pub response_sha256:String,
+    pub checkpoint:FencingCheckpoint,
+    pub durable_scratch_record_committed:bool,
+    pub cross_host_consensus_verified:bool,
+    pub human_authority_verified:bool,
+    pub canonical_writeback:bool,
+    pub authority_transfer:bool,
+}
 pub trait FencingAuthority:Send+Sync{
     fn scope(&self)->Result<FencingScope,String>;
     fn claim(&self,grant:&EpochGrant,nonce_sha256:&str)->Result<FencingCheckpoint,String>;
+    /// Commit the canonical signed-response JSON *inside* coordinator epoch
+    /// validation. The default is fail closed; external adapters may not
+    /// silently degrade this to the old claim-then-write semantics.
+    fn commit_response(&self,_grant:&EpochGrant,_nonce_sha256:&str,
+        _response_json:&str)->Result<FencedCommitReceipt,String>{
+        Err("commit-boundary fencing is unsupported by this coordinator".into())
+    }
 }
 impl DurableFencingCoordinator{
     pub fn initialize_new(root:impl AsRef<Path>,scope:FencingScope)->Result<Self,String>{
@@ -222,7 +276,7 @@ impl DurableFencingCoordinator{
             }
             let bytes=read(&path)?;
             let entry:FencingEntry=serde_json::from_slice(&bytes).map_err(|e|e.to_string())?;
-            state.apply(&entry,&bytes)?;
+            state.apply(&entry,&bytes,&self.scope)?;
         }
         Ok(state)
     }
@@ -233,7 +287,7 @@ impl DurableFencingCoordinator{
             previous_sha256:state.tip.clone(),action,
         };
         let bytes=serialize(&entry)?;
-        state.apply(&entry,&bytes)?;
+        state.apply(&entry,&bytes,&self.scope)?;
         write_once(&self.root.join(JOURNAL).join(format!("{:020}.json",entry.sequence)),&bytes)?;
         sync_dir(&self.root.join(JOURNAL))
     }
@@ -275,6 +329,15 @@ impl DurableFencingCoordinator{
         Ok(s.checkpoint())
     }
 }
+impl DurableFencingCoordinator{
+    /// Read back the exact durable signed-response JSON from the SAME
+    /// coordinator journal which atomically claimed its nonce.
+    pub fn committed_response(&self,nonce_sha256:&str)->Result<Option<String>,String>{
+        if !valid_hash(nonce_sha256){return Err("invalid queried nonce".into())}
+        let _guard=self.lock()?;
+        Ok(self.replay()?.committed.get(nonce_sha256).cloned())
+    }
+}
 impl FencingAuthority for DurableFencingCoordinator{
     fn scope(&self)->Result<FencingScope,String>{Ok(self.scope.clone())}
     fn claim(&self,grant:&EpochGrant,nonce_sha256:&str)->Result<FencingCheckpoint,String>{
@@ -290,4 +353,30 @@ impl FencingAuthority for DurableFencingCoordinator{
         })?;
         Ok(state.checkpoint())
     }
+    fn commit_response(&self,grant:&EpochGrant,nonce_sha256:&str,
+        response_json:&str)->Result<FencedCommitReceipt,String>{
+        if !valid_hash(nonce_sha256)||response_json.is_empty()||
+            response_json.len()>1024*1024 {
+            return Err("invalid bounded commit-point nonce/content".into())
+        }
+        let response_sha256=sha256(response_json.as_bytes());
+        let _guard=self.lock()?;
+        let mut state=self.replay()?;
+        if state.active.as_ref()!=Some(grant)||
+            state.nonces.contains(nonce_sha256){
+            return Err("stale/duplicate fencing token rejected AT durable commit point".into())
+        }
+        self.append(&mut state,FencingAction::CommitResponse{
+            grant:grant.clone(),nonce_sha256:nonce_sha256.into(),
+            response_sha256:response_sha256.clone(),response_json:response_json.into(),
+        })?;
+        Ok(FencedCommitReceipt{
+            status:"SINGLE_FILESYSTEM_EPOCH_FENCED_SCRATCH_COMMIT_ONLY",
+            grant:grant.clone(),nonce_sha256:nonce_sha256.into(),
+            response_sha256,checkpoint:state.checkpoint(),
+            durable_scratch_record_committed:true,cross_host_consensus_verified:false,
+            human_authority_verified:false,canonical_writeback:false,authority_transfer:false,
+        })
+    }
+
 }

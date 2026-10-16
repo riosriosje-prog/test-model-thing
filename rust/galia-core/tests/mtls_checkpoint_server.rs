@@ -481,6 +481,7 @@ mod fencing_tests{
             case_id:x.trust.checkpoint.case_id.clone(),
             service_id:x.trust.service_id.clone(),
             pinned_observer_policy_sha256:policy_digest(&x.policy).unwrap(),
+            pinned_response_signer_public_key_hex:x.trust.response_signer_public_key_hex.clone(),
         }
     }
     fn coordinator(x:&TestContext)->(tempfile::TempDir,Arc<DurableFencingCoordinator>){
@@ -674,5 +675,192 @@ mod fencing_tests{
         symlink(dir.path().join("central-scratch/.GALIA_NONCANONICAL_EPOCH_FENCING_V1"),
             dir.path().join("central-scratch/journal/00000000000000000001.json")).unwrap();
         assert!(c.checkpoint().is_err());
+    }
+
+    // v0.23: both nonce and canonical signed response are atomically recorded
+    // in ONE local coordinator entry after verifying the epoch and signature.
+    fn reply(x:&TestContext,nonce:char)->String{
+        let payload=RemoteCheckpointPayload{
+            format:RESPONSE_FORMAT.into(),service_id:x.trust.service_id.clone(),
+            signer_id:x.trust.response_signer_id.clone(),
+            challenge_sha256:hexhash('a'),
+            nonce_sha256:hexhash(nonce),tls_exporter_sha256:hexhash('b'),
+            signed_at_unix_seconds:1_800_000_030,
+            checkpoint_chain:x.store.checkpoint_suffix(0,None).unwrap(),
+        };
+        let r=SignedRemoteCheckpointResponse{
+            signature_hex:sign(92,RESPONSE_DOMAIN,&payload),payload,
+        };
+        String::from_utf8(canon(&r)).unwrap()
+    }
+    fn guarded_server(
+        server:Arc<MandatoryMtlsCheckpointServer>,authority:Arc<dyn FencingAuthority>,
+        grant:EpochGrant,now:u64
+    )->(SocketAddr,thread::JoinHandle<Result<(),String>>){
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr=listener.local_addr().unwrap();
+        let join=thread::spawn(move||{
+            let (socket,_)=listener.accept().map_err(|e|e.to_string())?;
+            server.serve_one_commit_guarded(socket,now,authority.as_ref(),&grant)
+        });
+        (addr,join)
+    }
+    fn guarded_call(x:&TestContext,auth:Arc<dyn FencingAuthority>,
+        grant:EpochGrant,nonce:char)->(bool,bool){
+        let (addr,j)=guarded_server(Arc::clone(&x.server),auth,grant,1_800_000_030);
+        let ok=x.client.exchange(addr,&x.trust,&x.policy,&hexhash(nonce),
+            1_800_000_000,1_800_000_060).is_ok();
+        (ok,j.join().unwrap().is_ok())
+    }
+    #[test]fn commit_point_same_record_binds_nonce_epoch_and_signed_content(){
+        let x=build();let (_dir,c)=coordinator(&x);
+        let grant=c.advance_epoch(0,"host-a").unwrap();
+        let content=reply(&x,'1');
+        let done=c.commit_response(&grant,&hexhash('1'),&content).unwrap();
+        assert!(done.durable_scratch_record_committed);
+        assert_eq!(done.checkpoint.nonce_claim_count,1);
+        assert_eq!(c.committed_response(&hexhash('1')).unwrap(),Some(content));
+        assert!(!done.human_authority_verified&&!done.canonical_writeback);
+        assert!(!done.cross_host_consensus_verified&&!done.authority_transfer);
+        assert_eq!(x.store.inspect().unwrap(),(1,0));
+    }
+    #[test]fn prepared_signed_content_with_stale_epoch_rejected_at_commit(){
+        let x=build();let (_dir,c)=coordinator(&x);
+        let a=c.advance_epoch(0,"host-a").unwrap();
+        let prepared=reply(&x,'2');
+        let b=c.advance_epoch(1,"host-b").unwrap();
+        assert!(c.commit_response(&a,&hexhash('2'),&prepared).is_err());
+        assert_eq!(c.committed_response(&hexhash('2')).unwrap(),None);
+        assert_eq!(c.commit_response(&b,&hexhash('2'),&prepared).unwrap().grant,b);
+    }
+    #[test]fn duplicate_commit_even_with_different_valid_signed_reply_is_rejected(){
+        let x=build();let (_dir,c)=coordinator(&x);
+        let token=c.advance_epoch(0,"host-a").unwrap();
+        c.commit_response(&token,&hexhash('3'),&reply(&x,'3')).unwrap();
+        assert!(c.commit_response(&token,&hexhash('3'),&reply(&x,'3')).is_err());
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn forged_signed_payload_is_rejected_inside_coordinator_at_commit(){
+        let x=build();let (_dir,c)=coordinator(&x);
+        let token=c.advance_epoch(0,"host-a").unwrap();
+        let mut value:SignedRemoteCheckpointResponse=
+            serde_json::from_str(&reply(&x,'4')).unwrap();
+        value.signature_hex=sign(99,RESPONSE_DOMAIN,&value.payload);
+        assert!(c.commit_response(&token,&hexhash('4'),
+            &String::from_utf8(canon(&value)).unwrap()).is_err());
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,0);
+    }
+    #[test]fn signed_response_cannot_claim_a_different_nonce_or_service(){
+        let x=build();let (_dir,c)=coordinator(&x);
+        let token=c.advance_epoch(0,"host-a").unwrap();
+        let content=reply(&x,'5');
+        assert!(c.commit_response(&token,&hexhash('f'),&content).is_err());
+        let mut r:SignedRemoteCheckpointResponse=serde_json::from_str(&content).unwrap();
+        r.payload.service_id="other-service".into();
+        r.signature_hex=sign(92,RESPONSE_DOMAIN,&r.payload);
+        assert!(c.commit_response(&token,&hexhash('5'),
+            &String::from_utf8(canon(&r)).unwrap()).is_err());
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,0);
+    }
+    #[test]fn claimed_nonce_cannot_be_committed_as_new_storage_record(){
+        let x=build();let (_dir,c)=coordinator(&x);
+        let token=c.advance_epoch(0,"host-a").unwrap();
+        c.claim(&token,&hexhash('6')).unwrap();
+        assert!(c.commit_response(&token,&hexhash('6'),&reply(&x,'6')).is_err());
+        assert_eq!(c.committed_response(&hexhash('6')).unwrap(),None);
+    }
+    #[test]fn restart_replays_exact_signed_response_and_denies_duplicate(){
+        let x=build();let (dir,c)=coordinator(&x);
+        let token=c.advance_epoch(0,"host-a").unwrap();
+        let content=reply(&x,'7');
+        c.commit_response(&token,&hexhash('7'),&content).unwrap();
+        drop(c);
+        let reopened=DurableFencingCoordinator::open(
+            dir.path().join("central-scratch"),scope(&x)).unwrap();
+        assert_eq!(reopened.committed_response(&hexhash('7')).unwrap(),Some(content.clone()));
+        assert!(reopened.commit_response(&token,&hexhash('7'),&content).is_err());
+    }
+    #[test]fn committed_response_tampering_blocks_recovery_and_future_writes(){
+        let x=build();let (dir,c)=coordinator(&x);
+        let token=c.advance_epoch(0,"host-a").unwrap();
+        c.commit_response(&token,&hexhash('8'),&reply(&x,'8')).unwrap();
+        std::fs::write(dir.path()
+            .join("central-scratch/journal/00000000000000000002.json"),b"{").unwrap();
+        assert!(c.committed_response(&hexhash('8')).is_err());
+        assert!(c.commit_response(&token,&hexhash('9'),&reply(&x,'9')).is_err());
+        assert!(DurableFencingCoordinator::open(
+            dir.path().join("central-scratch"),scope(&x)).is_err());
+    }
+    #[test]fn simultaneous_storage_commits_only_one_wins_shared_nonce(){
+        let x=build();let (_dir,c)=coordinator(&x);
+        let token=c.advance_epoch(0,"host-a").unwrap();
+        let ready=Arc::new(Barrier::new(3));
+        let content=reply(&x,'a');
+        let jobs=(0..2).map(|_|{
+            let coordinator=Arc::clone(&c);
+            let token=token.clone();let content=content.clone();
+            let ready=Arc::clone(&ready);
+            thread::spawn(move||{
+                ready.wait();
+                coordinator.commit_response(&token,&hexhash('a'),&content).is_ok()
+            })
+        }).collect::<Vec<_>>();
+        ready.wait();
+        assert_eq!(jobs.into_iter().map(|j|j.join().unwrap()).filter(|ok|*ok).count(),1);
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn real_tls_two_replicas_guarded_commit_one_nonce_success(){
+        let a=build();let b=build();let (_dir,c)=coordinator(&a);
+        let token=c.advance_epoch(0,"shared-holder").unwrap();
+        let auth:Arc<dyn FencingAuthority>=c.clone();
+        assert_eq!(guarded_call(&a,Arc::clone(&auth),token.clone(),'b'),(true,true));
+        assert_eq!(guarded_call(&b,auth,token,'b'),(false,false));
+        assert_eq!(a.store.inspect().unwrap(),(1,0));
+        assert_eq!(b.store.inspect().unwrap(),(1,0));
+        assert!(c.committed_response(&hexhash('b')).unwrap().is_some());
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn guarded_tls_two_replicas_simultaneous_same_nonce_race(){
+        let a=Arc::new(build());let b=Arc::new(build());
+        let (_dir,c)=coordinator(&a);
+        let token=c.advance_epoch(0,"shared-holder").unwrap();
+        let auth:Arc<dyn FencingAuthority>=c.clone();
+        let barrier=Arc::new(Barrier::new(3));
+        let jobs=[Arc::clone(&a),Arc::clone(&b)].into_iter().map(|fixture|{
+            let token=token.clone();let auth=Arc::clone(&auth);
+            let b=Arc::clone(&barrier);
+            thread::spawn(move||{b.wait();guarded_call(&fixture,auth,token,'c')})
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        let result=jobs.into_iter().map(|j|j.join().unwrap()).collect::<Vec<_>>();
+        assert_eq!(result.iter().filter(|(c,s)|*c&&*s).count(),1);
+        assert_eq!(result.iter().filter(|(c,s)|!*c&&!*s).count(),1);
+        assert!(c.committed_response(&hexhash('c')).unwrap().is_some());
+    }
+    #[test]fn unavailable_commit_capability_rejects_without_local_fallback(){
+        let x=build();let partition:Arc<dyn FencingAuthority>=
+            Arc::new(Partitioned{scope:scope(&x)});
+        assert_eq!(guarded_call(&x,partition,
+            EpochGrant{host_id:"host-a".into(),epoch:1},'d'),(false,false));
+        assert_eq!(x.store.inspect().unwrap(),(1,0));
+    }
+    #[test]fn commit_rejects_wrong_scope_before_any_tls_response(){
+        let x=build();let mut incorrect=scope(&x);
+        incorrect.pinned_response_signer_public_key_hex=pk(99);
+        let partition:Arc<dyn FencingAuthority>=
+            Arc::new(Partitioned{scope:incorrect});
+        assert_eq!(guarded_call(&x,partition,
+            EpochGrant{host_id:"host-a".into(),epoch:1},'e'),(false,false));
+        assert_eq!(x.store.inspect().unwrap(),(1,0));
+    }
+    #[test]fn out_of_band_checkpoint_can_detect_local_commit_rollback(){
+        let x=build();let (dir,c)=coordinator(&x);
+        let token=c.advance_epoch(0,"host-a").unwrap();
+        c.commit_response(&token,&hexhash('f'),&reply(&x,'f')).unwrap();
+        let highwater=c.checkpoint().unwrap();
+        std::fs::remove_file(dir.path()
+            .join("central-scratch/journal/00000000000000000002.json")).unwrap();
+        assert!(c.verify_floor(&highwater).is_err());
+        assert_eq!(c.committed_response(&hexhash('f')).unwrap(),None);
     }
 }

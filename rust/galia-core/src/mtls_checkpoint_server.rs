@@ -409,17 +409,30 @@ impl MandatoryMtlsCheckpointServer{
     /// required before production.
     pub fn serve_one_fenced(&self,socket:TcpStream,trusted_now:u64,
         authority:&dyn FencingAuthority,grant:&EpochGrant)->Result<(),String>{
+        self.validate_coordinator_scope(authority)?;
+        self.serve_inner(socket,trusted_now,Some((authority,grant,false)))
+    }
+    /// NEW v0.23: nonce AND complete signed response are a single append
+    /// under the coordinator epoch lock, not claim-then-local-write.
+    /// Only experimental scratch records; older paths can still bypass.
+    pub fn serve_one_commit_guarded(&self,socket:TcpStream,trusted_now:u64,
+        authority:&dyn FencingAuthority,grant:&EpochGrant)->Result<(),String>{
+        self.validate_coordinator_scope(authority)?;
+        self.serve_inner(socket,trusted_now,Some((authority,grant,true)))
+    }
+    fn validate_coordinator_scope(&self,authority:&dyn FencingAuthority)->Result<(),String>{
         let scope=authority.scope()?;
         if scope.namespace!=self.service.checkpoint.namespace||
             scope.case_id!=self.service.checkpoint.case_id||
             scope.service_id!=self.service.service_id||
-            scope.pinned_observer_policy_sha256!=policy_digest(&self.store.policy)?{
+            scope.pinned_observer_policy_sha256!=policy_digest(&self.store.policy)?||
+            scope.pinned_response_signer_public_key_hex!=self.service.response_signer_public_key_hex{
             return Err("coordinator scope does not match independently provisioned GALIA policy".into())
         }
-        self.serve_inner(socket,trusted_now,Some((authority,grant)))
+        Ok(())
     }
     fn serve_inner(&self,mut socket:TcpStream,trusted_now:u64,
-        fencing:Option<(&dyn FencingAuthority,&EpochGrant)>)->Result<(),String>{
+        fencing:Option<(&dyn FencingAuthority,&EpochGrant,bool)>)->Result<(),String>{
         socket.set_read_timeout(Some(self.timeout)).map_err(|e|e.to_string())?;
         socket.set_write_timeout(Some(self.timeout)).map_err(|e|e.to_string())?;
         let mut conn=ServerConnection::new(Arc::clone(&self.config)).map_err(|e|e.to_string())?;
@@ -474,20 +487,30 @@ impl MandatoryMtlsCheckpointServer{
         let signature_hex=(self.signer)(&payload)?;
         verify_detached(&self.service.response_signer_public_key_hex,
             &signature_hex,RESPONSE_DOMAIN,&payload)?;
-        // Consume at the single shared coordinator FIRST. If it is unavailable,
-        // stale, or knows the nonce, fail closed without a local service claim.
-        // The two commits are intentionally NOT atomic: if the local write or
-        // delivery fails, the global nonce is spent and needs human diagnosis.
-        if let Some((authority,grant))=fencing{
-            authority.claim(grant,&c.nonce_sha256)?;
-        }
-        // Consume BEFORE returning response. A failure after consumption burns
-        // this nonce, which fails closed. It is NOT atomic with the client ack.
-        self.store.claim_nonce_locked(&c.nonce_sha256,&payload.challenge_sha256)?;
         let response=SignedRemoteCheckpointResponse{payload,signature_hex};
         let raw=canonical(&response)?;
-        if raw.is_empty()||raw.len()>MAX_WIRE {
-            return Err("bounded response length exceeded after nonce claim".into())
+        if raw.is_empty()||raw.len()>MAX_WIRE{
+            return Err("bounded signed response length exceeded before any commit".into())
+        }
+        match fencing{
+            Some((authority,grant,true))=>{
+                // NEW: the final and ONLY durable response/nonce commit is a
+                // SINGLE coordinator journal entry. Epoch is checked at the
+                // same linearization point under the same exclusive lock.
+                // The old per-replica nonce store remains untouched.
+                let json=std::str::from_utf8(&raw).map_err(|e|e.to_string())?;
+                authority.commit_response(grant,&c.nonce_sha256,json)?;
+            },
+            Some((authority,grant,false))=>{
+                // Legacy opt-in claim first, then separate local scratch
+                // claim: this is NOT atomic across both journals.
+                authority.claim(grant,&c.nonce_sha256)?;
+                self.store.claim_nonce_locked(&c.nonce_sha256,&response.payload.challenge_sha256)?;
+            },
+            None=>{
+                // Legacy single-replica path: NO cross-replica nonce safety.
+                self.store.claim_nonce_locked(&c.nonce_sha256,&response.payload.challenge_sha256)?;
+            }
         }
         stream.write_all(&(raw.len() as u32).to_be_bytes()).map_err(|e|e.to_string())?;
         stream.write_all(&raw).map_err(|e|e.to_string())?;
