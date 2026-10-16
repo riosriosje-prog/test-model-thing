@@ -46,3 +46,6 @@ pub mod service_recovery;
 
 #[cfg(feature="tls-transport")]
 pub mod fenced_coordinator;
+
+#[cfg(feature="tls-transport")]
+pub mod network_fencing;

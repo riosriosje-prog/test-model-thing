@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.23.0"
+version = "0.24.0"
 edition = "2021"
 publish = false
-description = "GALIA noncanonical epoch validation at durable signed-response commit"
+description = "GALIA experimental authenticated network fencing RPC with host-pinned TLS client identities"
 
 [lib]
 name = "galia_core_shadow"

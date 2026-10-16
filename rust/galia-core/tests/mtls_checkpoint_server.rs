@@ -864,3 +864,227 @@ mod fencing_tests{
         assert_eq!(c.committed_response(&hexhash('f')).unwrap(),None);
     }
 }
+
+
+// v0.24 real loopback TLS/mTLS coordinator RPC with host-bound SPKI pins.
+// Two clients have distinct X.509 keys. No independent deployed host, quorum,
+// HSM custody, or canonical writes are claimed by these tests.
+#[cfg(feature="tls-transport")]
+mod network_fencing_tests{
+    use super::*;
+    use std::collections::BTreeMap;
+    use std::sync::Barrier;
+    use galia_core_shadow::fenced_coordinator::*;
+    use galia_core_shadow::network_fencing::*;
+
+    type Credential=(CertificateDer<'static>,Vec<u8>);
+    struct Network{
+        _temp:tempfile::TempDir,
+        coordinator:Arc<DurableFencingCoordinator>,
+        server:Arc<TlsFencingRpcServer>,
+        server_root:RootCertStore,
+        server_spki:String,
+        scope:FencingScope,
+        host_a:Credential,
+        host_b:Credential,
+        rogue:Credential,
+    }
+    fn credential(name:&str)->Credential{
+        let item=generate_simple_self_signed(vec![name.into()]).unwrap();
+        (item.cert.der().clone(),item.signing_key.serialize_der())
+    }
+    fn spki(cert:&CertificateDer<'_>)->String{
+        let (_,parsed)=x509_parser::parse_x509_certificate(cert.as_ref()).unwrap();
+        sha256(parsed.public_key().raw)
+    }
+    fn net(x:&TestContext)->Network{
+        let temp=tempfile::tempdir().unwrap();
+        let scope=FencingScope{
+            namespace:x.trust.checkpoint.namespace.clone(),
+            case_id:x.trust.checkpoint.case_id.clone(),
+            service_id:x.trust.service_id.clone(),
+            pinned_observer_policy_sha256:policy_digest(&x.policy).unwrap(),
+            pinned_response_signer_public_key_hex:x.trust.response_signer_public_key_hex.clone(),
+        };
+        let coordinator=Arc::new(DurableFencingCoordinator::initialize_new(
+            temp.path().join("rpc-coordinator"),scope.clone()).unwrap());
+        let server_cert=credential("localhost");
+        let a=credential("host-a.local");
+        let b=credential("host-b.local");
+        let rogue=credential("rogue.local");
+        let mut clients=RootCertStore::empty();
+        for cert in [&a.0,&b.0,&rogue.0]{clients.add((*cert).clone()).unwrap();}
+        let mut roots=RootCertStore::empty();
+        roots.add(server_cert.0.clone()).unwrap();
+        let mut pins=BTreeMap::new();
+        pins.insert("host-a".into(),spki(&a.0));
+        pins.insert("host-b".into(),spki(&b.0));
+        let server=Arc::new(TlsFencingRpcServer::new(
+            Arc::clone(&coordinator),
+            vec![server_cert.0.clone()],
+            PrivatePkcs8KeyDer::from(server_cert.1).into(),
+            clients,pins,Duration::from_secs(5)).unwrap());
+        Network{_temp:temp,coordinator,server,server_root:roots,
+            server_spki:spki(&server_cert.0),
+            scope,host_a:a,host_b:b,rogue}
+    }
+    fn start_rpc(server:Arc<TlsFencingRpcServer>,count:usize)
+        ->(SocketAddr,thread::JoinHandle<Vec<Result<(),String>>>){
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr=listener.local_addr().unwrap();
+        let join=thread::spawn(move||{
+            let workers=(0..count).map(|_|{
+                let (socket,_)=listener.accept().unwrap();
+                let server=Arc::clone(&server);
+                thread::spawn(move||server.serve_one(socket))
+            }).collect::<Vec<_>>();
+            workers.into_iter().map(|w|w.join().unwrap()).collect()
+        });
+        (addr,join)
+    }
+    fn remote(n:&Network,addr:SocketAddr,id:&str,cred:&Credential,
+        pin:Option<&str>,scope:Option<FencingScope>)->RemoteTlsFencingAuthority{
+        RemoteTlsFencingAuthority::new(
+            addr,"localhost",n.server_root.clone(),vec![cred.0.clone()],
+            PrivatePkcs8KeyDer::from(cred.1.clone()).into(),
+            pin.unwrap_or(&n.server_spki).into(),
+            scope.unwrap_or_else(||n.scope.clone()),id,Duration::from_secs(5)
+        ).unwrap()
+    }
+    fn signed_response(x:&TestContext,nonce:char)->String{
+        let payload=RemoteCheckpointPayload{
+            format:RESPONSE_FORMAT.into(),service_id:x.trust.service_id.clone(),
+            signer_id:x.trust.response_signer_id.clone(),
+            challenge_sha256:hexhash('a'),nonce_sha256:hexhash(nonce),
+            tls_exporter_sha256:hexhash('b'),
+            signed_at_unix_seconds:1_800_000_030,
+            checkpoint_chain:x.store.checkpoint_suffix(0,None).unwrap(),
+        };
+        String::from_utf8(canon(&SignedRemoteCheckpointResponse{
+            signature_hex:sign(92,RESPONSE_DOMAIN,&payload),payload,
+        })).unwrap()
+    }
+    #[test]fn remote_tls_host_a_authenticated_commit_and_durable_readback(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert_eq!(client.scope().unwrap(),n.scope);
+        let record=signed_response(&x,'1');
+        let commit=client.commit_response(&token,&hexhash('1'),&record).unwrap();
+        assert!(commit.durable_scratch_record_committed);
+        assert!(!commit.cross_host_consensus_verified);
+        assert!(!commit.canonical_writeback&&!commit.human_authority_verified);
+        assert!(done.join().unwrap().iter().all(|x|x.is_ok()));
+        assert_eq!(n.coordinator.committed_response(&hexhash('1')).unwrap(),Some(record));
+    }
+    #[test]fn certificate_for_b_cannot_impersonate_epoch_holder_a(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let b=remote(&n,addr,"host-b",&n.host_b,None,None);
+        assert!(b.commit_response(&token,&hexhash('2'),&signed_response(&x,'2')).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
+    }
+    #[test]fn certificate_trusted_by_ca_but_not_on_host_allowlist_is_denied(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let rogue=remote(&n,addr,"host-a",&n.rogue,None,None);
+        assert!(rogue.commit_response(&token,&hexhash('3'),&signed_response(&x,'3')).is_err());
+        assert!(done.join().unwrap().iter().any(|r|r.is_err()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
+    }
+    #[test]fn authenticated_server_certificate_with_wrong_spki_pin_is_rejected(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let client=remote(&n,addr,"host-a",&n.host_a,Some(&hexhash('f')),None);
+        assert!(client.commit_response(&token,&hexhash('4'),&signed_response(&x,'4')).is_err());
+        let _=done.join().unwrap();
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
+    }
+    #[test]fn bad_remote_scope_is_rejected_and_never_commits(){
+        let x=build();let n=net(&x);
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let mut wrong=n.scope.clone();wrong.case_id="different".into();
+        let client=remote(&n,addr,"host-a",&n.host_a,None,Some(wrong));
+        assert!(client.scope().is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().record_count,0);
+    }
+    #[test]fn disconnected_coordinator_must_fail_without_a_local_claim_fallback(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr=listener.local_addr().unwrap();
+        drop(listener);
+        let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert!(client.scope().is_err());
+        assert!(client.commit_response(&token,&hexhash('5'),&signed_response(&x,'5')).is_err());
+        assert!(client.claim(&token,&hexhash('5')).is_err());
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
+    }
+    #[test]fn remote_commit_rejects_prepared_old_epoch_after_owner_change(){
+        let x=build();let n=net(&x);
+        let old=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let prepared=signed_response(&x,'6');
+        let _new=n.coordinator.advance_epoch(1,"host-b").unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),1);
+        let a=remote(&n,addr,"host-a",&n.host_a,None,None);
+        assert!(a.commit_response(&old,&hexhash('6'),&prepared).is_err());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert!(n.coordinator.committed_response(&hexhash('6')).unwrap().is_none());
+    }
+    #[test]fn two_simultaneous_authenticated_clients_same_holder_nonce_one_wins(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let (addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let barrier=Arc::new(Barrier::new(3));
+        let jobs=(0..2).map(|_|{
+            let client=remote(&n,addr,"host-a",&n.host_a,None,None);
+            let token=token.clone();let b=Arc::clone(&barrier);
+            let response=signed_response(&x,'7');
+            thread::spawn(move||{
+                b.wait();
+                client.commit_response(&token,&hexhash('7'),&response).is_ok()
+            })
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        assert_eq!(jobs.into_iter().map(|j|j.join().unwrap()).filter(|won|*won).count(),1);
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn remote_claim_only_is_disabled_even_when_server_is_reachable(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let unused=TcpListener::bind("127.0.0.1:0").unwrap();
+        let client=remote(&n,unused.local_addr().unwrap(),"host-a",&n.host_a,None,None);
+        assert!(client.claim(&token,&hexhash('8')).is_err());
+        assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
+    }
+    #[test]fn remote_adapter_drives_real_tls_checkpoint_service_guarded_mode(){
+        let x=build();let n=net(&x);
+        let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
+        let (rpc_addr,done)=start_rpc(Arc::clone(&n.server),2);
+        let authority:Arc<dyn FencingAuthority>=Arc::new(
+            remote(&n,rpc_addr,"host-a",&n.host_a,None,None));
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let checkpoint_addr=listener.local_addr().unwrap();
+        let service=Arc::clone(&x.server);
+        let joined=thread::spawn(move||{
+            let (socket,_)=listener.accept().unwrap();
+            service.serve_one_commit_guarded(socket,1_800_000_030,
+                authority.as_ref(),&token)
+        });
+        let (challenge,peer,response)=x.client.exchange(checkpoint_addr,
+            &x.trust,&x.policy,&hexhash('9'),1_800_000_000,1_800_000_060).unwrap();
+        assert!(joined.join().unwrap().is_ok());
+        assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
+        assert!(verify_remote_exchange(&x.board,&x.policy,&x.trust,
+            &challenge,&peer,&response,1_800_000_040).is_ok());
+        assert_eq!(x.store.inspect().unwrap(),(1,0));
+        assert!(n.coordinator.committed_response(&hexhash('9')).unwrap().is_some());
+    }
+}

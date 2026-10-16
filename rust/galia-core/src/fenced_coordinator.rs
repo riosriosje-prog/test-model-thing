@@ -193,9 +193,10 @@ pub struct DurableFencingCoordinator{
 /// coordinator is unreachable, an adapter MUST return Err without fallback.
 /// Every storage commit must compare the epoch under the SAME lock as the
 /// actual durable record append. A preflight check plus later write is unsafe.
-#[derive(Clone,Debug,Serialize)]
+#[derive(Clone,Debug,Serialize,Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FencedCommitReceipt{
-    pub status:&'static str,
+    pub status:String,
     pub grant:EpochGrant,
     pub nonce_sha256:String,
     pub response_sha256:String,
@@ -371,7 +372,7 @@ impl FencingAuthority for DurableFencingCoordinator{
             response_sha256:response_sha256.clone(),response_json:response_json.into(),
         })?;
         Ok(FencedCommitReceipt{
-            status:"SINGLE_FILESYSTEM_EPOCH_FENCED_SCRATCH_COMMIT_ONLY",
+            status:"SINGLE_FILESYSTEM_EPOCH_FENCED_SCRATCH_COMMIT_ONLY".into(),
             grant:grant.clone(),nonce_sha256:nonce_sha256.into(),
             response_sha256,checkpoint:state.checkpoint(),
             durable_scratch_record_committed:true,cross_host_consensus_verified:false,
