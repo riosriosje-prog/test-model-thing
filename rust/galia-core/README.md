@@ -1,31 +1,17 @@
-# GALIA 2.0 — Rust shadow migration v0.3
+# GALIA 2.0 — Rust shadow migration v0.4
 
-**Status: DRAFT CANDIDATE / ADVISORY_ONLY / NOT_PROMOTED**
+**Status: DRAFT CANDIDATE / NOT_PROMOTED / PRODUCTION_WRITES_DISABLED**
 
-Read-only, additive Rust sidecar for GALIA 2.0. It does not replace Python, write to canonical storage or grant human authority.
+GALIA's Python P1/P2/P5/P6/P7 reference remains in control. This additive Rust crate has two distinct boundaries:
 
-## Implemented
+1. **Default build (safe):** pure read-only P1/P2 state evaluation, P5/P6 advisory authorization/preflight structure and P7 verification of supplied bytes, SHA-256, canonical JSON, payload inventory and parent chain. Three stdin/stdout read-only shadow CLIs.
+2. **Opt-in feature (NEW):** scratch-store = a dedicated, noncanonical local test directory with a special marker. Provides exclusive file locking, immutable staged test snapshots, fsync, HEAD compare+rename under cooperative lock, detection of corrupt bytes, parent/sequence checks, crash-failure injection and read-only orphan inventory. The feature is **disabled by default**, never exposed in any CLI and cannot accept a pre-existing unmarked directory.
 
-- **P1/P2** typed source/stage models, pure fail-closed state machine and human boundaries.
-- **P5/P6** structural authority-envelope matching and 12 preflight checks. All supplied policy/authorization/rollback claims are untrusted. No executable guard output.
-- **P7 shadow verifier (new)** supplied byte-exact Python-compatible generation manifests, promotion envelopes, HEAD pointers and payloads, SHA-256 hashes and sizes, exact file inventory, identity/policy links, canonical JSON, and optional full parent chain verification (sequence HEAD.seq+1, same case, correct parent).
-- Three one-shot stdin/stdout CLI diagnostics: galia-shadow, galia-preflight-shadow, galia-persistence-shadow. The P7 request contains hex-encoded raw bytes for exact manifests, promotion, HEAD, payloads and optionally a parent snapshot.
-- Pure Rust unit tests; Python↔Rust differential parity including original P7 disk validator in a temporary test directory. Previous P2/P6 original Python test suites remain in CI.
-
-## Explicit limitations
-
-- The Rust P7 module **does not stage or publish**. It is only a **read-only supplied-snapshot verifier**, not the production generation store.
-- integrity_consistent=true proves internal byte consistency of supplied snapshots, **not provenance, author identity, trusted acquisition, anti-rollback freshness or canonical state**.
-- A purported HEAD is input data, not a trusted live HEAD. No Compare-And-Swap, atomic fsync, power-loss recovery, authentic signatures, external witness/checkpoint or authoritative promotion occurs.
-- This verifier enforces canonical UTF-8 JSON bytes to prevent malleability; that is deliberately stricter than the existing Python verify_generation, which accepts structurally valid noncanonical raw JSON.
-- All payload paths are relative; Rust rejects path traversal, Windows separators and unsafe generation identifiers.
-- published_at and created_at timestamps are parsed with explicit offsets but are not independent attestations.
-- No MLX/model invocation, network, GitHub mutation, Supabase write, DW8 writeback, cross-plane authority transfer, receipt issuance, persistence writes or deployment.
-
-## Verification
+## Run
 
 ~~~sh
 cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
+cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features scratch-store
 cargo build --manifest-path rust/galia-core/Cargo.toml --bins
 python -m unittest discover -s tests -p 'test_galia2_state_machine.py' -v
 python -m unittest discover -s tests -p 'test_galia2_preflight.py' -v
@@ -33,11 +19,20 @@ python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
 python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
 ~~~
 
-## Next gates
+## Scratch store contract
 
-1. Independent byte-exact review and frozen fixture corpus for v0.3 SHA-256, manifest HEAD formats and Unicode.
-2. P3/P7 **noncanonical scratch** immutable disk staging, locks and atomic CAS with adversarial concurrency, fsync and failure injection, recovery/orphan semantics. Keep disabled from canonical DB until signed human promotion policy integrated.
-3. P5/P6 authenticated, revocable human authority; no caller-supplied guard strings as proof.
-4. P4 Legacy/MLX capture and discrepancy ledger, legal/GIS projection, DW8 read-only adapters.
+- ScratchStore::initialize_new(path) refuses existing paths and creates an identifiable private local test root. ScratchStore::open(path) requires matching marker and structure; it cannot open a normal GALIA canonical store.
+- stage_snapshot() verifies supplied P7 bytes, writes one new staging generation with create_new() and fsync, and **never** advances HEAD.
+- publish_staged(commit_id, expected_head_hash) serializes **cooperating local clients** via an exclusive file lock, compares the exact previous HEAD byte hash, checks parent/case/sequence and SHA-256 from disk, moves the test generation, then atomically renames a synced HEAD temp file. This is **not** a cross-host linearizable consensus protocol or a complete security boundary against malicious filesystem actors.
+- On failed HEAD swap, retain an orphan under generations/ and keep prior HEAD. inspect_recovery() only classifies reachable, staged, orphaned and corrupt orphan generations; it never silently promotes, removes or quarantines bytes.
+- Tests inject interruption *after* materialization and *before* HEAD swap, race two candidates against one parent, corrupt parent data, insert undeclared files and symlinks, and validate marker gating.
+- A generation can contain a syntactically plausible promotion envelope without authentic authorization; this is a **fixture** and must not be ingested by canonical P7, Supabase or the GitHub control plane.
 
-**Authority invariant:** A structural or hash PASS is not a human promotion receipt. AUTHORITY_HOLD remains. main, PostgreSQL/Supabase, Python P7 generation store and GitHub control plane are untouched.
+## Unresolved production gates
+
+- Trusted human authority, revocation and proof of intent for exact commit/scope/decision; P2 guards are not independently authenticated.
+- Anti-rollback witness, fencing for hostile concurrent writers, durability guarantees on intended target filesystems, reproducible canonical fixtures, robust OS portability and full fsync crash matrix.
+- P4 MLX/Legacy byte captures, P3/P7 append-only trusted receipts, discrepancy ledger/recovery adjudication, DW8 read-only projection, independent red-team review.
+- A separate, explicitly approved production cutover. Nothing here merges to main automatically, changes the Python runtime, alters authentic HEAD, or elevates AUTHORITY_HOLD.
+
+**Invariants:** EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION; no DW8 or Legal Execution authority transfer; synthetic/AI imagery is never historical evidence.
