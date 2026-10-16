@@ -80,6 +80,67 @@ def gate(candidate):
         candidate["prohibited_promotions"]
     ):
         raise ValueError("secondary caption promotion prohibition omitted")
+    # NPS historic narrative is a SECONDARY reading of a UPR archive work.
+    # It must not automatically turn two modern street names into one
+    # surveyed historical alignment or a documented naming act.
+    road_id = "NPS-NRHP-ASHFORD-LOIZA-ROAD-WILSON-1918-MAP"
+    if road_id not in source_by_id:
+        raise ValueError("missing Ashford NPS route history citation")
+    ashford = source_by_id[road_id]
+    route = candidate["earlier_route_history_hypothesis"]
+    if (
+        route["source_id"] != road_id
+        or route["source_printed_page"] != 30
+        or route["source_pdf_page_index_zero_based"] != 29
+        or route["source_text_form"] !=
+           "Loíza Road (today Wilson Street and Loiza Street)"
+        or route["source_claimed_period"] != "nineteenth century"
+        or route["discovery_tier"] !=
+           "SECONDARY_HISTORICAL_NARRATIVE_NOT_PRIMARY_ROAD_SURVEY"
+        or route["human_review_state"] != "PENDING"
+        or route["canonical_write_authorized"] is not False
+        or route["geometry"] is not None
+        or route["event_date"] is not None
+        or route["road_opening_date"] is not None
+        or route["name_change_date"] is not None
+        or route["specific_shared_segment_verified"] is not False
+        or route["historic_to_modern_alignment_verified"] is not False
+        or route["nominative_act_verified"] is not False
+        or route["relationship_to_1940_loiza_rd"] !=
+           "UNRESOLVED_NAMING_AND_SEGMENT_EQUIVALENCE"
+    ):
+        raise ValueError("Loiza/Wilson historical road narrative promoted")
+    dates = crosswalk["date_discrepancy"]
+    if (
+        ashford["discovery_mode"] !=
+        "INSTITUTIONAL_SECONDARY_TEXT_AND_FIGURE_VISUALLY_READ"
+        or ashford["reviewed_printed_pages"] != [30, 33]
+        or ashford["reviewed_pdf_page_index_zero_based"] != [29, 32]
+        or ashford["road_history_footnote_number"] != 41
+        or ashford["road_history_referred_work_independently_checked"] is not False
+        or ashford["map_figure_number"] != 29
+        or ashford["map_figure_footnote_number"] != 46
+        or ashford["map_figure_footnote_date"] != "1918-01-30"
+        or ashford["figure_29_visually_checked"] is not True
+        or ashford["original_fire_underwriters_map_cartouche_checked"] is not False
+        or road_id not in crosswalk["map_sources"]
+        or dates["nps_ashford_figure29_footnote_date"] != "1918-01-30"
+        or dates["nps_ashford_source_printed_page"] != 33
+        or dates["nps_ashford_source_pdf_page_index_zero_based"] != 32
+        or dates["nps_ashford_figure29_visually_checked"] is not True
+        or dates["nps_ashford_original_map_cartouche_checked"] is not False
+        or dates["january_secondary_references_count"] != 3
+        or dates["resolution"] != "UNRESOLVED"
+        or dates["authoritative_map_revision_date"] is not None
+    ):
+        raise ValueError("Ashford NPS citation or map-date evidence improperly promoted")
+    for prohibition in (
+        "nps_19c_loiza_road_to_verified_wilson_loiza_alignment",
+        "nps_19c_road_narrative_to_municipal_naming_act",
+        "nps_figure29_footnote_to_original_1918_cartouche_authentication",
+    ):
+        if prohibition not in candidate["prohibited_promotions"]:
+            raise ValueError("missing Wilson-Loiza or 1918 cartouche quarantine")
     allowed = set(source_ids)
     observations = candidate["observations"]
     ids = [o["observation_id"] for o in observations]
@@ -150,7 +211,7 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
 
     def test_versioned_manifest_fails_closed(self):
         self.assertTrue(gate(self.candidate))
-        self.assertEqual(len(self.candidate["sources"]), 9)
+        self.assertEqual(len(self.candidate["sources"]), 10)
         self.assertEqual(len(self.candidate["observations"]), 12)
         self.assertEqual(
             {s["discovery_mode"] for s in self.candidate["sources"]
@@ -345,6 +406,68 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
         )
         self.assertIsNone(repro["source_binary_sha256"])
         self.assertFalse(repro["source_bytes_retained"])
+
+    def test_nps_ashford_source_records_wilson_loiza_road_hypothesis_only(self):
+        route = self.candidate["earlier_route_history_hypothesis"]
+        self.assertEqual(
+            route["source_text_form"],
+            "Loíza Road (today Wilson Street and Loiza Street)",
+        )
+        self.assertIsNone(route["geometry"])
+        self.assertFalse(route["specific_shared_segment_verified"])
+        self.assertFalse(route["historic_to_modern_alignment_verified"])
+        self.assertFalse(route["nominative_act_verified"])
+        self.assertEqual(
+            route["relationship_to_1940_loiza_rd"],
+            "UNRESOLVED_NAMING_AND_SEGMENT_EQUIVALENCE",
+        )
+        ashford = next(
+            s for s in self.candidate["sources"]
+            if s["source_id"] == route["source_id"]
+        )
+        self.assertEqual(ashford["road_history_footnote_number"], 41)
+        self.assertFalse(ashford["road_history_referred_work_independently_checked"])
+        self.assertEqual(ashford["map_figure_footnote_number"], 46)
+        self.assertEqual(ashford["map_figure_footnote_date"], "1918-01-30")
+        self.assertTrue(ashford["figure_29_visually_checked"])
+        self.assertFalse(ashford["original_fire_underwriters_map_cartouche_checked"])
+
+    def test_unearned_wilson_loiza_alignment_and_cartouche_fail_closed(self):
+        def ashford(item):
+            return next(
+                s for s in item["sources"]
+                if s["source_id"] == "NPS-NRHP-ASHFORD-LOIZA-ROAD-WILSON-1918-MAP"
+            )
+        cases = [
+            ("unearned_alignment", lambda item: item[
+                "earlier_route_history_hypothesis"].__setitem__(
+                    "historic_to_modern_alignment_verified", True)),
+            ("unearned_shared_segment", lambda item: item[
+                "earlier_route_history_hypothesis"].__setitem__(
+                    "specific_shared_segment_verified", True)),
+            ("invented_naming_act", lambda item: item[
+                "earlier_route_history_hypothesis"].__setitem__(
+                    "nominative_act_verified", True)),
+            ("invented_geometry", lambda item: item[
+                "earlier_route_history_hypothesis"].__setitem__(
+                    "geometry", {"lat": 18.4, "lon": -66.0})),
+            ("asserted_1940_road_identity", lambda item: item[
+                "earlier_route_history_hypothesis"].__setitem__(
+                    "relationship_to_1940_loiza_rd", "SAME_ROAD")),
+            ("fake_Upr_original_check", lambda item: ashford(item).__setitem__(
+                "road_history_referred_work_independently_checked", True)),
+            ("fabricated_map_cartouche", lambda item: ashford(item).__setitem__(
+                "original_fire_underwriters_map_cartouche_checked", True)),
+            ("recast_second_section_date", lambda item: item[
+                "cartographic_comparison_1917_1918"]["date_discrepancy"]
+                .__setitem__("resolution", "RESOLVED")),
+        ]
+        for label, mutation in cases:
+            with self.subTest(mutation=label):
+                changed = copy.deepcopy(self.candidate)
+                mutation(changed)
+                with self.assertRaises(ValueError):
+                    gate(changed)
 
     def test_current_transit_stops_remain_contemporary_only(self):
         reference = self.candidate["contemporary_separate_reference"]
