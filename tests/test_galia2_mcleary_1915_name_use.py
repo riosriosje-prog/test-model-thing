@@ -220,5 +220,51 @@ class McLeary1915NameUseTests(unittest.TestCase):
         )
 
 
+    def test_rust_snapshot_matches_python_research_manifest(self):
+        """A Rust shadow fixture must not drift from the research manifest."""
+        root = Path(__file__).resolve().parents[1]
+        historical = json.loads(
+            (root / "research/gates/mcleary_1915_primary_capture_gate.v0_1.json")
+            .read_text(encoding="utf-8")
+        )
+        rust_snapshot = json.loads(
+            (root / "rust/galia-core/tests/fixtures/"
+                    "mcleary_1915_primary_capture_gate.v0_1.json")
+            .read_text(encoding="utf-8")
+        )
+        self.assertEqual(historical, rust_snapshot)
+        self.assertEqual(historical["state"], "AUTHORITY_HOLD")
+        self.assertFalse(historical["raw_capture_complete"])
+        self.assertFalse(historical["authority_mutation"])
+        self.assertEqual(
+            {r["claim_id"] for r in rust_snapshot["documentary_observations"]},
+            {self.ids["name_use_claim_id"], self.ids["indexed_26_claim_id"]},
+        )
+
+    def test_changed_issue_date_or_ocr_tier_cannot_pass_parity(self):
+        """Even schema-valid metadata alterations constitute snapshot drift."""
+        root = Path(__file__).resolve().parents[1]
+        historical = json.loads(
+            (root / "research/gates/mcleary_1915_primary_capture_gate.v0_1.json")
+            .read_text(encoding="utf-8")
+        )
+        rust_snapshot = json.loads(
+            (root / "rust/galia-core/tests/fixtures/"
+                    "mcleary_1915_primary_capture_gate.v0_1.json")
+            .read_text(encoding="utf-8")
+        )
+        self.assertEqual(historical, rust_snapshot)
+        for field, changed_value in (
+            ("issue_date", "1915-11-23"),
+            ("discovery_tier", "PRIOR_PROJECT_TRANSCRIPTION_ONLY"),
+        ):
+            altered = json.loads(json.dumps(rust_snapshot))
+            altered["documentary_observations"][1][field] = changed_value
+            self.assertNotEqual(
+                historical, altered,
+                f"Unexpected parity after altering {field}",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
