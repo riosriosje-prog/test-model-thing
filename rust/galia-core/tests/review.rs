@@ -428,3 +428,90 @@ mod witness_coordination_tests{
         assert_eq!(witness.observe().unwrap().registry_epoch,12);
     }
 }
+
+
+#[cfg(feature="scratch-store")]
+mod durable_reconciliation_tests {
+    use super::*;
+    use galia_core_shadow::consumption::ScratchConsumptionStore;
+    use galia_core_shadow::durable_witness::DurableScratchWitness;
+    use galia_core_shadow::witness::{WitnessConfig,MonotonicWitness};
+    fn setup()->(tempfile::TempDir,ScratchConsumptionStore,DurableScratchWitness){
+        let root=tempfile::tempdir().unwrap();
+        let f=fixture();
+        let local=ScratchConsumptionStore::initialize_new(root.path().join("local"),
+            &f.policy.pinned_root_public_key_hex,
+            &f.policy.expected_namespace,&f.policy.expected_scope.case_id).unwrap();
+        let witness=DurableScratchWitness::initialize_new(
+            root.path().join("witness"),
+            WitnessConfig{
+                namespace:f.policy.expected_namespace,case_id:f.policy.expected_scope.case_id,
+                pinned_root_public_key_hex:f.policy.pinned_root_public_key_hex,
+                initial_registry_epoch:10,
+            }).unwrap();
+        (root,local,witness)
+    }
+    #[test]fn independently_reopened_witness_serializes_separate_scratch_roots(){
+        let (root,first,witness)=setup();
+        let f=fixture();
+        let second=ScratchConsumptionStore::initialize_new(
+            root.path().join("local2"),
+            &f.policy.pinned_root_public_key_hex,&f.policy.expected_namespace,
+            &f.policy.expected_scope.case_id).unwrap();
+        first.consume_with_witness(&fixture(),&witness,None).unwrap();
+        let reopened=DurableScratchWitness::open(root.path().join("witness")).unwrap();
+        assert!(second.consume_with_witness(&fixture(),&reopened,
+            reopened.observe().unwrap().tip_sha256.as_deref()).is_err());
+        assert_eq!(second.inspect().unwrap().0,0);
+    }
+    #[cfg(unix)]
+    #[test]fn durable_witness_first_local_io_failure_is_reconciled_without_double_spend(){
+        use std::os::unix::fs::PermissionsExt;
+        let (root,local,witness)=setup();
+        let record_dir=root.path().join("local/records");
+        let mut perms=std::fs::metadata(&record_dir).unwrap().permissions();
+        perms.set_mode(0o500);
+        std::fs::set_permissions(&record_dir,perms).unwrap();
+        let outcome=local.consume_with_witness(&fixture(),&witness,None);
+        let mut restore=std::fs::metadata(&record_dir).unwrap().permissions();
+        restore.set_mode(0o700);
+        std::fs::set_permissions(&record_dir,restore).unwrap();
+        assert!(outcome.is_err(),"write should fail after witness spend");
+        assert_eq!(witness.observe().unwrap().spent_count,1);
+        assert_eq!(local.inspect().unwrap().0,0);
+
+        // Simulate independent crash/restart: only disk state remains.
+        drop(local);drop(witness);
+        let local=ScratchConsumptionStore::open(root.path().join("local")).unwrap();
+        let witness=DurableScratchWitness::open(root.path().join("witness")).unwrap();
+        let recovered=local.reconcile_with_witness(&fixture(),&witness).unwrap();
+        assert_eq!(recovered.local.consumed_count,1);
+        assert!(recovered.witness.is_some());
+        assert!(!recovered.human_authority_verified);
+        assert!(!recovered.canonical_writeback&&!recovered.authority_transfer);
+        let raw=std::fs::read(root.path().join("local/records/00000000000000000001.json")).unwrap();
+        let parsed:serde_json::Value=serde_json::from_slice(&raw).unwrap();
+        assert!(parsed["witness_receipt_sha256"].as_str().is_some());
+        assert_eq!(witness.observe().unwrap().spent_count,1);
+        assert!(local.reconcile_with_witness(&fixture(),&witness).is_err());
+        assert!(local.consume_with_witness(&fixture(),&witness,
+            witness.observe().unwrap().tip_sha256.as_deref()).is_err());
+    }
+    #[test]fn forged_or_unwitnessed_review_cannot_be_reconciled(){
+        let (_root,local,witness)=setup();
+        assert!(local.reconcile_with_witness(&fixture(),&witness).is_err());
+        assert_eq!(local.inspect().unwrap().0,0);
+        local.consume_with_witness(&fixture(),&witness,None).unwrap();
+        let mut different=fixture();
+        different.decision.payload.nonce_sha256=sha(b'2');
+        resign_review(&mut different);
+        assert!(local.reconcile_with_witness(&different,&witness).is_err());
+    }
+    #[test]fn corrupt_witness_journal_prevents_recovery(){
+        let (root,local,witness)=setup();
+        local.consume_with_witness(&fixture(),&witness,None).unwrap();
+        let row=root.path().join("witness/journal/00000000000000000001.json");
+        std::fs::write(row,b"bad").unwrap();
+        assert!(local.reconcile_with_witness(&fixture(),&witness).is_err());
+    }
+}

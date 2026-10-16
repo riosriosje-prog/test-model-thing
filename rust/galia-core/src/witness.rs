@@ -87,6 +87,10 @@ pub struct WitnessReceipt{
 pub trait MonotonicWitness:Send+Sync{
     fn observe(&self)->Result<WitnessObservation,String>;
     fn consume(&self,request:&WitnessConsume)->Result<WitnessReceipt,String>;
+    /// Optional replay-verified receipt lookup. Unimplemented in-memory by default.
+    fn find_spend(&self,_authorization_id:&str)->Result<Option<WitnessReceipt>,String>{
+        Err("witness receipt lookup unsupported".into())
+    }
 }
 #[derive(Debug)]
 struct MemoryState {

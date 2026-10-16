@@ -1,27 +1,31 @@
-# GALIA Rust v0.9 — Witness protocol simulator (CANDIDATE)
+# GALIA 2.0 Rust shadow v0.10 — durable SCRATCH witness and reconciliation
 
-**DRAFT / NONCANONICAL / NO PRODUCTION WITNESS / HUMAN_AUTHORITY_HOLD**
+**DRAFT / NOT PROMOTED / NONCANONICAL / AUTHORITY_HOLD**
 
-The existing GALIA Python system remains authoritative. Rust never writes the canonical GALIA HEAD, Supabase, DW8, live legal evidence, or the production authority ledger.
+The Python GALIA core remains authoritative. No production database, real GALIA HEAD, legal evidence, Supabase, DW8, or main-branch modifications. No CLI exposes scratch writes.
 
-## Implemented from v0.1 to v0.8
+## Existing foundations
 
-- P1/P2 stage state machine, fail-closed guards, typed source events.
-- P5/P6 structural review and preflight; P7 Python-compatible SHA-256 snapshot verifier, parent chain check.
-- P3 SHA-256 audit receipts, separately pinned checkpoints; P5 Ed25519 root-registered reviewer signing and P3 signed checkpoints, all diagnostic only.
-- Optional noncanonical local scratch storage, immutable generations, locked CAS, fsync, fault and orphan inspection.
-- Optional local consume-once journal: review authorization ID and nonce in one scratch record with local file lock; records include monotonic local registry epoch. NOT a real human approval.
+P1/P2 typed stages and guards; P5/P6 structural authorization/preflight; P7 byte-exact snapshot/payload/parent verification; P3 hash-linked audit receipts; P3 Ed25519 integrity checkpoints and registry; P5 Ed25519 root-registered signed review scope; optional scratch generation CAS, consume-once journal, and nonpersistent v0.9 InMemoryWitness.
 
-## v0.9 NEW — independent monotonic witness protocol, simulated
+## New v0.10 implementation
 
-- Feature-gated witness module introduces a MonotonicWitness interface: independently configured root/namespace/case, observe high-water mark and atomic compare-and-consume operation. An implementation is required to preserve durable monotonicity, identity scope, unique authorization ID and nonce, epoch rollback prevention, and a CAS token.
-- InMemoryWitness implements these semantics using a mutex solely to run deterministic test scenarios. It is **NOT external, persistent, signed, authenticated or deployable**. It loses all spend history on process restart.
-- ScratchConsumptionStore.consume_with_witness verifies the P5 signature and exact local case/root binding, checks local replay history, then requests the witness consume-before-local-append. If witness unavailable, signature invalid, CAS stale, nonce reused or registry epoch old, no local spend record is written.
-- Separate simulated hosts (distinct scratch stores, one shared in-memory witness) are tested against same-authorization races, distinct-ID stale-CAS conflicts, retry after refreshed observation, forged signatures, wrong root, stale epoch and unavailable witness. No CLI exposes a witness or production write path.
-- If external consume succeeds **but the local append fails**, the external spend remains irrevocable; the local record may be missing. The adapter **does not claim a distributed atomic transaction**. Manual fail-closed reconciliation, idempotent intent state and independent evidence are required before production.
-- A witness receipt is returned to the caller but is NOT currently durably attached to the local consumption journal. Consequently future recovery cannot prove an external spend solely from local records.
+- DurableScratchWitness implements MonotonicWitness over a NEW, explicit, separately marked, **local noncanonical scratch root**, not the GALIA canonical root. It re-opens after process restart and retains every committed authorization ID and nonce.
+- Each witness operation acquires a cooperative exclusive OS file lock; reconstructs and verifies the entire durable numbered journal; checks exact local root/namespace/case pin, observed registry epoch, expected tip CAS, duplicate authorization and nonce; then writes one canonical JSON entry with create-new, SHA-256 chain, fsync(file), fsync(directory). No caller can silently overwrite an existing record.
+- Journal replay re-derives each receipt from the original request and sequence, rejects undeclared/missing/modified entries, symlinks, stale CAS and tampered receipt bytes. Failed partial journal writes cause **fail closed**; no automatic deletion or promotion.
+- MonotonicWitness now optionally exposes find_spend(authorization_id). DurableScratchWitness implements replay-verified historical receipt lookup.
+- The opt-in local consume-with-witness path binds the SHA-256 of the witness receipt into its scratch record. If an actual witness consumption succeeded but the **local write failed**, reconcile_with_witness can recheck the exact signed review, retrieve the already committed witness receipt, and append the missing local scratch record **without re-consuming the external authorization**. If the witness journal is corrupt or mismatched, reconciliation rejects. This is *manual diagnostic recovery*, not an automatically authorized rollback/replay policy.
+- Tests exercise directory reopen, concurrent independent handles, stale-CAS and epoch after restart, corrupted and partially written journals, symlinks, nonce reuse, two separate local scratch stores using the same durable witness, and failed local write followed by verified recovery.
 
-## How to test
+## Crucial limitations
+
+- **No independently deployed network witness**: both scratch witness and local store are ordinary filesystem locations in one test runner, using cooperative local locks. The witness root/key marker can be forged or rolled back by someone controlling that filesystem, and the entire journal can be silently truncated without a genuinely independent authenticated high-water checkpoint.
+- A local single-file journal commit is not a distributed transaction. A witness spend can precede a local I/O failure. If a torn local record remains, automatic replay is prohibited and human adjudication is required.
+- Witness receipts are **not digitally signed by the witness**; receipt lookup is only as credible as the verified local witness journal. Calling this service remote or proof of human authority would be false.
+- P5 reviewer labels and pinned root sources remain unverified; human_identity_verified=false, human_authority_verified=false, executable_guards_issued=false, canonical_writeback=false, authority_transfer=false.
+- Test CI on Linux does not establish crash durability on every filesystem; no multi-host partition, hostile actor, independent KMS, signed external checkpoint or distributed quorum is implemented.
+
+## Verify
 
     cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
     cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features scratch-store
@@ -31,12 +35,8 @@ The existing GALIA Python system remains authoritative. Rust never writes the ca
     python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
     python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
 
-## Deployment gates
+## Required before production
 
-1. Actually provision independent trust roots, identity verification, controlled human P5 issuance and revocation; avoid caller-selected pins and false authority elevation.
-2. Replace InMemoryWitness with a separately deployed, durable, authenticated service implementing linearizable unique-ID/nonce consumption and epoch CAS; negative tests across real hosts, network splits and restarts.
-3. Resolve witness-success/local-failure with idempotent recoverable intent protocol, retained signed external witness receipts and independent monotonic checkpoints.
-4. Formalize key rotation and revocation chronology, full audit receipts and replay/rollback tests, adversarial OS/filesystem and multi-host testing.
-5. Complete P4 Legacy/MLX and governance review before any authoritative promotion, main merge or production deployment.
+Provision actual independent authenticated witness with durable linearizable transactional CAS and certified monotonic keys/replay; implement signed witness receipts, independently retained witness checkpoint and audited key rotation/revocation; test across hosts and restarts/network partitions; validate recovered transaction across witness and main canonical P7 with explicit human decision; complete P4 Legacy/MLX parity and independent security review. Never infer human authorization from signature correctness.
 
-**Invariants:** EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION; AI-rendered imagery is never archival evidence. AUTHORITY_HOLD is unchanged.
+**Invariants:** EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION; generated images are not historical evidence. AUTHORITY_HOLD persists.

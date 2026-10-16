@@ -1,4 +1,4 @@
-//! GALIA 2.0 Rust noncanonical shadow. No human authority or production writes.
+//! GALIA 2.0 Rust noncanonical shadow: no human authority or production writes.
 #![forbid(unsafe_code)]
 pub mod core;
 pub mod state_machine;
@@ -14,3 +14,5 @@ pub mod scratch_store;
 pub mod consumption;
 #[cfg(feature = "scratch-store")]
 pub mod witness;
+#[cfg(feature = "scratch-store")]
+pub mod durable_witness;
