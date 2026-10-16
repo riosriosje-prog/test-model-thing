@@ -141,6 +141,82 @@ def gate(candidate):
     ):
         if prohibition not in candidate["prohibited_promotions"]:
             raise ValueError("missing Wilson-Loiza or 1918 cartouche quarantine")
+    # All pre-1918 newspaper discoveries are SEARCH-INDEX ONLY.
+    # Even a correct-looking PDF URL or an indexed "Loiza Road" does not
+    # establish an original-page capture, legal naming act or map geometry.
+    press = candidate["early_press_name_use_locator_candidates"]
+    press_expected = {
+        "1910-07-05": (
+            "UFDC-CORRESPONDENCIA-1910-07-05-08862",
+            "Machuchal, camino de Loiza", "CAMINO DE LOIZA",
+            "SEARCH_INDEX_MASTHEAD_OCR"),
+        "1911-05-22": (
+            "UFDC-TIEMPO-1911-05-22-00119",
+            "Machuchal, Loiza road", "LOIZA ROAD",
+            "FILENAME_DATE_UNCHECKED"),
+        "1913-08-01": (
+            "UFDC-TIEMPO-1913-08-01-00789",
+            "In Loiza Street, Stop 44, near Park", "LOIZA STREET",
+            "FILENAME_DATE_UNCHECKED"),
+        "1914-06-04": (
+            "UFDC-TIEMPO-1914-06-04-01048",
+            "181 Loiza Road near Stop 44", "LOIZA ROAD",
+            "FILENAME_DATE_UNCHECKED"),
+        "1915-02-25": (
+            "UFDC-TIEMPO-1915-02-25-01200",
+            "179 Loiza Road. Stop 44", "LOIZA ROAD",
+            "FILENAME_DATE_UNCHECKED"),
+    }
+    if len(press) != len(press_expected):
+        raise ValueError("missing or duplicate early newspaper candidates")
+    if {o["issue_date_candidate"] for o in press} != set(press_expected):
+        raise ValueError("newspaper index issue dates drifted")
+    for o in press:
+        date = o["issue_date_candidate"]
+        sid, text, spelling, date_basis = press_expected[date]
+        if (
+            o["source_id"] != sid
+            or o["source_index_phrase"] != text
+            or o["name_form"] != spelling
+            or o["issue_date_basis"] != date_basis
+            or o["discovery_tier"] != "PUBLIC_SEARCH_INDEX_OCR_ONLY"
+            or o["index_text_visually_checked_against_page"] is not False
+            or o["masthead_original_checked"] is not False
+            or o["original_pdf_captured"] is not False
+            or o["original_pdf_sha256"] is not None
+            or o["original_page_image_hash"] is not None
+            or o["original_page_number"] is not None
+            or o["historical_road_segment_established"] is not False
+            or o["official_street_naming_act_established"] is not False
+            or o["historic_to_modern_street_identity_established"] is not False
+            or o["street_opening_date"] is not None
+            or o["event_date"] is not None
+            or o["coordinates"] is not None
+            or o["georeferencing_authorized"] is not False
+            or o["human_review_state"] != "PENDING"
+        ):
+            raise ValueError("unverified press name has unearned historical authority")
+        src = source_by_id.get(sid)
+        if src is None or (
+            src["discovery_mode"] !=
+            "PUBLIC_SEARCH_INDEX_OCR_ONLY_NO_ORIGINAL_PDF_CAPTURE"
+            or src["reported_edition_date"] != date
+            or src["date_inferred_from"] != date_basis
+            or src["source_binary_sha256"] is not None
+            or src["source_bytes_retained"] is not False
+            or src["reviewed_printed_pages"] != []
+            or src["pdf_page_count"] is not None
+        ):
+            raise ValueError("newspaper source provenance or missing-source drift")
+    for prohibition in (
+        "indexed_pre1918_press_names_to_official_street_naming_act",
+        "indexed_pre1918_press_classified_to_precise_address_geopoint",
+        "index_date_or_ocr_to_verified_original_masthead",
+        "multiple_historic_name_forms_to_same_street_geometry",
+        "oldest_discovered_press_index_to_first_historical_street_mention",
+    ):
+        if prohibition not in candidate["prohibited_promotions"]:
+            raise ValueError("missing historical pre-1918 press promotion prohibition")
     allowed = set(source_ids)
     observations = candidate["observations"]
     ids = [o["observation_id"] for o in observations]
@@ -211,7 +287,7 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
 
     def test_versioned_manifest_fails_closed(self):
         self.assertTrue(gate(self.candidate))
-        self.assertEqual(len(self.candidate["sources"]), 10)
+        self.assertEqual(len(self.candidate["sources"]), 15)
         self.assertEqual(len(self.candidate["observations"]), 12)
         self.assertEqual(
             {s["discovery_mode"] for s in self.candidate["sources"]
@@ -468,6 +544,57 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
                 mutation(changed)
                 with self.assertRaises(ValueError):
                     gate(changed)
+
+    def test_1910_to_1915_early_press_are_only_index_locators(self):
+        press = self.candidate["early_press_name_use_locator_candidates"]
+        self.assertEqual(len(press), 5)
+        self.assertEqual(
+            {o["name_form"] for o in press},
+            {"CAMINO DE LOIZA", "LOIZA ROAD", "LOIZA STREET"},
+        )
+        self.assertEqual(
+            press[0]["issue_date_basis"], "SEARCH_INDEX_MASTHEAD_OCR"
+        )
+        for item in press[1:]:
+            self.assertEqual(item["issue_date_basis"], "FILENAME_DATE_UNCHECKED")
+        for item in press:
+            self.assertIsNone(item["original_pdf_sha256"])
+            self.assertIsNone(item["original_page_number"])
+            self.assertIsNone(item["event_date"])
+            self.assertFalse(item["official_street_naming_act_established"])
+            self.assertFalse(item["georeferencing_authorized"])
+        self.assertTrue(gate(self.candidate))
+
+    def test_index_ocr_and_unearned_primary_road_claims_fail_closed(self):
+        cases = (
+            ("claimed_page_read", "index_text_visually_checked_against_page", True),
+            ("claimed_pdf", "original_pdf_captured", True),
+            ("invented_page_number", "original_page_number", 4),
+            ("fake_legal_act", "official_street_naming_act_established", True),
+            ("fake_same_road", "historic_to_modern_street_identity_established", True),
+            ("inferred_opening", "street_opening_date", "1910-07-05"),
+            ("invented_coords", "coordinates", [18.4, -66.1]),
+            ("source_label_drift", "name_form", "CALLE LOIZA"),
+            ("misdated_source", "issue_date_basis", "MASTHEAD_VERIFIED"),
+        )
+        for label, field, value in cases:
+            changed = copy.deepcopy(self.candidate)
+            changed["early_press_name_use_locator_candidates"][0][field] = value
+            with self.subTest(mutation=label):
+                with self.assertRaises(ValueError):
+                    gate(changed)
+
+    def test_forged_original_newspaper_hash_and_date_are_rejected(self):
+        changed = copy.deepcopy(self.candidate)
+        item = changed["sources"][-1]
+        item["source_binary_sha256"] = "a" * 64
+        with self.assertRaises(ValueError):
+            gate(changed)
+        changed = copy.deepcopy(self.candidate)
+        item = changed["early_press_name_use_locator_candidates"][1]
+        item["issue_date_candidate"] = "1911-05-23"
+        with self.assertRaises(ValueError):
+            gate(changed)
 
     def test_current_transit_stops_remain_contemporary_only(self):
         reference = self.candidate["contemporary_separate_reference"]
