@@ -1,32 +1,32 @@
-# GALIA Rust v0.12 — pinned append-only witness continuity (experimental)
+# GALIA Rust shadow v0.13 — signed observer gossip and split-view detection
 
-**DRAFT / NONCANONICAL / NO HUMAN AUTHORITY / AUTHORITY_HOLD**
+**STATUS: DRAFT / NONCANONICAL / NO DEPLOYED GOSSIP / AUTHORITY_HOLD**
 
-Original GALIA Python remains authoritative. Rust never writes the canonical HEAD, Supabase or DW8, and never issues P2 promotion guards.
+The original Python GALIA core remains authoritative. No production GALIA HEAD, P2 promotion guard, Supabase, DW8 or historical evidentiary record is modified.
 
-## Preserved scope: v0.1–v0.11
+## Retained functionality
 
-P1/P2 stage state machine; advisory P5/P6 human decision/preflight structural diagnostics; P7 byte-exact Python payload/manifest/HEAD SHA-256 checks; P3 receipt hash chain and Ed25519 checkpoint trust registry; P5 signed-review key registry/scope diagnostics; opt-in scratch generation CAS, consumed ID/nonce journal, durable local witness and v0.11 signed observation/receipt verification. Default build and six CLI tools remain read-only.
+P1/P2 typed event/stage state machine, advisory P5/P6 exact-scope decision/preflight, P7 byte-exact Python SHA-256 manifest/payload/HEAD/parent verification, P3 hash-linked audit and Ed25519 checkpoints, P5 signed review structure and revocation, opt-in local immutable scratch store and authorization/nonce consume-once journal, scratch durable witness, signed witness receipts and the v0.12 contiguous signed receipt + dual-signed key rotation verifier. Six existing CLIs are read-only.
 
-## NEW v0.12: explicit signed historical continuity proof
+## NEW v0.13 — pure offline observer transparency protocol
 
-- Feature-gated witness_continuity module verifies a **complete contiguous list** of signed witness receipts from an independently supplied pinned count/tip up to a signed terminal observation. Each receipt's count increments by one; prior tip must match, registry epochs must never decrease and duplicated authorization IDs / nonces **within the supplied suffix** are denied.
-- A **new, separate witness rotation root** signs each key transition alongside the prior witness key. Domain-separated Ed25519 signatures bind namespace, case, witness count when rotation takes effect, old/new signer IDs, next witness public key, registry epoch floor and the SHA-256 of the previous signed rotation envelope. Transition at the wrong height, reused key/ID, role-confused key or unacknowledged transition is denied.
-- After a rotation, all subsequent receipts and the signed terminal observation must use the new key; signatures from the prior key cannot be replayed. Two transitions at the same history height are prohibited.
-- A terminal signed observation with a greater count but without ALL intermediate signed receipts is denied. The terminal exact count, digest and epoch must match the verified suffix.
-- The continuity verifier is pure/read-only and available only with the disabled-by-default scratch-store feature. It does not alter existing witness networking, consume semantics, persistence, or production authority.
-- Negative tests cover omitted/reordered receipts, altered tips and epochs, wrong/root-confused signer keys, old signing key after rotation, altered rotation signatures, height/lineage inconsistencies, revoked-by-scope keys and tampered observations.
+- ObserverPolicy specifies an **out-of-band provisioned** witness verification anchor, observer roster epoch, independent Ed25519 public keys and a minimum quorum of **two** nonrevoked, unique observer keys. The code rejects observer keys identical to the review root or witness signer key, duplicate IDs/public keys and unavailable quorum.
+- SignedGossipEndorsement binds its observer identity, namespace, case, roster epoch, signed witness observation **envelope SHA-256**, reported count, tip and registry epoch to a separate domain-separated Ed25519 signature. A publication passes only if the original witness observation is itself signature-valid, every endorsement is correct, and quorum is achieved. Unknown, duplicate, revoked or substituted observers fail closed.
+- compare_publications() examines two independently endorsed signed witness observations. If BOTH have the same count but different signed tips or registry epochs, it returns **ConflictingSignedState** with the hashes of both signed observation envelopes for preservation as split-view evidence. Same state is not a conflict. DIFFERENT counts are always reported **DifferentHeightExtensionNotEstablished** (neither evidence of tampering nor proof of consistency).
+- verify_publication_extension() requires endorsed earlier and later observations under an unchanged pinned observer roster, plus a full v0.12 chain of signed intervening receipts and optional root-authorized witness key rotations. It only returns VerifiedSignedExtension once starting count/tip/epoch, terminal signed observation, and final signer are EXACTLY bound to the published views. A new witness signing key may be used only if verified via the historical rotation proof.
+- NEW 14 targeted tests validate quorum, revocation, role/key separation, forged endorsements, split-view signatures, same-state comparison, missing/reordered receipts, provenance-pinned endpoints, and changed observer roster.
+- Feature gated behind scratch-store (disabled by default), no network, background gossip, publishing service or canonical write path.
 
-## Security limits
+## Exact security boundaries
 
-- This verifies **cryptographically signed claimed continuity** relative to supplied trust anchors, not an independently deployed transparency log. A witness signer, or a compromised signing/rotation root, can equivocate between separate internally consistent histories. Independent trusted publication/gossip and external signed high-water checkpoints are still required.
-- The pinned count/tip and both key roots MUST be independently provisioned and authenticated. Supplying these fields in the same request is not proof of their trustworthy origin or historical freshness.
-- Receipt tip values are signed but not recomputed from an independently witnessed underlying database transaction. The suffix verifier proves chain claims, not that each historical spend really happened on an external service.
-- Duplicate prevention across the unprovided historical prefix requires independently trusted ledger state; the suffix checker verifies duplicates only inside the supplied receipts.
-- Rotations are diagnostic: keys are synthetic in tests; this does NOT introduce a live KMS, real reviewer identity, real key revocation/expiry chronology, distributed consensus or signed external witness deployment.
-- Witness success before local-write failure remains non-atomic across services; reconciliation continues noncanonical and requires human oversight. No canonical writes.
+1. Both observer roster and witness root are **caller-supplied**. The module does not independently authenticate their origin, true organizational independence, public key custody, freshness or revocation chronology. Test keys are synthetic and cannot be regarded as real independent observers.
+2. If a witness key signs different tips or epochs at the SAME count, two valid publications constitute checkable signed-conflict evidence. This does NOT identify the malicious actor, prove an actual remote log diverged, or establish real-world observer identity.
+3. For differing heights, a complete signed suffix establishes a **claimed cryptographic extension only**. Receipts' tip digests are not independently recomputed from a production transaction log; a compromised witness and rotation root can collude or equivocate. Authentic trusted publication/gossip, external immutable checkpoint retention, and independent ledger replay are required.
+4. Duplicate authorization and nonce checks in the suffix do NOT validate against every item of the independently absent historic prefix. Signed witnesses do not prove the prior registry was complete.
+5. This is an offline verifier, NOT a deployed transparency system. It cannot create signatures, perform cross-host networking, guarantee consensus, issue verified human approval or promote anything.
+6. AUTHORITY_HOLD persists. Human governance, reviewer credential verification, KMS/HSM custody, witness Byzantine threat modeling, P4 MLX/Legacy parity, filesystem rollback protection and independent security review remain production blockers.
 
-## Validation
+## Verify
 
     cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets
     cargo test --manifest-path rust/galia-core/Cargo.toml --all-targets --features scratch-store
@@ -36,8 +36,4 @@ P1/P2 stage state machine; advisory P5/P6 human decision/preflight structural di
     python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
     python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
 
-## Next before production
-
-Externally provisioned witness and rotation roots, independent consistent transaction receipts, persistent anti-equivocation/public checkpoint service, formal human P5 identity/authority lifecycle, concurrent distributed network partition trials and receipt retention, P4 MLX/Legacy parity, independent security review and explicit human sign-off. Maintain AUTHORITY_HOLD until validated.
-
-EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION; AI-rendered imagery is never historical evidence.
+**Invariants:** EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION. AI-generated historical images are not evidence. Do not merge or deploy without an independently authorized human decision.

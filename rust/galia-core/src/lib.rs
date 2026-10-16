@@ -1,4 +1,4 @@
-//! GALIA 2.0 Rust shadow core: no human authority or canonical writes.
+//! GALIA 2.0 Rust shadow core. No P5 human authority or production writes.
 #![forbid(unsafe_code)]
 pub mod core;
 pub mod state_machine;
@@ -20,3 +20,5 @@ pub mod durable_witness;
 pub mod witness_proof;
 #[cfg(feature = "scratch-store")]
 pub mod witness_continuity;
+#[cfg(feature = "scratch-store")]
+pub mod transparency;
