@@ -55,3 +55,6 @@ pub mod durable_monotonic_anchor;
 
 #[cfg(feature="tls-transport")]
 pub mod independent_audit;
+
+#[cfg(feature="tls-transport")]
+pub mod audit_equivocation;
