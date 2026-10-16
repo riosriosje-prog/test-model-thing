@@ -10,6 +10,43 @@ fn fixture() -> Value {
     .expect("known fixture JSON")
 }
 
+fn merged_research_manifest() -> Value {
+    serde_json::from_str(include_str!(
+        "../../../research/gates/mcleary_1915_primary_capture_gate.v0_1.json"
+    ))
+    .expect("versioned merged research manifest must remain valid JSON")
+}
+
+#[test]
+fn rust_fixture_matches_merged_research_manifest() {
+    let research = merged_research_manifest();
+    assert_eq!(
+        fixture(),
+        research,
+        "Rust shadow fixture diverges from the merged research manifest"
+    );
+    let hold = assess(&research).expect("merged research manifest must remain on hold");
+    assert_eq!(hold.disposition, "AUTHORITY_HOLD");
+    assert_eq!(hold.blocker, "RAW_CAPTURE_REQUIRED");
+    assert!(!hold.canonical_write_authorized);
+}
+
+#[test]
+fn simulated_research_drift_is_detectable_even_when_it_remains_parseable() {
+    let fixture = fixture();
+    let mut altered = merged_research_manifest();
+    altered["documentary_observations"][0]["issue_date"] = json!("1915-11-23");
+    // A valid-looking date change may pass a structural hold validator.
+    // Semantic snapshot parity must still catch the divergent claim metadata.
+    assert!(assess(&altered).is_ok());
+    assert_ne!(fixture, altered);
+    altered["documentary_observations"][0]["issue_date"] = json!("1915-11-22");
+    altered["documentary_observations"][1]["discovery_tier"] =
+        json!("PRIOR_PROJECT_TRANSCRIPTION_ONLY");
+    assert!(assess(&altered).is_ok());
+    assert_ne!(fixture, altered);
+}
+
 fn assess(value: &Value) -> Result<galia_core_shadow::historical_capture::HistoricalCaptureHold, &'static str> {
     inspect_historical_capture_hold(&value.to_string())
 }
