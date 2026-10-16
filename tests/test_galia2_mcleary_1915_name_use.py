@@ -266,5 +266,106 @@ class McLeary1915NameUseTests(unittest.TestCase):
             )
 
 
+    def _assert_manifest_matches_seeded_store(self, manifest):
+        """Bind the proposed manifest to its own DB documents and source tiers."""
+        expected_tiers = {
+            self.ids["name_use_claim_id"]: "PRIOR_PROJECT_TRANSCRIPTION_ONLY",
+            self.ids["indexed_26_claim_id"]: "SEARCH_INDEX_OCR_ONLY",
+        }
+        observations = manifest["documentary_observations"]
+        self.assertEqual(len(observations), len(expected_tiers))
+        self.assertEqual(
+            {obs["claim_id"] for obs in observations}, set(expected_tiers)
+        )
+        for obs in observations:
+            self.assertEqual(
+                obs["discovery_tier"], expected_tiers[obs["claim_id"]]
+            )
+            record = self.store.conn.execute(
+                "SELECT d.document_id, d.document_date, d.event_date_start, "
+                "d.event_date_end, d.content_sha256 AS document_sha, "
+                "d.byte_length AS document_length, d.content_locator, "
+                "s.url AS source_url, s.repository, s.metadata_json AS source_metadata, "
+                "c.document_id AS claim_document_id, c.status "
+                "FROM documents d JOIN sources s ON s.source_id=d.source_id "
+                "JOIN claims c ON c.document_id=d.document_id "
+                "WHERE c.claim_id=?",
+                (obs["claim_id"],),
+            ).fetchone()
+            self.assertIsNotNone(record)
+            self.assertEqual(record["document_id"], obs["document_id"])
+            self.assertEqual(record["claim_document_id"], obs["document_id"])
+            self.assertEqual(record["document_date"], obs["issue_date"])
+            self.assertIsNone(record["event_date_start"])
+            self.assertIsNone(record["event_date_end"])
+            self.assertIsNone(record["document_sha"])
+            self.assertIsNone(record["document_length"])
+            self.assertEqual(record["content_locator"], obs["url"])
+            self.assertEqual(record["source_url"], obs["url"])
+            self.assertEqual(record["repository"], "UFDC")
+            self.assertEqual(
+                json.loads(record["source_metadata"])["reported_page"],
+                obs["reported_page"],
+            )
+            self.assertEqual(record["status"], "PROPOSED")
+            rows = self.store.conn.execute(
+                "SELECT acquisition_state, raw_artifact, preferred_for_review, "
+                "content_sha256, byte_length, source_url "
+                "FROM document_representations WHERE document_id=?",
+                (obs["document_id"],),
+            ).fetchall()
+            self.assertEqual(
+                {r["acquisition_state"] for r in rows},
+                {"LOCATOR_ONLY", "TEXT_SURROGATE"},
+            )
+            self.assertEqual(len(rows), 2)
+            for representation in rows:
+                self.assertEqual(representation["source_url"], obs["url"])
+                self.assertFalse(representation["raw_artifact"])
+                self.assertFalse(representation["preferred_for_review"])
+                if representation["acquisition_state"] == "LOCATOR_ONLY":
+                    self.assertIsNone(representation["content_sha256"])
+                    self.assertIsNone(representation["byte_length"])
+            evidence = self.store.conn.execute(
+                "SELECT document_id, locator, role FROM claim_evidence "
+                "WHERE claim_id=?",
+                (obs["claim_id"],),
+            ).fetchall()
+            self.assertEqual(len(evidence), 1)
+            self.assertEqual(evidence[0]["document_id"], obs["document_id"])
+            self.assertEqual(evidence[0]["locator"], obs["url"])
+            self.assertEqual(evidence[0]["role"], "supports")
+
+    def test_1915_manifest_binds_to_actual_store_document_lineage(self):
+        manifest = json.loads(
+            (
+                Path(__file__).resolve().parents[1]
+                / "research/gates/mcleary_1915_primary_capture_gate.v0_1.json"
+            ).read_text(encoding="utf-8")
+        )
+        self._assert_manifest_matches_seeded_store(manifest)
+
+    def test_date_locator_and_source_tier_drift_fail_store_lineage(self):
+        manifest = json.loads(
+            (
+                Path(__file__).resolve().parents[1]
+                / "research/gates/mcleary_1915_primary_capture_gate.v0_1.json"
+            ).read_text(encoding="utf-8")
+        )
+        self._assert_manifest_matches_seeded_store(manifest)
+        for field, unexpected in (
+            ("issue_date", "1915-11-23"),
+            ("url", "https://example.invalid/not-the-newspaper.pdf"),
+            ("document_id", "doc_unrelated"),
+            ("discovery_tier", "SEARCH_INDEX_OCR_ONLY"),
+            ("reported_page", "99"),
+        ):
+            changed = json.loads(json.dumps(manifest))
+            changed["documentary_observations"][0][field] = unexpected
+            with self.subTest(field=field):
+                with self.assertRaises(AssertionError):
+                    self._assert_manifest_matches_seeded_store(changed)
+
+
 if __name__ == "__main__":
     unittest.main()
