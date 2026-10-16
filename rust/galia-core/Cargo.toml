@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 publish = false
-description = "Non-authoritative GALIA Rust shadow with offline Ed25519 review-signature consistency"
+description = "Noncanonical Rust shadow plus opt-in scratch-only replay consumption"
 
 [lib]
 name = "galia_core_shadow"

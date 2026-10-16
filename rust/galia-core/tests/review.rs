@@ -155,3 +155,162 @@ fn denied(x:ReviewVerificationRequest){assert!(verify_review(&x).is_err());}
     x.registry.root_signature_hex=signature(&signer(8),REVIEW_REGISTRY_DOMAIN,&x.registry.payload);
     denied(x);
 }
+
+
+#[cfg(feature="scratch-store")]
+mod scratch_consumption_tests {
+    use super::*;
+    use galia_core_shadow::consumption::{ScratchConsumptionStore,ConsumptionCheckpoint};
+    use std::sync::{Arc,Barrier};
+    use std::thread;
+    fn fresh()->(tempfile::TempDir,ScratchConsumptionStore){
+        let parent=tempfile::tempdir().unwrap();
+        let fx=fixture();
+        let s=ScratchConsumptionStore::initialize_new(
+            parent.path().join("spent"),
+            &fx.policy.pinned_root_public_key_hex,
+            &fx.policy.expected_namespace,
+            &fx.policy.expected_scope.case_id).unwrap();
+        (parent,s)
+    }
+    fn rotate_request(epoch:u64,revoked:bool)->ReviewVerificationRequest{
+        let mut x=fixture();
+        let fresh_key=signer(9);
+        x.registry.payload.epoch=epoch;
+        x.registry.payload.keys[0].revoked=true;
+        x.registry.payload.keys.push(RegisteredReviewer{
+            key_id:"key-review-9".into(),
+            reviewer_id:"human-reviewer-9".into(),
+            public_key_hex:hex::encode(fresh_key.verifying_key().to_bytes()),
+            case_id:"case-1".into(),target_type:"CLAIM".into(),revoked,
+        });
+        x.decision.payload.registry_epoch=epoch;
+        x.decision.payload.reviewer_key_id="key-review-9".into();
+        x.decision.payload.authorization.reviewer="human-reviewer-9".into();
+        x.decision.payload.authorization.authorization_id=format!("auth-rotation-{epoch}");
+        x.decision.payload.nonce_sha256=sha(b'2');
+        x.policy.minimum_registry_epoch=epoch;
+        resign_root(&mut x);
+        x.decision.reviewer_signature_hex=signature(&fresh_key,REVIEW_DECISION_DOMAIN,&x.decision.payload);
+        x
+    }
+    #[test]fn exact_once_replay_survives_reopening(){
+        let (parent,store)=fresh();
+        let response=store.consume_review(&fixture()).unwrap();
+        assert!(response.spent_in_scratch_only);
+        assert_eq!(response.consumed_count,1);
+        assert!(!response.human_authority_verified);
+        assert!(!response.canonical_writeback);
+        assert!(!response.executable_guards_issued);
+        assert!(store.consume_review(&fixture()).is_err());
+        let reloaded=ScratchConsumptionStore::open(parent.path().join("spent")).unwrap();
+        assert!(reloaded.consume_review(&fixture()).is_err());
+        assert_eq!(reloaded.inspect().unwrap().0,1);
+    }
+    #[test]fn same_nonce_new_id_and_same_id_new_nonce_both_denied(){
+        let (_parent,s)=fresh();
+        s.consume_review(&fixture()).unwrap();
+        let mut nonce_replay=fixture();
+        nonce_replay.decision.payload.authorization.authorization_id="different-auth".into();
+        resign_review(&mut nonce_replay);
+        assert!(s.consume_review(&nonce_replay).is_err());
+        let mut id_replay=fixture();
+        id_replay.decision.payload.nonce_sha256=sha(b'2');
+        resign_review(&mut id_replay);
+        assert!(s.consume_review(&id_replay).is_err());
+        assert_eq!(s.inspect().unwrap().0,1);
+    }
+    #[test]fn concurrent_same_id_elects_one_writer(){
+        let (_parent,store)=fresh();
+        let shared=Arc::new(store);
+        let barrier=Arc::new(Barrier::new(5));
+        let joins=(0..4).map(|_|{
+            let shared=Arc::clone(&shared);let barrier=Arc::clone(&barrier);
+            thread::spawn(move||{barrier.wait();shared.consume_review(&fixture()).is_ok()})
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        let wins=joins.into_iter().map(|j|j.join().unwrap()).filter(|ok|*ok).count();
+        assert_eq!(wins,1);
+        assert_eq!(shared.inspect().unwrap().0,1);
+    }
+    #[test]fn distinct_records_are_atomic_under_concurrency(){
+        let (_parent,store)=fresh();
+        let shared=Arc::new(store);
+        let barrier=Arc::new(Barrier::new(3));
+        let joins=(0..2).map(|i|{
+            let store=Arc::clone(&shared);let b=Arc::clone(&barrier);
+            thread::spawn(move||{
+                let mut request=fixture();
+                if i>0{
+                    request.decision.payload.authorization.authorization_id="auth-unique-12".into();
+                    request.decision.payload.nonce_sha256=sha(b'2');
+                    resign_review(&mut request);
+                }
+                b.wait();store.consume_review(&request).is_ok()
+            })
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        assert!(joins.into_iter().all(|j|j.join().unwrap()));
+        assert_eq!(shared.inspect().unwrap().0,2);
+    }
+    #[test]fn registry_epoch_advances_and_blocks_stale_authority(){
+        let (_parent,s)=fresh();
+        s.consume_review(&fixture()).unwrap();
+        let rotated=rotate_request(11,false);
+        assert_eq!(s.consume_review(&rotated).unwrap().maximum_seen_registry_epoch,11);
+        let mut stale=fixture();
+        stale.decision.payload.authorization.authorization_id="fresh-old-epoch".into();
+        stale.decision.payload.nonce_sha256=sha(b'3');
+        resign_review(&mut stale);
+        assert!(s.consume_review(&stale).is_err());
+        assert_eq!(s.inspect().unwrap().2,11);
+    }
+    #[test]fn revoked_rotated_key_fails_even_when_signature_is_valid(){
+        let (_parent,s)=fresh();
+        let revoked=rotate_request(11,true);
+        assert!(s.consume_review(&revoked).is_err());
+        assert_eq!(s.inspect().unwrap().0,0);
+    }
+    #[test]fn invalid_signature_cannot_burn_nonce(){
+        let (_parent,s)=fresh();
+        let mut bad=fixture();
+        bad.decision.reviewer_signature_hex="0".repeat(128);
+        assert!(s.consume_review(&bad).is_err());
+        assert_eq!(s.inspect().unwrap().0,0);
+        assert!(s.consume_review(&fixture()).is_ok());
+    }
+    #[test]fn journal_tampering_and_gaps_fail_closed(){
+        let (parent,s)=fresh();
+        s.consume_review(&fixture()).unwrap();
+        let file=parent.path().join("spent/records/00000000000000000001.json");
+        std::fs::write(&file,b"garbage").unwrap();
+        assert!(s.inspect().is_err());
+        assert!(s.consume_review(&rotate_request(11,false)).is_err());
+    }
+    #[test]fn out_of_band_checkpoint_detects_silent_truncation(){
+        let (parent,s)=fresh();
+        s.consume_review(&fixture()).unwrap();
+        let cp=s.checkpoint().unwrap();
+        let file=parent.path().join("spent/records/00000000000000000001.json");
+        std::fs::remove_file(file).unwrap();
+        // Local-only hash chains cannot detect a complete rollback without an anchor.
+        assert_eq!(s.inspect().unwrap().0,0);
+        assert!(s.verify_checkpoint(&cp).is_err());
+    }
+    #[test]fn root_pinning_refuses_other_root_and_wrong_case(){
+        let (_parent,s)=fresh();
+        let mut x=fixture();
+        x.policy.pinned_root_public_key_hex=hex::encode(signer(9).verifying_key().to_bytes());
+        assert!(s.consume_review(&x).is_err());
+        let mut x=fixture();
+        x.policy.expected_scope.case_id="other".into();
+        assert!(s.consume_review(&x).is_err());
+    }
+    #[test]fn not_a_canonical_or_unmarked_repository(){
+        let parent=tempfile::tempdir().unwrap();
+        assert!(ScratchConsumptionStore::open(parent.path()).is_err());
+        let fx=fixture();
+        assert!(ScratchConsumptionStore::initialize_new(parent.path(),
+            &fx.policy.pinned_root_public_key_hex,"galia-tenant","case-1").is_err());
+    }
+}

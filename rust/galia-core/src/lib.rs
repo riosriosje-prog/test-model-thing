@@ -1,6 +1,4 @@
-//! GALIA 2.0 Rust shadow core.
-//! Default build: read-only analysis. No canonical writes or human authority.
-//! Optional scratch-store feature: noncanonical test-only local generation writes.
+//! GALIA Rust shadow core: no canonical writes, promotion guards or human authority.
 #![forbid(unsafe_code)]
 pub mod core;
 pub mod state_machine;
@@ -12,3 +10,5 @@ pub mod attestation;
 pub mod review;
 #[cfg(feature = "scratch-store")]
 pub mod scratch_store;
+#[cfg(feature = "scratch-store")]
+pub mod consumption;
