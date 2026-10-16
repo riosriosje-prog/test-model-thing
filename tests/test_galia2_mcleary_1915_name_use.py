@@ -327,12 +327,32 @@ class McLeary1915NameUseTests(unittest.TestCase):
                     self.assertIsNone(representation["content_sha256"])
                     self.assertIsNone(representation["byte_length"])
             evidence = self.store.conn.execute(
-                "SELECT document_id, locator, role FROM claim_evidence "
-                "WHERE claim_id=?",
+                "SELECT e.document_id, e.locator, e.role, "
+                "e.representation_id, "
+                "r.document_id AS representation_document_id, "
+                "r.acquisition_state AS representation_acquisition_state, "
+                "r.raw_artifact AS representation_raw_artifact, "
+                "r.source_url AS representation_source_url "
+                "FROM claim_evidence e "
+                "LEFT JOIN document_representations r "
+                "ON r.representation_id=e.representation_id "
+                "WHERE e.claim_id=?",
                 (obs["claim_id"],),
             ).fetchall()
             self.assertEqual(len(evidence), 1)
+            self.assertIsNotNone(evidence[0]["representation_id"])
             self.assertEqual(evidence[0]["document_id"], obs["document_id"])
+            self.assertEqual(
+                evidence[0]["representation_document_id"], obs["document_id"]
+            )
+            self.assertEqual(
+                evidence[0]["representation_acquisition_state"],
+                "TEXT_SURROGATE",
+            )
+            self.assertFalse(evidence[0]["representation_raw_artifact"])
+            self.assertEqual(
+                evidence[0]["representation_source_url"], obs["url"]
+            )
             self.assertEqual(evidence[0]["locator"], obs["url"])
             self.assertEqual(evidence[0]["role"], "supports")
 
@@ -412,6 +432,17 @@ class McLeary1915NameUseTests(unittest.TestCase):
                 "SET preferred_for_review=? WHERE document_id=? "
                 "AND acquisition_state='TEXT_SURROGATE'",
                 (1, self.ids["indexed_26_document_id"]),
+            ),
+            (
+                "cross_document_evidence_representation_substitution",
+                "UPDATE claim_evidence SET representation_id=("
+                "SELECT representation_id FROM document_representations "
+                "WHERE document_id=? AND acquisition_state='TEXT_SURROGATE'"
+                ") WHERE claim_id=?",
+                (
+                    self.ids["indexed_26_document_id"],
+                    self.ids["name_use_claim_id"],
+                ),
             ),
         )
         for label, statement, parameters in mutations:
