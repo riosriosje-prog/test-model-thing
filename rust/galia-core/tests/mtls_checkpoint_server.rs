@@ -982,7 +982,9 @@ mod network_fencing_tests{
         let x=build();let n=net(&x);
         let token=n.coordinator.advance_epoch(0,"host-a").unwrap();
         let (addr,done)=start_rpc(Arc::clone(&n.server),1);
-        let b=remote(&n,addr,"host-b",&n.host_b,None,None);
+        // Locally claim host-a but PRESENT host-b certificate to the TLS server.
+        // This must reach server-side pin enforcement rather than short-circuit locally.
+        let b=remote(&n,addr,"host-a",&n.host_b,None,None);
         assert!(b.commit_response(&token,&hexhash('2'),&signed_response(&x,'2')).is_err());
         assert!(done.join().unwrap().iter().all(|r|r.is_ok()));
         assert_eq!(n.coordinator.checkpoint().unwrap().nonce_claim_count,0);
