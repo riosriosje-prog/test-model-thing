@@ -8,6 +8,10 @@ use crate::witness::{MonotonicWitness,WitnessConsume,WitnessReceipt,WitnessObser
 
 pub const OBSERVATION_DOMAIN:&[u8]=b"GALIA_WITNESS_OBSERVATION_V1\0";
 pub const RECEIPT_DOMAIN:&[u8]=b"GALIA_WITNESS_RECEIPT_V1\0";
+pub(crate) fn validate_public_key(hexkey:&str)->Result<(),String>{key(hexkey).map(|_|())}
+pub(crate) fn verify_detached(hexkey:&str,sig_hex:&str,domain:&[u8],value:&impl Serialize)->Result<(),String>{
+    signature(&key(hexkey)?,sig_hex,domain,value)
+}
 fn hash(s:&str)->bool{s.len()==64&&s.bytes().all(|b|b.is_ascii_digit()||(b'a'..=b'f').contains(&b))}
 fn safe(s:&str)->bool{!s.trim().is_empty()&&s.len()<=256&&!s.chars().any(|c|c.is_control())}
 fn key(hexkey:&str)->Result<VerifyingKey,String>{
@@ -16,7 +20,7 @@ fn key(hexkey:&str)->Result<VerifyingKey,String>{
     let arr:[u8;32]=decoded.try_into().map_err(|_|"invalid public key size")?;
     VerifyingKey::from_bytes(&arr).map_err(|e|e.to_string())
 }
-fn signature(key:&VerifyingKey,sig_hex:&str,domain:&[u8],value:&impl Serialize)->Result<(),String>{
+pub(crate) fn signature(key:&VerifyingKey,sig_hex:&str,domain:&[u8],value:&impl Serialize)->Result<(),String>{
     if sig_hex.len()!=128||!sig_hex.bytes().all(|b|b.is_ascii_digit()||(b'a'..=b'f').contains(&b)){
         return Err("invalid witness Ed25519 signature encoding".into())
     }

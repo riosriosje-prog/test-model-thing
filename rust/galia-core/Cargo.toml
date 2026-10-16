@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2021"
 publish = false
-description = "Noncanonical GALIA Rust shadow with opt-in signed witness protocol adapter"
+description = "GALIA noncanonical shadow with optional pinned signed witness continuity and key rotations"
 
 [lib]
 name = "galia_core_shadow"
