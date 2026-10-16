@@ -1,19 +1,25 @@
-# GALIA 2.0 — Rust shadow migration v0.5
+# GALIA 2.0 — Rust shadow migration v0.6
 
-**Status: CANDIDATE / ADVISORY_ONLY / HUMAN_AUTHORITY_NOT_VERIFIED / NOT_PROMOTED**
+**Status: DRAFT / ADVISORY_ONLY / HUMAN_AUTHORITY_NOT_VERIFIED / NOT_PROMOTED**
 
-The original Python GALIA core stays authoritative. This Rust code is additive and remains in a draft PR, outside the real canonical store, Supabase and DW8.
+Rust is an additive, non-authoritative sidecar to the original GALIA Python core. It does not write to production, change the real GALIA HEAD or grant human promotion authority.
 
-## Scope actually implemented
+## Implemented
 
-- **P1/P2:** typed historical stage/source models and fail-closed state machine.
-- **P5/P6:** structural, untrusted promotion-envelope matching and 12-check preflight diagnostics; no executable authority guards.
-- **P7:** byte-exact read-only verification of Python generation manifest, separate promotion envelope, HEAD, payload inventory and parent chain; SHA-256 and canonical JSON.
-- **P7 opt-in scratch-store:** local noncanonical immutable test generations, cooperative file locking, fsync, HEAD compare-and-swap, simulated interruption and orphan/recovery inventory. This feature is **disabled by default** and absent from all CLI tools.
-- **P3 v0.5:** structured receipt hash chain for scratch stages and publications, exact sequence/index, prior SHA-256 hash link, commit/manifest identity, HEAD continuity and duplicate/replay rejection.
-- **Integrated with scratch-store:** emits append-only canonical JSON receipt files in scratch audit/ after staging and successful scratch HEAD publication. Re-reads and checks the complete audit chain under the cooperative lock before staging, publishing, reading the HEAD token or inspecting recovery. Aborts on tamper, gap or divergence between audit HEAD and on-disk scratch HEAD. No automatic repair or promotion.
-- An optional Checkpoint can be retained **outside** the scratch tree and compared to the chain to detect truncation or wholesale reconstruction. The engine **does not authenticate** the checkpoint or establish trusted freshness.
-- Four JSON stdin/stdout **read-only** diagnostics: galia-shadow, galia-preflight-shadow, galia-persistence-shadow, galia-audit-shadow. Python/Rust audit SHA-256 parity and negative fixtures.
+- P1/P2: strongly typed stage/source contracts, pure guarded state transitions, human boundaries and AUTHORITY_HOLD.
+- P5/P6: advisory-only exact-scope / decision / preflight checks; no independently verified human authorization.
+- P7: read-only Python-compatible manifest / promotion envelope / payload / HEAD SHA-256 validation and parent chain replay.
+- P7 opt-in scratch-store: local noncanonical test-only file store, cooperative exclusive lock, CAS, fsync, crash injection and orphan inspection. Disabled by default and inaccessible through all CLIs.
+- P3 v0.5: SHA-256 hash-linked scratch receipts, replay/HEAD continuity and separately retained optional checkpoint.
+- **P3 v0.6 — Ed25519 offline integrity attestation (new)**:
+  - Externally pinned root Ed25519 public key verifies a domain-separated signature of the full trust-registry payload.
+  - Root-signed registry binds namespace, case, registry epoch, and unique delegated checkpoint public keys and revocation flags.
+  - Only an active delegated key may verify a separately domain-separated signed checkpoint. It binds namespace, case, epoch, signing key ID, receipt count, SHA-256 chain tip and final HEAD hash.
+  - Caller-supplied minimum registry epoch, minimum receipt count and optional exact prior historical checkpoint reject stale signed registries, truncated logs and validly signed rewrites of a pinned prefix.
+  - All unknown fields and duplicate keys/ids in registry are rejected structurally.
+  - Ed25519 does NOT establish whether the caller's pinned root was configured independently, its record is the latest, its signer is an authorized human reviewer, or a production commit is current.
+  - Revocation is enforced immediately by the supplied, root-signed registry; historical effective-time modeling remains out of scope.
+- CLI: galia-attestation-shadow reads JSON AttestationRequest and emits advisory assessment. Existing four CLIs stay read-only.
 
 ## Build and verification
 
@@ -25,20 +31,18 @@ The original Python GALIA core stays authoritative. This Rust code is additive a
     python -m unittest discover -s tests -p 'test_galia2_persistence.py' -v
     python -m unittest discover -s rust/galia-core/tests -p 'test_*.py' -v
 
-## Explicit audit failure states
+## Security / authority boundaries
 
-1. Hash, sequence, commit, manifest, HEAD continuity or declared receipt filename mismatch: reject, fail closed.
-2. Materialized generation but HEAD not advanced: prior HEAD remains; candidate is orphaned and retains a STAGED receipt. Human inspection is required.
-3. HEAD swap succeeds but audit append fails: scratch HEAD may be advanced with incomplete journal; subsequent operations reject on audit mismatch. Do not auto-repair.
-4. Truncating latest STAGED receipt with unchanged HEAD is not detectable using local hashes alone. An independently retained **authenticated** checkpoint would detect truncation; user-supplied Checkpoint is **not inherently trusted**.
-5. Someone able to rewrite the entire scratch filesystem and any checkpoints may fabricate internally consistent records. A hash chain is tamper-evident **relative to a trusted anchor**, not immutable authority.
+A valid Ed25519 signature proves only a cryptographic relationship to a key, NOT GALIA P5 human approval or authority. The pinned TrustPolicy, minimum epoch/count and any prefix anchor are caller inputs; a trustworthy deployer MUST obtain them independently of attacker-controlled requests. A user who controls both the root and the request can fabricate a structurally valid attestation.
 
-## Security boundaries and follow-on
+The v0.6 assessor remains ADVISORY_ONLY with human_authority_verified=false, authority_transfer=false, canonical_writeback=false and output_commit=null.
 
-- No authenticated reviewer signatures, P5 lifecycle/revocation, trusted provenance attestation, independent timestamping, hostile-actor protection, distributed consensus or trusted P3 receipt publication.
-- Cooperative local lock/CAS is not a distributed or adversarially safe consensus protocol.
-- Main, Python generation store, DW8, Supabase and all external data/control planes remain unchanged.
-- Next: signed checkpoint verification, independent trust registry and revocation, P4 Legacy/MLX capture parity, adversarial filesystem tests and separately authorized production review.
-- Historical source imagery must be genuinely sourced; EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION; DW8 cannot write back authority.
+## Production blockers
 
-**Never call a structural or hash PASS a human-authorized promotion.** Rust remains noncanonical.
+- Independently provisioned protected root and monotonic high-water marks / external witness.
+- Human P5 authority and reviewer identity, scope and decisions, revocation chronology, key rotation, replay, distributed anti-rollback.
+- Security review of Ed25519, canonical JSON, weak/compromised keys and adversarial data, filesystem portability, crash/recovery matrix.
+- P4 Legacy/MLX and historical/Legal Execution / DW8 integration parity; P3/P7 production receipts and durable append-only storage.
+- Independent human review and explicit approval before merge or cutover.
+
+Main, Python runtime, Supabase, DW8 and live authoritative HEAD are unchanged. Historical synthetic imagery is never evidence. EVENT_DATE != DOCUMENT_DATE; PROMPT_VERSION != ENGINE_VERSION.
