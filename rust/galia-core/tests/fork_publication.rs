@@ -643,7 +643,7 @@ mod custody_receipt_tests{
             observers:vec![
                 DisclosureObserver{observer_id:"one".into(),public_key_hex:pubkey(131),revoked:false},
                 DisclosureObserver{observer_id:"two".into(),public_key_hex:pubkey(132),revoked:false},
-                DisclosureObserver{observer_id:"three".into(),public_key_hex:pubkey(133),revoked:false},
+                DisclosureObserver{observer_id:"zthree".into(),public_key_hex:pubkey(133),revoked:false},
             ],
         }
     }
