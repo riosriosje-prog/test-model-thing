@@ -20,6 +20,7 @@ use crate::external_transport::{
 };
 use crate::transparency::ObserverPolicy;
 use crate::transparency_board::DurableTransparencyBoard;
+use crate::replay_anchor::{ReplayAnchorTrust,SignedReplayAnchor,verify_anchored_journal};
 
 pub const REPLAY_FORMAT:&str="GALIA_NONCANONICAL_REMOTE_REPLAY_FENCE_V1";
 const MARKER:&str=".GALIA_NONCANONICAL_REMOTE_REPLAY_FENCE_V1";
@@ -112,7 +113,39 @@ impl ReplayEntry{
 }
 struct ReplayHistory{
     count:u64,tip:Option<String>,nonces:BTreeSet<String>,
-    responses:BTreeSet<String>,last_accepted_time:u64,
+    responses:BTreeSet<String>,last_accepted_time:u64,prefix_tips:Vec<String>,
+}
+/// An unsigned local journal state, useful only when authenticated by a separate
+/// out-of-band signed checkpoint and trust floor.
+#[derive(Clone,Debug,Serialize,Deserialize,PartialEq,Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ReplayJournalCheckpoint{
+    pub accepted_count:u64,
+    pub journal_tip_sha256:Option<String>,
+}
+impl ReplayJournalCheckpoint{
+    pub fn validate(&self)->Result<(),String>{
+        if (self.accepted_count==0)!=self.journal_tip_sha256.is_none()||
+            self.journal_tip_sha256.as_ref().is_some_and(|s|!hash(s)){
+            return Err("invalid replay journal checkpoint count/tip".into())
+        }
+        Ok(())
+    }
+}
+fn prefix(history:&ReplayHistory,count:u64)->Result<ReplayJournalCheckpoint,String>{
+    if count>history.count{return Err("replay journal truncated below anchored count".into())}
+    let tip=if count==0{None}else{
+        let index=usize::try_from(count-1).map_err(|_|"checkpoint count overflow")?;
+        Some(history.prefix_tips.get(index).ok_or("missing anchored prefix")?.clone())
+    };
+    Ok(ReplayJournalCheckpoint{accepted_count:count,journal_tip_sha256:tip})
+}
+fn check_prefix(history:&ReplayHistory,checkpoint:&ReplayJournalCheckpoint)->Result<(),String>{
+    checkpoint.validate()?;
+    if &prefix(history,checkpoint.accepted_count)?!=checkpoint{
+        return Err("independent replay checkpoint disagrees with locally replayed prefix".into())
+    }
+    Ok(())
 }
 struct Guard(File);
 impl Drop for Guard{
@@ -193,6 +226,7 @@ impl DurableTranscriptReplayFence{
         let mut nonces=BTreeSet::new();
         let mut responses=BTreeSet::new();
         let mut last_time=0u64;
+        let mut prefix_tips=Vec::new();
         for (index,(name,p)) in entries.iter().enumerate(){
             let sequence=u64::try_from(index).map_err(|_|"replay count overflow")?
                 .checked_add(1).ok_or("replay count overflow")?;
@@ -211,12 +245,37 @@ impl DurableTranscriptReplayFence{
             }
             last_time=e.accepted_at_trusted_unix_seconds;
             tip=Some(sha256(&raw));
+            prefix_tips.push(tip.clone().ok_or("missing journal tip")?);
         }
         Ok(ReplayHistory{count:u64::try_from(entries.len()).map_err(|_|"count overflow")?,
-            tip,nonces,responses,last_accepted_time:last_time})
+            tip,nonces,responses,last_accepted_time:last_time,prefix_tips})
     }
     pub fn inspect(&self)->Result<(u64,Option<String>),String>{
         let _guard=self.lock()?;let h=self.history()?;Ok((h.count,h.tip))
+    }
+    /// Full replay and an exact prefix hash for a historical local height.
+    /// This is not independently authenticated until compared with a signed
+    /// checkpoint retained outside the mutable scratch filesystem.
+    pub fn checkpoint_at(&self,count:u64)->Result<ReplayJournalCheckpoint,String>{
+        let _guard=self.lock()?;prefix(&self.history()?,count)
+    }
+    pub fn checkpoint(&self)->Result<ReplayJournalCheckpoint,String>{
+        let _guard=self.lock()?;let history=self.history()?;
+        prefix(&history,history.count)
+    }
+    /// Check a separately signed external high-water checkpoint BEFORE local
+    /// consume. The precise historical prefix is rechecked *under the same
+    /// filesystem lock* as nonce consumption; no cooperative TOCTOU window.
+    pub fn accept_anchored_verified(
+        &self,board:&DurableTransparencyBoard,policy:&ObserverPolicy,
+        trust:&ExternalServiceTrust,challenge:&RemoteCheckpointChallenge,
+        peer:&TransportPeerEvidence,response:&SignedRemoteCheckpointResponse,
+        trusted_now_unix_seconds:u64,
+        anchor_trust:&ReplayAnchorTrust,anchors:&[SignedReplayAnchor],
+    )->Result<ReplayAcceptance,String>{
+        let anchored=verify_anchored_journal(self,trust,policy,anchor_trust,anchors)?;
+        self.accept_inner(board,policy,trust,challenge,peer,response,
+            trusted_now_unix_seconds,Some(&anchored.latest_checkpoint))
     }
     /// Verify everything before trying to consume. Under lock, reject nonce or
     /// signed transcript reuse across cooperating processes and process restarts.
@@ -226,6 +285,16 @@ impl DurableTranscriptReplayFence{
         trust:&ExternalServiceTrust,challenge:&RemoteCheckpointChallenge,
         peer:&TransportPeerEvidence,response:&SignedRemoteCheckpointResponse,
         trusted_now_unix_seconds:u64,
+    )->Result<ReplayAcceptance,String>{
+        self.accept_inner(board,policy,trust,challenge,peer,response,
+            trusted_now_unix_seconds,None)
+    }
+    fn accept_inner(
+        &self,board:&DurableTransparencyBoard,policy:&ObserverPolicy,
+        trust:&ExternalServiceTrust,challenge:&RemoteCheckpointChallenge,
+        peer:&TransportPeerEvidence,response:&SignedRemoteCheckpointResponse,
+        trusted_now_unix_seconds:u64,
+        pinned_prefix:Option<&ReplayJournalCheckpoint>,
     )->Result<ReplayAcceptance,String>{
         let expected=ReplayMarker::new(trust,policy)?;
         if canonical(&expected)?!=canonical(&self.marker)?{
@@ -237,6 +306,7 @@ impl DurableTranscriptReplayFence{
         let challenge_hash=sha256(&canonical(challenge)?);
         let _guard=self.lock()?;
         let history=self.history()?;
+        if let Some(pinned)=pinned_prefix{check_prefix(&history,pinned)?;}
         if trusted_now_unix_seconds<history.last_accepted_time{
             return Err("local scratch accepted-time rollback; external trusted clock required".into())
         }

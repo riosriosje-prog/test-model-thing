@@ -444,3 +444,196 @@ mod durable_replay_tests {
             x._temporary.path(),&x.trust,&x.policy).is_err());
     }
 }
+
+
+// v0.18: externally signed *offline* journal high-water anchors.
+// Every signer and TLS "identity" in this file is a deterministic test fixture.
+mod replay_anchor_tests{
+    use super::*;
+    use std::sync::{Arc,Barrier};
+    use std::thread;
+    use galia_core_shadow::replay_fence::{DurableTranscriptReplayFence,ReplayJournalCheckpoint};
+    use galia_core_shadow::replay_anchor::*;
+
+    fn store(x:&Fixture)->DurableTranscriptReplayFence{
+        DurableTranscriptReplayFence::initialize_new(
+            x._temporary.path().join("anchored-replay"),&x.trust,&x.policy).unwrap()
+    }
+    fn trust(x:&Fixture)->ReplayAnchorTrust{
+        ReplayAnchorTrust{
+            signer_key_id:"replay-auditor-key".into(),
+            signer_public_key_hex:pubkey(94),
+            stream_id:"replay-anchor-stream-1".into(),
+            service_id:x.trust.service_id.clone(),
+            namespace:x.trust.checkpoint.namespace.clone(),
+            case_id:x.trust.checkpoint.case_id.clone(),
+            pinned_service_trust_sha256:sha256(&canonical(&x.trust)),
+            pinned_observer_policy_sha256:policy_digest(&x.policy).unwrap(),
+            floor_sequence:0,floor_envelope_sha256:None,
+            floor_checkpoint:ReplayJournalCheckpoint{
+                accepted_count:0,journal_tip_sha256:None,
+            },
+        }
+    }
+    fn anchor(t:&ReplayAnchorTrust,cp:ReplayJournalCheckpoint,seq:u64,
+        prior:Option<String>)->SignedReplayAnchor{
+        let payload=ReplayAnchorPayload{
+            format:ANCHOR_FORMAT.into(),signer_key_id:t.signer_key_id.clone(),
+            stream_id:t.stream_id.clone(),service_id:t.service_id.clone(),
+            namespace:t.namespace.clone(),case_id:t.case_id.clone(),
+            service_trust_sha256:t.pinned_service_trust_sha256.clone(),
+            observer_policy_sha256:t.pinned_observer_policy_sha256.clone(),
+            sequence:seq,previous_envelope_sha256:prior,checkpoint:cp,
+        };
+        SignedReplayAnchor{
+            signature_hex:sign(94,ANCHOR_DOMAIN,&payload),payload,
+        }
+    }
+    fn digest(v:&SignedReplayAnchor)->String{sha256(&canonical(v))}
+    fn consume(x:&Fixture,f:&DurableTranscriptReplayFence){
+        f.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040).unwrap();
+    }
+    fn new_nonce(x:&mut Fixture,c:char){
+        x.challenge.nonce_sha256=h(c);
+        x.response.payload.nonce_sha256=x.challenge.nonce_sha256.clone();
+        x.response.payload.challenge_sha256=sha256(&canonical(&x.challenge));
+        x.response.signature_hex=sign(92,RESPONSE_DOMAIN,&x.response.payload);
+    }
+    #[test]fn valid_signed_high_water_and_anchored_accept(){
+        let mut x=fixture();let f=store(&x);consume(&x,&f);
+        let a=anchor(&trust(&x),f.checkpoint().unwrap(),1,None);
+        let report=verify_anchored_journal(&f,&x.trust,&x.policy,&trust(&x),&[a.clone()]).unwrap();
+        assert_eq!(report.latest_checkpoint.accepted_count,1);
+        assert!(report.signed_chain_matches_local_prefixes);
+        assert!(!report.externally_operated_auditor_verified&&!report.canonical_writeback);
+        new_nonce(&mut x,'d');
+        let result=f.accept_anchored_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_045,&trust(&x),&[a]).unwrap();
+        assert_eq!(result.accepted_count,2);
+        assert!(!result.independently_pinned_rollback_anchor_verified);
+        assert_eq!(f.checkpoint().unwrap().accepted_count,2);
+    }
+    #[test]fn a_complete_local_rollback_is_detected_if_signed_anchor_survives(){
+        let mut x=fixture();let f=store(&x);consume(&x,&f);
+        let signed=anchor(&trust(&x),f.checkpoint().unwrap(),1,None);
+        std::fs::remove_file(x._temporary.path()
+            .join("anchored-replay/accepted/00000000000000000001.json")).unwrap();
+        assert_eq!(f.checkpoint().unwrap().accepted_count,0);
+        assert!(verify_anchored_journal(&f,&x.trust,&x.policy,&trust(&x),&[signed.clone()]).is_err());
+        new_nonce(&mut x,'d');
+        assert!(f.accept_anchored_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_045,&trust(&x),&[signed]).is_err());
+        assert_eq!(f.checkpoint().unwrap().accepted_count,0);
+    }
+    #[test]fn incremental_reanchoring_respects_retained_prior_high_water(){
+        let mut x=fixture();let f=store(&x);consume(&x,&f);
+        let original_cp=f.checkpoint().unwrap();
+        let a=anchor(&trust(&x),original_cp.clone(),1,None);
+        new_nonce(&mut x,'d');
+        f.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_045).unwrap();
+        let mut next_trust=trust(&x);
+        next_trust.floor_sequence=1;
+        next_trust.floor_envelope_sha256=Some(digest(&a));
+        next_trust.floor_checkpoint=original_cp;
+        let b=anchor(&next_trust,f.checkpoint().unwrap(),2,Some(digest(&a)));
+        let result=verify_anchored_journal(&f,&x.trust,&x.policy,
+            &next_trust,&[b]).unwrap();
+        assert_eq!(result.latest_sequence,2);
+        assert_eq!(result.latest_checkpoint.accepted_count,2);
+    }
+    #[test]fn forged_or_role_confused_anchor_keys_rejected(){
+        let x=fixture();let f=store(&x);consume(&x,&f);
+        let mut a=anchor(&trust(&x),f.checkpoint().unwrap(),1,None);
+        a.signature_hex=sign(95,ANCHOR_DOMAIN,&a.payload);
+        assert!(verify_anchored_journal(&f,&x.trust,&x.policy,&trust(&x),&[a]).is_err());
+        let mut wrong=trust(&x);
+        wrong.signer_public_key_hex=x.trust.response_signer_public_key_hex.clone();
+        assert!(wrong.validate(&x.trust,&x.policy).is_err());
+        let mut wrong=trust(&x);
+        wrong.signer_public_key_hex=x.trust.checkpoint.external_signer_public_key_hex.clone();
+        assert!(wrong.validate(&x.trust,&x.policy).is_err());
+    }
+    #[test]fn scope_and_policy_hash_substitution_rejected(){
+        let x=fixture();let f=store(&x);consume(&x,&f);
+        let a=anchor(&trust(&x),f.checkpoint().unwrap(),1,None);
+        let mut t=trust(&x);t.stream_id="other-stream".into();
+        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[a.clone()]).is_err());
+        let mut t=trust(&x);t.case_id="other-case".into();
+        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[a.clone()]).is_err());
+        let mut t=trust(&x);t.pinned_service_trust_sha256=h('f');
+        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[a]).is_err());
+    }
+    #[test]fn skipped_sequence_or_altered_previous_digest_rejected(){
+        let x=fixture();let f=store(&x);consume(&x,&f);
+        let t=trust(&x);
+        let first=anchor(&t,f.checkpoint().unwrap(),1,None);
+        let second=anchor(&t,f.checkpoint().unwrap(),3,Some(digest(&first)));
+        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[first.clone(),second]).is_err());
+        let second=anchor(&t,f.checkpoint().unwrap(),2,Some(h('f')));
+        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[first,second]).is_err());
+    }
+    #[test]fn same_height_different_digest_even_if_resigned_rejected(){
+        let x=fixture();let f=store(&x);consume(&x,&f);
+        let t=trust(&x);let a=anchor(&t,f.checkpoint().unwrap(),1,None);
+        let mut altered=f.checkpoint().unwrap();
+        altered.journal_tip_sha256=Some(h('f'));
+        let b=anchor(&t,altered,2,Some(digest(&a)));
+        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[a,b]).is_err());
+    }
+    #[test]fn signed_but_invented_larger_journal_is_rejected(){
+        let x=fixture();let f=store(&x);consume(&x,&f);
+        let t=trust(&x);
+        let fabricated=ReplayJournalCheckpoint{
+            accepted_count:2,journal_tip_sha256:Some(h('f')),
+        };
+        let signed=anchor(&t,fabricated,1,None);
+        assert!(verify_anchored_journal(&f,&x.trust,&x.policy,&t,&[signed]).is_err());
+    }
+    #[test]fn signed_historical_prefix_detects_modified_entry_below_later_head(){
+        let mut x=fixture();let f=store(&x);consume(&x,&f);
+        let t=trust(&x);
+        let a=anchor(&t,f.checkpoint().unwrap(),1,None);
+        new_nonce(&mut x,'d');
+        f.accept_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_045).unwrap();
+        // The original first entry must remain byte identical.
+        std::fs::write(x._temporary.path()
+            .join("anchored-replay/accepted/00000000000000000001.json"),b"{").unwrap();
+        assert!(verify_anchored_journal(&f,&x.trust,&x.policy,&t,&[a]).is_err());
+    }
+    #[test]fn anchored_replay_race_has_one_winner(){
+        let x=Arc::new(fixture());let first=store(&x);
+        let second=DurableTranscriptReplayFence::open(
+            x._temporary.path().join("anchored-replay"),&x.trust,&x.policy).unwrap();
+        let t=trust(&x);
+        let signed=anchor(&t,ReplayJournalCheckpoint{
+            accepted_count:0,journal_tip_sha256:None,
+        },1,None);
+        let b=Arc::new(Barrier::new(3));
+        let jobs=[first,second].into_iter().map(|f|{
+            let x=Arc::clone(&x);let b=Arc::clone(&b);
+            let t=trust(&x);let signed=signed.clone();
+            thread::spawn(move||{
+                b.wait();
+                f.accept_anchored_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+                    &x.peer,&x.response,1_800_000_040,&t,&[signed]).is_ok()
+            })
+        }).collect::<Vec<_>>();
+        b.wait();
+        assert_eq!(jobs.into_iter().map(|j|j.join().unwrap()).filter(|won|*won).count(),1);
+    }
+    #[test]fn signed_checkpoint_does_not_grant_human_authority(){
+        let x=fixture();let f=store(&x);
+        let signed=anchor(&trust(&x),ReplayJournalCheckpoint{
+            accepted_count:0,journal_tip_sha256:None,
+        },1,None);
+        let result=f.accept_anchored_verified(&x.board,&x.policy,&x.trust,&x.challenge,
+            &x.peer,&x.response,1_800_000_040,&trust(&x),&[signed]).unwrap();
+        assert!(!result.real_transport_authenticated);
+        assert!(!result.independently_pinned_rollback_anchor_verified);
+        assert!(!result.human_authority_verified);
+        assert!(!result.canonical_writeback&&!result.authority_transfer);
+    }
+}

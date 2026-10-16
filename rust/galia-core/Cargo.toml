@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.17.0"
+version = "0.18.0"
 edition = "2021"
 publish = false
-description = "GALIA Rust noncanonical shadow: optional durable transcript anti-replay diagnostics"
+description = "GALIA Rust noncanonical shadow: opt-in signed replay checkpoint and guarded local anti-replay"
 
 [lib]
 name = "galia_core_shadow"

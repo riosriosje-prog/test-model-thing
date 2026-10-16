@@ -55,3 +55,19 @@ P1/P2 state machine and stage guards; advisory P5/P6 structural decision/preflig
 - The v0.16 stateless verifier still permits identical valid transcripts; callers must explicitly use the replay fence for local consume-once semantics. It is not globally authoritative.
 - The TLS evidence structure is supplied by mocked fixtures; a true authenticated TLS adapter must be built separately and its peer verification must be trustworthy.
 - All acceptance reports mark real transport verification, independent clock verification, external rollback anchor, P5 human authority, and canonical writeback as FALSE. AUTHORITY_HOLD is retained. No merge or deployment is authorized.
+
+
+## NEW v0.18 — signed offline replay-journal high-water anchors
+
+- Feature-gated ReplayAnchorTrust pins a DISTINCT Ed25519 public key and signer ID, separate anchor stream, exact service/tenant/case, SHA-256 of independently provisioned ExternalServiceTrust and ObserverPolicy, and a historical anchor sequence/hash plus exact prior replay journal count/tip. The key and historical floor MUST be retained outside the scratch root. No trusted signer or external publishing service is deployed.
+- SignedReplayAnchor binds its strict consecutive sequence, previous signed envelope SHA-256, scope/configuration hashes and exact local replay count/tip. verify_anchor_chain rejects missing steps, key substitution/role confusion, changed tip at unchanged count, counter rollback and malformed signatures; validates a contiguous signed chain relative to the independently held floor.
+- The complete local scratch journal is replayed and historical prefix tips are recalculated by DurableTranscriptReplayFence.checkpoint_at. verify_anchored_journal checks EVERY signed high-water observation against its exact replayed prefix, including the previously retained historical floor, not only the newest count.
+- accept_anchored_verified first verifies the signed history and then rechecks the latest pinned historical prefix UNDER THE SAME local exclusive filesystem lock as nonce consumption. A restored older snapshot fails closed without consuming another nonce, as long as a newer authentic externally retained pin is supplied. The earlier accept_verified is still available for intentionally unanchored diagnostic scratch workflows; it is not production safe.
+- 11 additional adversarial tests cover surviving signed checkpoint vs complete journal rollback, incrementally repinned high-water, two concurrent local handles, substituted signer/role/tenant/policy, missing signed sequence, same-count fork, invented future count, corrupt historical entries and authority-disabled flags.
+
+### Remaining release blockers
+
+- This implements an OFFLINE verifier for caller-supplied signatures and trust floor. It does NOT deploy independent checkpoint storage, trusted clock, signer HSM/KMS, remote TLS authentication, observer network, distributed anti-replay or global consensus. Test signatures are synthetic.
+- A compromised real signer can sign a fork; a malicious actor rolling back BOTH the local journal and externally supplied high-water pin may evade detection. Independently protected monotonic retention/publication and accountability are still required.
+- The local file lock protects cooperating processes using the same scratch directory only, not malicious filesystem writers or independent hosts; no guaranteed distributed transaction with a remote witness. An interrupted create/fsync can leave a corrupt record which fails closed.
+- Successful offline signature verification is never a human P5 authorization, an executable P2 guard or a canonical HEAD/Supabase/DW8 modification. All production permissions remain held. AUTHORITY_HOLD continues. PR draft/unmerged.

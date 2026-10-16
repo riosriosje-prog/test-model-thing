@@ -31,3 +31,6 @@ pub mod external_transport;
 
 #[cfg(feature="scratch-store")]
 pub mod replay_fence;
+
+#[cfg(feature="scratch-store")]
+pub mod replay_anchor;
