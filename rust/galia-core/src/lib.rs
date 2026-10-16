@@ -43,3 +43,6 @@ pub mod mtls_checkpoint_server;
 
 #[cfg(feature="tls-transport")]
 pub mod service_recovery;
+
+#[cfg(feature="tls-transport")]
+pub mod fenced_coordinator;

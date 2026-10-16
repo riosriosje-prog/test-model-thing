@@ -25,6 +25,8 @@ jobs:
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport
       - name: Two isolated server replicas and signed recovery tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport recovery_tests
+      - name: Shared scratch coordinator epoch and real TLS replica race tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport fencing_tests
       - name: Build six read-only Rust CLIs
         run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
       - name: Original Python P2 P6 P7 reference tests

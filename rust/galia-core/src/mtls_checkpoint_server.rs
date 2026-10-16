@@ -31,6 +31,8 @@ use crate::external_transport::{
 };
 use crate::transparency::ObserverPolicy;
 use crate::witness_proof::verify_detached;
+use crate::fenced_coordinator::{FencingAuthority,EpochGrant};
+use crate::external_checkpoint::policy_digest;
 
 const MARKER:&str=".GALIA_NONCANONICAL_MTLS_CHECKPOINT_SERVER_V1";
 const CHECKPOINTS:&str="checkpoints";
@@ -396,7 +398,29 @@ impl MandatoryMtlsCheckpointServer{
             config:Arc::new(config),service:store.trust.clone(),store,signer,timeout,
         })
     }
-    pub fn serve_one(&self,mut socket:TcpStream, trusted_now:u64)->Result<(),String>{
+    /// Original uncoordinated scratch-only handler (retained for v0.20
+    /// compatibility). It is NOT safe as a globally unique nonce path.
+    pub fn serve_one(&self,socket:TcpStream,trusted_now:u64)->Result<(),String>{
+        self.serve_inner(socket,trusted_now,None)
+    }
+    /// Opt-in fenced handler. A remote/partitioned coordinator adapter MUST
+    /// return Err; there is NO fallback to the local-only nonce journal.
+    /// Local scratch service writes are NOT independently protected against
+    /// old-epoch late commits across real hosts; storage-side fencing remains
+    /// required before production.
+    pub fn serve_one_fenced(&self,socket:TcpStream,trusted_now:u64,
+        authority:&dyn FencingAuthority,grant:&EpochGrant)->Result<(),String>{
+        let scope=authority.scope()?;
+        if scope.namespace!=self.service.checkpoint.namespace||
+            scope.case_id!=self.service.checkpoint.case_id||
+            scope.service_id!=self.service.service_id||
+            scope.pinned_observer_policy_sha256!=policy_digest(&self.store.policy)?{
+            return Err("coordinator scope does not match independently provisioned GALIA policy".into())
+        }
+        self.serve_inner(socket,trusted_now,Some((authority,grant)))
+    }
+    fn serve_inner(&self,mut socket:TcpStream,trusted_now:u64,
+        fencing:Option<(&dyn FencingAuthority,&EpochGrant)>)->Result<(),String>{
         socket.set_read_timeout(Some(self.timeout)).map_err(|e|e.to_string())?;
         socket.set_write_timeout(Some(self.timeout)).map_err(|e|e.to_string())?;
         let mut conn=ServerConnection::new(Arc::clone(&self.config)).map_err(|e|e.to_string())?;
@@ -451,6 +475,13 @@ impl MandatoryMtlsCheckpointServer{
         let signature_hex=(self.signer)(&payload)?;
         verify_detached(&self.service.response_signer_public_key_hex,
             &signature_hex,RESPONSE_DOMAIN,&payload)?;
+        // Consume at the single shared coordinator FIRST. If it is unavailable,
+        // stale, or knows the nonce, fail closed without a local service claim.
+        // The two commits are intentionally NOT atomic: if the local write or
+        // delivery fails, the global nonce is spent and needs human diagnosis.
+        if let Some((authority,grant))=fencing{
+            authority.claim(grant,&c.nonce_sha256)?;
+        }
         // Consume BEFORE returning response. A failure after consumption burns
         // this nonce, which fails closed. It is NOT atomic with the client ack.
         self.store.claim_nonce_locked(&c.nonce_sha256,&payload.challenge_sha256)?;

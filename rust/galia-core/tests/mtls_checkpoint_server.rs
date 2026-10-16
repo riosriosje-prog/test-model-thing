@@ -465,3 +465,214 @@ mod recovery_tests{
         assert!(serde_json::from_value::<SignedServicePeerView>(v).is_err());
     }
 }
+
+
+// GALIA v0.22 — test-only cross-host boundary: real TLS to two local server
+// instances, but a single cooperative local filesystem is the coordinator.
+// No distributed consensus or externally deployed linearizable witness.
+mod fencing_tests{
+    use super::*;
+    use std::sync::{Barrier};
+    use galia_core_shadow::fenced_coordinator::*;
+
+    fn scope(x:&TestContext)->FencingScope{
+        FencingScope{
+            namespace:x.trust.checkpoint.namespace.clone(),
+            case_id:x.trust.checkpoint.case_id.clone(),
+            service_id:x.trust.service_id.clone(),
+            pinned_observer_policy_sha256:policy_digest(&x.policy).unwrap(),
+        }
+    }
+    fn coordinator(x:&TestContext)->(tempfile::TempDir,Arc<DurableFencingCoordinator>){
+        let d=tempfile::tempdir().unwrap();
+        let c=DurableFencingCoordinator::initialize_new(
+            d.path().join("central-scratch"),scope(x)).unwrap();
+        (d,Arc::new(c))
+    }
+    fn fenced_server(
+        server:Arc<MandatoryMtlsCheckpointServer>,authority:Arc<dyn FencingAuthority>,
+        grant:EpochGrant,now:u64
+    )->(SocketAddr,thread::JoinHandle<Result<(),String>>){
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr=listener.local_addr().unwrap();
+        let worker=thread::spawn(move||{
+            let (socket,_)=listener.accept().map_err(|e|e.to_string())?;
+            server.serve_one_fenced(socket,now,authority.as_ref(),&grant)
+        });
+        (addr,worker)
+    }
+    fn call(x:&TestContext,c:Arc<dyn FencingAuthority>,g:EpochGrant,
+        nonce:char)->(bool,bool){
+        let (addr,j)=fenced_server(Arc::clone(&x.server),c,g,1_800_000_030);
+        let ok=x.client.exchange(addr,&x.trust,&x.policy,&hexhash(nonce),
+            1_800_000_000,1_800_000_060).is_ok();
+        (ok,j.join().unwrap().is_ok())
+    }
+    struct Partitioned{
+        scope:FencingScope,
+    }
+    impl FencingAuthority for Partitioned{
+        fn scope(&self)->Result<FencingScope,String>{Ok(self.scope.clone())}
+        fn claim(&self,_:&EpochGrant,_:&str)->Result<FencingCheckpoint,String>{
+            Err("simulated coordinator network partition".into())
+        }
+    }
+    #[test]fn single_epoch_and_shared_nonce_uniqueness(){
+        let x=build();let (_dir,c)=coordinator(&x);
+        let grant=c.advance_epoch(0,"worker-a").unwrap();
+        let one=c.claim(&grant,&hexhash('1')).unwrap();
+        assert_eq!(one.nonce_claim_count,1);
+        assert_eq!(one.active_grant,Some(grant.clone()));
+        assert!(c.claim(&grant,&hexhash('1')).is_err());
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,1);
+        assert_eq!(c.claim(&grant,&hexhash('2')).unwrap().nonce_claim_count,2);
+    }
+    #[test]fn stale_holder_fenced_after_explicit_epoch_cas_failover(){
+        let x=build();let (_dir,c)=coordinator(&x);
+        let a=c.advance_epoch(0,"worker-a").unwrap();
+        assert!(c.advance_epoch(0,"worker-z").is_err());
+        let b=c.advance_epoch(1,"worker-b").unwrap();
+        assert_eq!(b.epoch,2);
+        assert!(c.claim(&a,&hexhash('1')).is_err());
+        assert!(c.claim(&EpochGrant{host_id:"worker-z".into(),epoch:2},&hexhash('1')).is_err());
+        assert_eq!(c.claim(&b,&hexhash('1')).unwrap().nonce_claim_count,1);
+    }
+    #[test]fn two_local_coordinator_handles_race_and_only_one_nonce_wins(){
+        let x=build();let (dir,c)=coordinator(&x);
+        let grant=c.advance_epoch(0,"worker-a").unwrap();
+        let right=DurableFencingCoordinator::open(dir.path().join("central-scratch"),
+            scope(&x)).unwrap();
+        let barrier=Arc::new(Barrier::new(3));
+        let jobs=[(*c).clone(),right].into_iter().map(|one|{
+            let b=Arc::clone(&barrier);let token=grant.clone();
+            thread::spawn(move||{b.wait();one.claim(&token,&hexhash('3')).is_ok()})
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        assert_eq!(jobs.into_iter().map(|j|j.join().unwrap()).filter(|v|*v).count(),1);
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn coordinator_replay_persists_grants_nonce_uniqueness_across_reopen(){
+        let x=build();let (dir,c)=coordinator(&x);
+        let grant=c.advance_epoch(0,"worker-a").unwrap();
+        c.claim(&grant,&hexhash('4')).unwrap();
+        let saved=c.checkpoint().unwrap();
+        drop(c);
+        let reopened=DurableFencingCoordinator::open(dir.path().join("central-scratch"),scope(&x)).unwrap();
+        assert_eq!(reopened.checkpoint().unwrap(),saved);
+        assert!(reopened.claim(&grant,&hexhash('4')).is_err());
+        assert_eq!(reopened.advance_epoch(1,"worker-b").unwrap().epoch,2);
+        assert!(reopened.claim(&grant,&hexhash('5')).is_err());
+    }
+    #[test]fn independently_preserved_highwater_detects_whole_local_coordinator_rollback(){
+        let x=build();let (dir,c)=coordinator(&x);
+        let grant=c.advance_epoch(0,"worker-a").unwrap();
+        c.claim(&grant,&hexhash('6')).unwrap();
+        let independently_pinned=c.checkpoint().unwrap();
+        std::fs::remove_file(dir.path()
+            .join("central-scratch/journal/00000000000000000002.json")).unwrap();
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,0);
+        assert!(c.verify_floor(&independently_pinned).is_err());
+        // Unanchored scratch-only replay would forget that nonce.
+        assert_eq!(c.claim(&grant,&hexhash('6')).unwrap().nonce_claim_count,1);
+    }
+    #[test]fn corrupt_fencing_log_rejects_open_and_claim_without_repair(){
+        let x=build();let (dir,c)=coordinator(&x);
+        let grant=c.advance_epoch(0,"worker-a").unwrap();
+        std::fs::write(dir.path()
+            .join("central-scratch/journal/00000000000000000001.json"),b"{").unwrap();
+        assert!(c.checkpoint().is_err());
+        assert!(c.claim(&grant,&hexhash('7')).is_err());
+        assert!(DurableFencingCoordinator::open(dir.path().join("central-scratch"),
+            scope(&x)).is_err());
+    }
+    #[test]fn coordinator_does_not_accept_wrong_case_or_policy_or_existing_root(){
+        let x=build();let (dir,c)=coordinator(&x);
+        let mut mismatch=scope(&x);mismatch.case_id="other-case".into();
+        assert!(DurableFencingCoordinator::open(dir.path().join("central-scratch"),
+            mismatch).is_err());
+        let mut mismatch=scope(&x);mismatch.pinned_observer_policy_sha256=hexhash('f');
+        assert!(DurableFencingCoordinator::open(dir.path().join("central-scratch"),
+            mismatch).is_err());
+        assert!(DurableFencingCoordinator::initialize_new(dir.path().join("central-scratch"),
+            scope(&x)).is_err());
+        assert_eq!(c.checkpoint().unwrap().record_count,0);
+    }
+    #[test]fn real_tls_two_separate_service_roots_share_one_nonce_fence(){
+        let a=build();let b=build();
+        let (_dir,c)=coordinator(&a);
+        let ga=c.advance_epoch(0,"worker-a").unwrap();
+        let ca:Arc<dyn FencingAuthority>=c.clone();
+        assert_eq!(call(&a,ca,ga.clone(),'1'),(true,true));
+        assert_eq!(a.store.inspect().unwrap(),(1,1));
+        let gb=c.advance_epoch(1,"worker-b").unwrap();
+        let cb:Arc<dyn FencingAuthority>=c.clone();
+        assert_eq!(call(&b,Arc::clone(&cb),gb.clone(),'1'),(false,false));
+        assert_eq!(b.store.inspect().unwrap(),(1,0));
+        assert_eq!(call(&b,cb,gb,'2'),(true,true));
+        assert_eq!(b.store.inspect().unwrap(),(1,1));
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,2);
+    }
+    #[test]fn real_tls_two_replica_race_duplicate_nonce_has_one_success(){
+        let a=Arc::new(build());let b=Arc::new(build());
+        let (_dir,c)=coordinator(&a);
+        let grant=c.advance_epoch(0,"shared-test-token").unwrap();
+        let auth:Arc<dyn FencingAuthority>=c.clone();
+        let barrier=Arc::new(Barrier::new(3));
+        let jobs=[Arc::clone(&a),Arc::clone(&b)].into_iter().map(|fixture|{
+            let authority=Arc::clone(&auth);
+            let token=grant.clone();
+            let ready=Arc::clone(&barrier);
+            thread::spawn(move||{
+                ready.wait();
+                call(&fixture,authority,token,'3')
+            })
+        }).collect::<Vec<_>>();
+        barrier.wait();
+        let res=jobs.into_iter().map(|j|j.join().unwrap()).collect::<Vec<_>>();
+        assert_eq!(res.iter().filter(|(c,s)|*c&&*s).count(),1);
+        assert_eq!(res.iter().filter(|(c,s)|!*c&&!*s).count(),1);
+        assert_eq!(c.checkpoint().unwrap().nonce_claim_count,1);
+    }
+    #[test]fn simulated_coordinator_partition_fails_closed_before_local_nonce_claim(){
+        let a=build();
+        let root:Arc<dyn FencingAuthority>=Arc::new(Partitioned{scope:scope(&a)});
+        let grant=EpochGrant{host_id:"host-a".into(),epoch:1};
+        assert_eq!(call(&a,root,grant,'4'),(false,false));
+        assert_eq!(a.store.inspect().unwrap(),(1,0));
+    }
+    #[test]fn wrongly_scoped_coordinator_fails_before_network_auth_and_local_write(){
+        let a=build();
+        let mut wrong=scope(&a);wrong.case_id="different".into();
+        let root:Arc<dyn FencingAuthority>=Arc::new(Partitioned{scope:wrong});
+        let grant=EpochGrant{host_id:"host-a".into(),epoch:1};
+        assert_eq!(call(&a,root,grant,'5'),(false,false));
+        assert_eq!(a.store.inspect().unwrap(),(1,0));
+    }
+    #[test]fn blocked_coordinator_does_not_prevent_unguarded_legacy_path_counterexample(){
+        let a=build();let b=build();
+        let (_dir,c)=coordinator(&a);
+        let token=c.advance_epoch(0,"host-a").unwrap();
+        let ca:Arc<dyn FencingAuthority>=c.clone();
+        assert_eq!(call(&a,ca,token,'6'),(true,true));
+        // EXPLICIT LIMIT: retained v0.20 serve_one bypasses this opt-in fence;
+        // an unguarded service can still accept the same nonce on another root.
+        let (addr,j)=spawn(Arc::clone(&b.server),1_800_000_030);
+        assert!(b.client.exchange(addr,&b.trust,&b.policy,&hexhash('6'),
+            1_800_000_000,1_800_000_060).is_ok());
+        assert!(j.join().unwrap().is_ok());
+        assert_eq!(b.store.inspect().unwrap(),(1,1));
+    }
+    #[test]fn corrupt_unknown_fencing_file_is_fail_closed(){
+        let a=build();let (dir,c)=coordinator(&a);
+        std::fs::write(dir.path().join("central-scratch/journal/injected.json"),b"{}").unwrap();
+        assert!(c.checkpoint().is_err());
+    }
+    #[cfg(unix)]
+    #[test]fn symlinked_coordinator_entry_fails_closed(){
+        use std::os::unix::fs::symlink;
+        let a=build();let (dir,c)=coordinator(&a);
+        symlink(dir.path().join("central-scratch/.GALIA_NONCANONICAL_EPOCH_FENCING_V1"),
+            dir.path().join("central-scratch/journal/00000000000000000001.json")).unwrap();
+        assert!(c.checkpoint().is_err());
+    }
+}

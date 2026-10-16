@@ -1,4 +1,4 @@
-# GALIA Rust v0.21 — noncanonical signed replica recovery diagnostics (NONCANONICAL)
+# GALIA Rust v0.22 — noncanonical signed replica recovery diagnostics (NONCANONICAL)
 
 **CANDIDATE / DRAFT / NOT DEPLOYED / AUTHORITY_HOLD**
 
@@ -113,3 +113,21 @@ A full rollback of the entire scratch service filesystem remains a residual vuln
 ### Critical next gates
 
 Genuine multi-host fault-injection with durable external monotonic roots, authenticated server-to-server transport, cross-host linearizable nonce consumption or quorum-based fencing, production HSM/KMS, protected key rotation/revocation, trusted independent timestamps and P4/Legacy parity. Do NOT automatically repair divergent histories or confer any P5 human approval based solely on a signed view. AUTHORITY_HOLD remains mandatory; PR v0.21 remains draft, unmerged and undeployed.
+
+
+## NEW v0.22 — shared LOCAL scratch epoch-fencing coordinator
+
+**DRAFT / NONCANONICAL / AUTHORITY_HOLD / NO DISTRIBUTED CONSENSUS**
+
+- New feature-gated fenced_coordinator module: DurableFencingCoordinator creates an explicitly new local scratch root, binds exact namespace/case/logical service and separately pinned observer policy SHA-256, and serializes every epoch CAS and nonce claim under a cooperating-process exclusive filesystem lock. Entries are immutable numbered canonical JSON, SHA-256 linked, created with create_new and fsync file/directory; the entire sequence is replay-validated on each operation/reopen. Malformed, missing, altered or symlink files fail closed.
+- advance_epoch(expected_epoch,host_id) requires exact CAS from the last recorded epoch, issues a monotonically increasing epoch grant and invalidates previous host grants for FUTURE claims. No automatic lease expiry, timeout-based leader election, distributed quorum or human authorization is claimed. A grant is a local experimental capability represented by host ID and epoch, NOT a cryptographically bound physical host identity.
+- FencingAuthority is the adapter boundary for an external coordinator; the only shipped implementation is local cooperative filesystem storage. MandatoryMtlsCheckpointServer.serve_one_fenced first verifies the coordinator's exact tenant/case/logical service and observer-policy digest. After real TLS/mTLS, scoped challenge, signed response and local store checks, it makes the shared coordinator nonce claim BEFORE local durable service nonce acceptance. Coordinator unavailable, stale epoch or already-used nonce fails closed without local consumption.
+- Two distinct local mTLS test-server instances sharing the coordinator are exercised over real loopback TLS 1.3. An identical nonce is accepted by at most ONE coordinator claimant, including after epoch CAS transition and between simultaneous sessions, while fresh requests can succeed following explicitly authorized test failover.
+- FencingCheckpoint binds exact numbered record count/tip, active epoch grant and global nonce count. verify_floor recomputes an independently provided historical prefix under local lock and detects filesystem truncation IF authentic external retention survives. It is only an offline read-only check: no external protected pin publisher is included.
+- 14 new adversarial tests: single-epoch unique claims, stale holder after failover, competing processes, restart, rollback and independent floor limitation, corruption, wrong scope, duplicate nonce on separate mTLS roots, concurrent real TLS sessions, partitioned coordinator adapter, wrong scope refusal, an explicit bypass counterexample for the retained v0.20 unguarded serve_one, unexpected files and symlinks.
+
+### NON-NEGOTIABLE LIMITATIONS
+
+The coordinator is ONE shared local filesystem, not real multi-host consensus or an independently deployed linearizable nonce witness. Cooperating applications with access to one file lock are simulated as separate hosts, and their TLS listeners are loopback. Actual host identity is not cryptographically proven by the epoch string; stolen grants may be replayed. Rotation of the coordinator epoch does NOT automatically fence a previously authorized write already in flight to another storage system — production storage must enforce the epoch at its COMMIT boundary. An unguarded legacy serve_one path still exists and can bypass the opt-in global nonce fence. A whole-directory snapshot rollback can erase spent nonce/epoch history unless independently authenticated high-water checkpoints survive, and even then verification must be incorporated into every acceptance path. Cross-host partitions and Byzantine coordinator failure remain untested. Failed local commit after successful coordinator claim BURNS the global nonce and requires human reconciliation; there is no cross-system atomicity or automatic repair. No trusted remote clock, independent HSM/KMS/identity provider, quorum, P5 reviewer or P2 executable promotion guard is provided.
+
+Python GALIA, canonical HEAD, Supabase, DW8, main and existing published evidence remain unchanged. AUTHORITY_HOLD remains mandatory; do NOT merge, deploy, or promote based solely on local Rust test success.
