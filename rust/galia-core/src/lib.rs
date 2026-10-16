@@ -70,3 +70,6 @@ pub mod custody_attestation;
 
 #[cfg(feature="tls-transport")]
 pub mod custody_equivocation;
+
+#[cfg(feature="tls-transport")]
+pub mod custody_disclosure;

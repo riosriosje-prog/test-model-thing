@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.33.0"
+version = "0.34.0"
 edition = "2021"
 publish = false
-description = "GALIA noncanonical offline evidence for same-key conflicting signed custody claims"
+description = "GALIA offline quorum corroboration of same-key signed custody contradictions"
 
 [lib]
 name = "galia_core_shadow"

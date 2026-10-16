@@ -626,4 +626,151 @@ mod custody_receipt_tests{
         assert!(serde_json::from_value::<SignedCustodyReceipt>(tamper).is_err());
         assert!(p.validate(&a,&w).is_ok());
     }
+
+    // v0.34 — offline countersignatures on ONE normalized, verified
+    // same-key custodian contradiction; never real public disclosure.
+    fn disclosure_policy(
+        a:&AuditTrustPin,w:&ForkWitnessPolicy,p:&CustodianTrustPin,
+    )->galia_core_shadow::custody_disclosure::DisclosurePolicy{
+        use galia_core_shadow::custody_disclosure::*;
+        DisclosurePolicy{
+            format:DISCLOSURE_FORMAT.into(),roster_epoch:7,
+            custodian_id:p.custodian_id.clone(),
+            custodian_trust_sha256:sha256(&canonical(p)),
+            audit_trust_sha256:sha256(&canonical(a)),
+            witness_policy_sha256:sha256(&canonical(w)),
+            required_distinct_signers:2,
+            observers:vec![
+                DisclosureObserver{observer_id:"one".into(),public_key_hex:pubkey(131),revoked:false},
+                DisclosureObserver{observer_id:"two".into(),public_key_hex:pubkey(132),revoked:false},
+                DisclosureObserver{observer_id:"three".into(),public_key_hex:pubkey(133),revoked:false},
+            ],
+        }
+    }
+    fn disclosure_vote(
+        policy:&galia_core_shadow::custody_disclosure::DisclosurePolicy,
+        subject:&galia_core_shadow::custody_disclosure::DisclosureSubject,
+        id:&str,seed:u8
+    )->galia_core_shadow::custody_disclosure::SignedDisclosureEndorsement{
+        use galia_core_shadow::custody_disclosure::*;
+        let payload=expected_endorsement(policy,id,subject).unwrap();
+        SignedDisclosureEndorsement{
+            signature_hex:hex::encode(SigningKey::from_bytes(&[seed;32]).sign(
+                &signing_preimage(DISCLOSURE_DOMAIN,&payload).unwrap()).to_bytes()),
+            payload,
+        }
+    }
+    #[test]fn valid_two_key_disclosure_has_no_human_or_canonical_authority(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,y)=competing_first_receipts();
+        let pol=disclosure_policy(&a,&w,&p);
+        let (subject,_)=subject_for_fork(&p,&a,&w,&[x.clone()],&[y.clone()]).unwrap();
+        let votes=[disclosure_vote(&pol,&subject,"one",131),
+                   disclosure_vote(&pol,&subject,"two",132)];
+        let report=assess_disclosures(&p,&a,&w,&pol,&[x],&[y],&votes).unwrap();
+        assert_eq!(report.observer_count,2);
+        assert!(report.signed_custodian_contradiction_verified);
+        assert!(report.distinct_pinned_signing_keys_verified);
+        assert!(!report.real_witness_organizational_independence_verified);
+        assert!(!report.independent_public_delivery_verified);
+        assert!(!report.public_consensus_verified);
+        assert!(!report.human_culpability_established);
+        assert!(!report.automatic_quarantine_permitted&&!report.automatic_repair_permitted);
+        assert!(!report.human_authority_verified&&!report.canonical_writeback&&!report.authority_transfer);
+    }
+    #[test]fn disclosure_subject_is_order_independent(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,y)=competing_first_receipts();
+        let (one,_)=subject_for_fork(&p,&a,&w,&[x.clone()],&[y.clone()]).unwrap();
+        let (two,_)=subject_for_fork(&p,&a,&w,&[y],[x]).unwrap();
+        assert_eq!(one,two);
+    }
+    #[test]fn no_fork_or_valid_prefix_extension_cannot_be_disclosed(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,_)=competing_first_receipts();
+        assert!(subject_for_fork(&p,&a,&w,&[x.clone()],&[x.clone()]).is_err());
+        let next=sign_receipt(&p,121,2,Some(sha256(&canonical(&x))),
+            PublicationCheckpoint{entry_count:2,last_entry_sha256:Some(sha256(b"next"))},
+            &second_bundle());
+        assert!(subject_for_fork(&p,&a,&w,&[x.clone()],&[x,next]).is_err());
+    }
+    #[test]fn one_reporter_or_duplicate_reporter_never_meets_quorum(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,y)=competing_first_receipts();
+        let pol=disclosure_policy(&a,&w,&p);
+        let (s,_)=subject_for_fork(&p,&a,&w,&[x.clone()],&[y.clone()]).unwrap();
+        let vote=disclosure_vote(&pol,&s,"one",131);
+        assert!(assess_disclosures(&p,&a,&w,&pol,&[x.clone()],&[y.clone()],
+            &[vote.clone()]).is_err());
+        assert!(assess_disclosures(&p,&a,&w,&pol,&[x],&[y],
+            &[vote.clone(),vote]).is_err());
+    }
+    #[test]fn forged_observer_signature_is_rejected(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,y)=competing_first_receipts();
+        let pol=disclosure_policy(&a,&w,&p);
+        let (s,_)=subject_for_fork(&p,&a,&w,&[x.clone()],&[y.clone()]).unwrap();
+        assert!(assess_disclosures(&p,&a,&w,&pol,&[x],&[y],
+            &[disclosure_vote(&pol,&s,"one",133),
+              disclosure_vote(&pol,&s,"two",132)]).is_err());
+    }
+    #[test]fn valid_signature_over_different_conflict_digest_is_rejected(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,y)=competing_first_receipts();let pol=disclosure_policy(&a,&w,&p);
+        let (s,_)=subject_for_fork(&p,&a,&w,&[x.clone()],&[y.clone()]).unwrap();
+        let first=disclosure_vote(&pol,&s,"one",131);
+        let mut second=disclosure_vote(&pol,&s,"two",132);
+        second.payload.subject.signed_claim_pair_sha256=sha256(b"unrelated claims");
+        second.signature_hex=hex::encode(SigningKey::from_bytes(&[132;32])
+            .sign(&signing_preimage(DISCLOSURE_DOMAIN,&second.payload).unwrap()).to_bytes());
+        assert!(assess_disclosures(&p,&a,&w,&pol,&[x],&[y],&[first,second]).is_err());
+    }
+    #[test]fn revoked_signer_and_duplicate_key_are_fail_closed(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,y)=competing_first_receipts();let mut pol=disclosure_policy(&a,&w,&p);
+        pol.observers[1].revoked=true;
+        let (s,_)=subject_for_fork(&p,&a,&w,&[x.clone()],&[y.clone()]).unwrap();
+        assert!(assess_disclosures(&p,&a,&w,&pol,&[x],&[y],
+            &[disclosure_vote(&pol,&s,"one",131),
+              disclosure_vote(&pol,&s,"two",132)]).is_err());
+        pol=disclosure_policy(&a,&w,&p);
+        pol.observers[1].public_key_hex=pol.observers[0].public_key_hex.clone();
+        assert!(pol.validate(&p,&a,&w).is_err());
+    }
+    #[test]fn custodian_and_auditor_and_witness_key_role_aliasing_rejected(){
+        let (a,w,p,_,_)=competing_first_receipts();
+        let mut pol=disclosure_policy(&a,&w,&p);
+        pol.observers[1].public_key_hex=p.custodian_public_key_hex.clone();
+        assert!(pol.validate(&p,&a,&w).is_err());
+        pol.observers[1].public_key_hex=a.auditor_public_key_hex.clone();
+        assert!(pol.validate(&p,&a,&w).is_err());
+        pol.observers[1].public_key_hex=w.witnesses[0].public_key_hex.clone();
+        assert!(pol.validate(&p,&a,&w).is_err());
+    }
+    #[test]fn scope_and_roster_epoch_substitution_breaks_signed_disclosure(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,y)=competing_first_receipts();
+        let pol=disclosure_policy(&a,&w,&p);
+        let (s,_)=subject_for_fork(&p,&a,&w,&[x.clone()],&[y.clone()]).unwrap();
+        let votes=[disclosure_vote(&pol,&s,"one",131),
+                   disclosure_vote(&pol,&s,"two",132)];
+        let mut altered=pol.clone();altered.roster_epoch=8;
+        assert!(assess_disclosures(&p,&a,&w,&altered,&[x.clone()],&[y.clone()],&votes).is_err());
+        altered=pol;altered.custodian_trust_sha256=sha256(b"other pin");
+        assert!(assess_disclosures(&p,&a,&w,&altered,&[x],&[y],&votes).is_err());
+    }
+    #[test]fn forged_custodian_claim_cannot_gain_signer_quorum(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,mut y)=competing_first_receipts();
+        resign(&mut y,122);
+        assert!(subject_for_fork(&p,&a,&w,&[x],&[y]).is_err());
+    }
+    #[test]fn strict_payload_unknown_authority_fields_rejected(){
+        use galia_core_shadow::custody_disclosure::*;
+        let (a,w,p,x,y)=competing_first_receipts();let pol=disclosure_policy(&a,&w,&p);
+        let (s,_)=subject_for_fork(&p,&a,&w,&[x],&[y]).unwrap();
+        let mut data=serde_json::to_value(disclosure_vote(&pol,&s,"one",131)).unwrap();
+        data["payload"]["human_authority_verified"]=serde_json::json!(true);
+        assert!(serde_json::from_value::<SignedDisclosureEndorsement>(data).is_err());
+    }
 }
