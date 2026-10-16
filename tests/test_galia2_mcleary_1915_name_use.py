@@ -2,6 +2,8 @@
 from datetime import datetime, timezone
 import os
 import tempfile
+import json
+from pathlib import Path
 import unittest
 
 from galia2.authority import AuthorityLayer
@@ -154,6 +156,68 @@ class McLeary1915NameUseTests(unittest.TestCase):
         self.assertEqual(result.stage.state, StageState.AUTHORITY_HOLD)
         self.assertIn("RAW_CAPTURE_REQUIRED", result.promotion_blocker_codes)
         self.assertTrue(all(r.output_commit is None for r in result.receipts))
+
+
+    def test_primary_capture_manifest_is_fail_closed(self):
+        gate = json.loads(
+            (
+                Path(__file__).resolve().parents[1]
+                / "research/gates/mcleary_1915_primary_capture_gate.v0_1.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(gate["state"], "AUTHORITY_HOLD")
+        self.assertFalse(gate["raw_capture_complete"])
+        self.assertFalse(gate["authority_mutation"])
+        self.assertEqual(len(gate["documentary_observations"]), 2)
+        self.assertEqual(
+            {r["issue_date"] for r in gate["documentary_observations"]},
+            {"1915-11-22", "1915-11-26"},
+        )
+        self.assertEqual(
+            {r["discovery_tier"] for r in gate["documentary_observations"]},
+            {"PRIOR_PROJECT_TRANSCRIPTION_ONLY", "SEARCH_INDEX_OCR_ONLY"},
+        )
+        for record in gate["documentary_observations"]:
+            self.assertFalse(record["primary_pdf_available_to_current_review"])
+            self.assertIsNone(record["pdf_sha256"])
+            self.assertIsNone(record["captured_pdf_byte_length"])
+            self.assertIsNone(record["verified_page_image_sha256"])
+            self.assertFalse(record["page_image_visually_checked"])
+            self.assertFalse(record["typography_verified"])
+            self.assertEqual(record["human_review_state"], "PENDING")
+
+    def test_capture_gate_is_linked_to_noncanonical_claims(self):
+        gate = json.loads(
+            (
+                Path(__file__).resolve().parents[1]
+                / "research/gates/mcleary_1915_primary_capture_gate.v0_1.json"
+            ).read_text(encoding="utf-8")
+        )
+        claim_ids = {
+            self.ids["name_use_claim_id"], self.ids["indexed_26_claim_id"]
+        }
+        self.assertEqual(
+            {r["claim_id"] for r in gate["documentary_observations"]},
+            claim_ids,
+        )
+        for claim_id in claim_ids:
+            claim = self.store.claim_bundle(claim_id)["claim"]
+            self.assertEqual(claim["status"], "PROPOSED")
+            self.assertIn(
+                "RAW_CAPTURE_REQUIRED",
+                {
+                    r["code"]
+                    for r in self.store.claim_promotion_blockers(claim_id)
+                },
+            )
+        self.assertIn(
+            "document_date_to_street_naming_event",
+            gate["forbidden_promotions"],
+        )
+        self.assertIn(
+            "search_snippet_to_primary_source",
+            gate["forbidden_promotions"],
+        )
 
 
 if __name__ == "__main__":
