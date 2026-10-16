@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.32.0"
+version = "0.33.0"
 edition = "2021"
 publish = false
-description = "GALIA noncanonical offline signed third-party custody receipts with independently pinned history"
+description = "GALIA noncanonical offline evidence for same-key conflicting signed custody claims"
 
 [lib]
 name = "galia_core_shadow"

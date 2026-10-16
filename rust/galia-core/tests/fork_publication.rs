@@ -491,4 +491,139 @@ mod custody_receipt_tests{
         data["payload"]["human_authority_verified"]=serde_json::json!(true);
         assert!(serde_json::from_value::<SignedCustodyReceipt>(data).is_err());
     }
+
+    // v0.33: Same cryptographic custodian identity, two signed, incompatible
+    // claims at one height. This is key-attributed contradiction only, not
+    // proof of physical external delivery or culpable human behavior.
+    fn resign(receipt:&mut SignedCustodyReceipt,seed:u8){
+        let key=SigningKey::from_bytes(&[seed;32]);
+        receipt.signature_hex=hex::encode(key.sign(
+            &signing_preimage(CUSTODY_RECEIPT_DOMAIN,&receipt.payload).unwrap()
+        ).to_bytes());
+    }
+    fn competing_first_receipts()->(
+        AuditTrustPin,ForkWitnessPolicy,CustodianTrustPin,
+        SignedCustodyReceipt,SignedCustodyReceipt,
+    ){
+        let (_root,store,packet)=new_store();
+        let cp=store.append(packet.clone()).unwrap().checkpoint;
+        let (a,w,_)=bundle();
+        let pin=trust(&a,&w,"same-cryptographic-custodian",121);
+        let first=sign_receipt(&pin,121,1,None,cp,&packet);
+        let mut conflicting=first.clone();
+        conflicting.payload.published_bundle_sha256=sha256(b"other claimed complete bundle");
+        resign(&mut conflicting,121);
+        (a,w,pin,first,conflicting)
+    }
+    #[test]fn same_key_same_sequence_different_bundle_is_signed_conflict(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,p,x,y)=competing_first_receipts();
+        assert!(verify_receipt_chain(&p,&a,&w,&[x.clone()]).is_ok());
+        assert!(verify_receipt_chain(&p,&a,&w,&[y.clone()]).is_ok());
+        let result=assess_custodian_fork(&p,&a,&w,&[x],[y]).unwrap();
+        assert_eq!(result.classification,CustodyForkClassification::ConflictingSignedCustodianClaims);
+        assert_eq!(result.conflicting_sequence,Some(1));
+        assert_eq!(result.common_prior_sequence,0);
+        assert!(result.contradictory_signed_claims_verified);
+        assert_ne!(result.left_signed_envelope_sha256,result.right_signed_envelope_sha256);
+        assert!(!result.real_custodian_independence_verified);
+        assert!(!result.independent_delivery_verified);
+        assert!(!result.human_culpability_established);
+        assert!(!result.automatic_repair_permitted&&!result.canonical_writeback);
+        assert!(!result.human_authority_verified&&!result.authority_transfer);
+    }
+    #[test]fn same_key_same_height_different_checkpoint_digest_is_conflict(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,p,x,mut y)=competing_first_receipts();
+        y.payload.published_bundle_sha256=x.payload.published_bundle_sha256.clone();
+        y.payload.publication_checkpoint.last_entry_sha256=
+            Some(sha256(b"alternative signed journal tip"));
+        resign(&mut y,121);
+        let result=assess_custodian_fork(&p,&a,&w,&[x],[y]).unwrap();
+        assert_eq!(result.classification,CustodyForkClassification::ConflictingSignedCustodianClaims);
+    }
+    #[test]fn exact_repeated_signed_receipt_is_not_equivocation(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,p,x,_)=competing_first_receipts();
+        let r=assess_custodian_fork(&p,&a,&w,&[x.clone()],[x]).unwrap();
+        assert_eq!(r.classification,CustodyForkClassification::SameSignedClaims);
+        assert!(!r.contradictory_signed_claims_verified);
+    }
+    #[test]fn signed_prefix_extension_is_not_a_fork(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,p,x,_)=competing_first_receipts();
+        let second=second_bundle();
+        let extra=sign_receipt(&p,121,2,
+            Some(sha256(&canonical(&x))),
+            PublicationCheckpoint{entry_count:2,last_entry_sha256:Some(sha256(b"second journal tip"))},
+            &second);
+        let r=assess_custodian_fork(&p,&a,&w,
+            &[x.clone()],[x,extra]).unwrap();
+        assert_eq!(r.classification,CustodyForkClassification::VerifiedPrefixExtension);
+        assert!(!r.contradictory_signed_claims_verified);
+    }
+    #[test]fn same_shared_first_receipt_can_fork_at_second_height(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,p,root,_)=competing_first_receipts();
+        let prior=Some(sha256(&canonical(&root)));
+        let cp=PublicationCheckpoint{entry_count:2,
+            last_entry_sha256:Some(sha256(b"second journal checkpoint"))};
+        let left=sign_receipt(&p,121,2,prior.clone(),cp.clone(),&second_bundle());
+        let mut right=sign_receipt(&p,121,2,prior,cp,&second_bundle());
+        right.payload.published_bundle_sha256=sha256(b"contradiction at later sequence");
+        resign(&mut right,121);
+        let r=assess_custodian_fork(&p,&a,&w,&[root.clone(),left],[root,right]).unwrap();
+        assert_eq!(r.conflicting_sequence,Some(2));
+        assert_eq!(r.common_prior_sequence,1);
+        assert!(r.common_previous_signed_sha256.is_some());
+    }
+    #[test]fn forged_competing_branch_fails_before_attribution(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,p,x,mut y)=competing_first_receipts();
+        resign(&mut y,123);
+        assert!(assess_custodian_fork(&p,&a,&w,&[x],[y]).is_err());
+    }
+    #[test]fn mismatched_pinned_public_key_rejects_both_claims(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,mut p,x,y)=competing_first_receipts();
+        p.custodian_public_key_hex=pubkey(122);
+        assert!(assess_custodian_fork(&p,&a,&w,&[x],[y]).is_err());
+    }
+    #[test]fn altered_scope_or_policy_cannot_be_explained_as_a_fork(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,mut p,x,y)=competing_first_receipts();
+        p.publication_stream_id="other-stream".into();
+        assert!(assess_custodian_fork(&p,&a,&w,&[x.clone()],[y.clone()]).is_err());
+        let (_,_,mut p2,_,_)=competing_first_receipts();
+        p2.witness_policy_sha256=sha256(b"different witness roster");
+        assert!(assess_custodian_fork(&p2,&a,&w,&[x],[y]).is_err());
+    }
+    #[test]fn competing_branch_with_wrong_previous_digest_is_invalid(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,p,x,mut y)=competing_first_receipts();
+        y.payload.previous_signed_receipt_sha256=Some(sha256(b"not an ancestor"));
+        resign(&mut y,121);
+        assert!(assess_custodian_fork(&p,&a,&w,&[x],[y]).is_err());
+    }
+    #[test]fn skipped_signed_custodian_counter_is_not_valid_fork_evidence(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,p,x,mut y)=competing_first_receipts();
+        y.payload.sequence=2;
+        resign(&mut y,121);
+        assert!(assess_custodian_fork(&p,&a,&w,&[x],[y]).is_err());
+    }
+    #[test]fn two_distinct_custodian_identifiers_are_not_one_signer_equivocation(){
+        use galia_core_shadow::custody_equivocation::*;
+        let (a,w,p,x,mut y)=competing_first_receipts();
+        y.payload.custodian_id="different-custodian".into();
+        resign(&mut y,122);
+        assert!(assess_custodian_fork(&p,&a,&w,&[x],[y]).is_err());
+    }
+    #[test]fn injected_authority_field_rejected_in_evidence_envelope(){
+        let (a,w,p,x,_)=competing_first_receipts();
+        let mut tamper=serde_json::to_value(x).unwrap();
+        tamper["payload"]["human_culpability_established"]=serde_json::json!(true);
+        assert!(serde_json::from_value::<SignedCustodyReceipt>(tamper).is_err());
+        assert!(p.validate(&a,&w).is_ok());
+    }
 }
