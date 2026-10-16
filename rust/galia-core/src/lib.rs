@@ -52,3 +52,6 @@ pub mod network_fencing;
 
 #[cfg(feature="tls-transport")]
 pub mod durable_monotonic_anchor;
+
+#[cfg(feature="tls-transport")]
+pub mod independent_audit;

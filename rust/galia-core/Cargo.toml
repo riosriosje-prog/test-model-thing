@@ -1,9 +1,9 @@
 [package]
 name = "galia-core-shadow"
-version = "0.27.0"
+version = "0.28.0"
 edition = "2021"
 publish = false
-description = "GALIA noncanonical separately durable local monotonic CAS anchor experiment"
+description = "GALIA noncanonical signed independent dual-root high-water audit"
 
 [lib]
 name = "galia_core_shadow"

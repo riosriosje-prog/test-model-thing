@@ -37,6 +37,8 @@ jobs:
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport network_fencing_tests
       - name: Persistent separate-root monotonic anchor and rollback/restart tests
         run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport network_fencing_tests
+      - name: Offline signed dual-root high-water antirollback audit tests
+        run: cargo test --manifest-path rust/galia-core/Cargo.toml --test mtls_checkpoint_server --features tls-transport network_fencing_tests
       - name: Build six read-only Rust CLIs
         run: cargo build --manifest-path rust/galia-core/Cargo.toml --bins
       - name: Original Python P2 P6 P7 reference tests

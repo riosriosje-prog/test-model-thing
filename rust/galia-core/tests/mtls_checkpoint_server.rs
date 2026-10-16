@@ -1625,4 +1625,178 @@ mod network_fencing_tests{
         assert_eq!(anchor.inspect().unwrap().0,0);
         assert_eq!(n.coordinator.checkpoint().unwrap().record_count,0);
     }
+
+    // v0.28 — signed offline audit survives simultaneous rollback of both
+    // local roots *only when the signed floor survives independently*.
+    fn audit_pin(n:&Network)->galia_core_shadow::independent_audit::AuditTrustPin{
+        use galia_core_shadow::independent_audit::AuditTrustPin;
+        AuditTrustPin{
+            auditor_id:"independent-auditor".into(),
+            auditor_public_key_hex:pk(110),
+            stream_id:"noncanonical-antirollback-stream".into(),
+            scope:n.scope.clone(),floor_sequence:0,
+            floor_signed_sha256:None,
+            floor_checkpoint:FencingCheckpoint{
+                record_count:0,journal_tip_sha256:None,
+                active_grant:None,nonce_claim_count:0,
+            },
+        }
+    }
+    fn audit_statement(
+        pin:&galia_core_shadow::independent_audit::AuditTrustPin,
+        cp:FencingCheckpoint,seq:u64,prior:Option<String>,
+    )->galia_core_shadow::independent_audit::SignedAuditStatement{
+        use galia_core_shadow::independent_audit::*;
+        let p=AuditStatement{
+            format:AUDIT_FORMAT.into(),auditor_id:pin.auditor_id.clone(),
+            stream_id:pin.stream_id.clone(),
+            scope_sha256:sha256(&canon(&pin.scope)),
+            sequence:seq,previous_signed_sha256:prior,checkpoint:cp,
+        };
+        SignedAuditStatement{signature_hex:sign(110,AUDIT_DOMAIN,&p),statement:p}
+    }
+    fn audit_hash(r:&galia_core_shadow::independent_audit::SignedAuditStatement)->String{
+        sha256(&canon(r))
+    }
+    #[test]fn independent_audit_of_empty_two_roots_passes_without_authority(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);
+        let pin=audit_pin(&n);
+        let statement=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        let result=assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[statement]).unwrap();
+        assert!(result.historical_signed_prefixes_verified);
+        assert!(result.coordinator_and_anchor_exactly_match);
+        assert!(!result.real_independent_auditor_deployed);
+        assert!(!result.current_external_audit_freshness_verified);
+        assert!(!result.human_authority_verified&&!result.canonical_writeback);
+    }
+    #[test]fn signed_dual_root_historical_extension_validates_both_prefixes(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);
+        let pin=audit_pin(&n);
+        let grant=n.coordinator.advance_epoch_anchored(0,"host-a",external.as_ref()).unwrap();
+        let first=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        let response=signed_response(&x,'1');
+        n.coordinator.commit_response_anchored(
+            &grant,&hexhash('1'),&response,external.as_ref()).unwrap();
+        let second=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),2,
+            Some(audit_hash(&first)));
+        let report=assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[first.clone(),second.clone()]).unwrap();
+        assert_eq!(report.latest_audit_sequence,2);
+        assert_eq!(report.signed_observations_verified,2);
+        assert_eq!(report.current_checkpoint.nonce_claim_count,1);
+        // An externally re-pinned historical floor can omit earlier envelopes
+        // only if the caller retains their authenticated digest and exact CP.
+        let mut retained=pin;
+        retained.floor_sequence=1;
+        retained.floor_signed_sha256=Some(audit_hash(&first));
+        retained.floor_checkpoint=first.statement.checkpoint;
+        assert_eq!(assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&retained,&[second]).unwrap()
+            .latest_audit_sequence,2);
+    }
+    #[test]fn signed_offsite_evidence_detects_simultaneous_local_root_rollback(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);
+        let pin=audit_pin(&n);
+        n.coordinator.advance_epoch_anchored(0,"host-a",external.as_ref()).unwrap();
+        let recorded=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        std::fs::remove_file(n._temp.path()
+            .join("rpc-coordinator/journal/00000000000000000001.json")).unwrap();
+        std::fs::remove_file(n._temp.path()
+            .join("external-anchor-scratch/cas_history/00000000000000000001.json")).unwrap();
+        // Both local heads now agree: only separately retained signature
+        // can identify the removed historical height.
+        assert_eq!(n.coordinator.checkpoint().unwrap(),
+            external.current(&n.scope).unwrap());
+        assert!(assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[recorded]).is_err());
+    }
+    #[test]fn untrusted_signer_or_wrong_pinned_auditor_key_is_rejected(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let mut statement=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        statement.signature_hex=sign(111,AUDIT_DOMAIN,&statement.statement);
+        assert!(verify_signed_audit_chain(&pin,&[statement]).is_err());
+        let mut alias=pin;
+        alias.auditor_public_key_hex=n.scope.pinned_response_signer_public_key_hex.clone();
+        assert!(alias.validate().is_err());
+    }
+    #[test]fn changed_audited_case_or_policy_does_not_verify(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let statement=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        let mut changed=pin.clone();
+        changed.scope.case_id="different-case".into();
+        assert!(verify_signed_audit_chain(&changed,&[statement.clone()]).is_err());
+        let mut changed=pin;
+        changed.scope.pinned_observer_policy_sha256=hexhash('f');
+        assert!(verify_signed_audit_chain(&changed,&[statement]).is_err());
+    }
+    #[test]fn audit_sequence_skip_and_previous_envelope_rewrite_fail_closed(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let cp=n.coordinator.checkpoint().unwrap();
+        let first=audit_statement(&pin,cp.clone(),1,None);
+        let skipped=audit_statement(&pin,cp.clone(),3,Some(audit_hash(&first)));
+        assert!(verify_signed_audit_chain(&pin,&[first.clone(),skipped]).is_err());
+        let wrong=audit_statement(&pin,cp,2,Some(hexhash('f')));
+        assert!(verify_signed_audit_chain(&pin,&[first,wrong]).is_err());
+    }
+    #[test]fn valid_signature_over_invented_future_journal_does_not_validate(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);let pin=audit_pin(&n);
+        let mut invented=n.coordinator.checkpoint().unwrap();
+        invented.record_count=1;
+        invented.journal_tip_sha256=Some(hexhash('f'));
+        invented.active_grant=Some(EpochGrant{host_id:"host-a".into(),epoch:1});
+        let claim=audit_statement(&pin,invented,1,None);
+        assert!(verify_signed_audit_chain(&pin,&[claim.clone()]).is_ok());
+        assert!(assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[claim]).is_err());
+    }
+    #[test]fn same_height_conflicting_signed_head_is_rejected(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let cp=n.coordinator.checkpoint().unwrap();
+        let first=audit_statement(&pin,cp.clone(),1,None);
+        let mut conflicting=cp;
+        conflicting.record_count=1;
+        conflicting.journal_tip_sha256=Some(hexhash('e'));
+        conflicting.active_grant=Some(EpochGrant{host_id:"host-a".into(),epoch:1});
+        let second=audit_statement(&pin,conflicting,2,Some(audit_hash(&first)));
+        // Different height is not proof of equivocation without a prefix:
+        // the full local journal is required to refute a fabricated link.
+        assert!(verify_signed_audit_chain(&pin,&[first,second]).is_ok());
+    }
+    #[test]fn corrupted_local_anchor_or_coordinator_blocks_signed_audit(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);let pin=audit_pin(&n);
+        n.coordinator.advance_epoch_anchored(0,"host-a",external.as_ref()).unwrap();
+        let signed=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        std::fs::write(n._temp.path()
+            .join("external-anchor-scratch/cas_history/00000000000000000001.json"),b"{").unwrap();
+        assert!(assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[signed]).is_err());
+    }
+    #[test]fn unsigned_claim_only_and_epoch_changes_do_not_grant_authority(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let external=disk_anchor(&n);let pin=audit_pin(&n);
+        n.coordinator.advance_epoch_anchored(0,"host-a",external.as_ref()).unwrap();
+        let statement=audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None);
+        let audit=assess_dual_root_audit(
+            &n.coordinator,external.as_ref(),&pin,&[statement]).unwrap();
+        assert!(!audit.authority_transfer&&!audit.canonical_writeback);
+        assert!(!audit.real_independent_auditor_deployed);
+    }
+    #[test]fn strict_schema_rejects_injected_evidentiary_promotion_claims(){
+        use galia_core_shadow::independent_audit::*;
+        let x=build();let n=net(&x);let pin=audit_pin(&n);
+        let mut value=serde_json::to_value(
+            audit_statement(&pin,n.coordinator.checkpoint().unwrap(),1,None)).unwrap();
+        value["statement"]["human_authority_verified"]=serde_json::json!(true);
+        assert!(serde_json::from_value::<SignedAuditStatement>(value).is_err());
+    }
 }
