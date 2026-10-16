@@ -73,3 +73,5 @@ pub mod custody_equivocation;
 
 #[cfg(feature="tls-transport")]
 pub mod custody_disclosure;
+
+pub mod historical_capture;
