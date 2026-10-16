@@ -177,7 +177,7 @@ fn tip(a:&SignedAuditStatement)->String{sha256(&canonical(a))}
     advanced.floor_checkpoint=a.statement.checkpoint;
     assert!(verify_signed_audit_chain(&advanced,&[b.clone()]).is_ok());
     let c=signed(&advanced,2,Some(tip(&a)),cp(2,"alt"));
-    let r=compare_signed_audit_branches(&advanced,&[b],[c]).unwrap();
+    let r=compare_signed_audit_branches(&advanced,&[b],&[c]).unwrap();
     assert_eq!(r.finding,AuditBranchFinding::SignedAuditorForkEvidence);
     assert_eq!(r.fork.unwrap().first_conflicting_sequence,2);
 }
