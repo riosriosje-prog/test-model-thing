@@ -559,20 +559,20 @@ mod replay_anchor_tests{
         let x=fixture();let f=store(&x);consume(&x,&f);
         let a=anchor(&trust(&x),f.checkpoint().unwrap(),1,None);
         let mut t=trust(&x);t.stream_id="other-stream".into();
-        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[a.clone()]).is_err());
+        assert!(galia_core_shadow::replay_anchor::verify_anchor_chain(&t,&x.trust,&x.policy,&[a.clone()]).is_err());
         let mut t=trust(&x);t.case_id="other-case".into();
-        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[a.clone()]).is_err());
+        assert!(galia_core_shadow::replay_anchor::verify_anchor_chain(&t,&x.trust,&x.policy,&[a.clone()]).is_err());
         let mut t=trust(&x);t.pinned_service_trust_sha256=h('f');
-        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[a]).is_err());
+        assert!(galia_core_shadow::replay_anchor::verify_anchor_chain(&t,&x.trust,&x.policy,&[a]).is_err());
     }
     #[test]fn skipped_sequence_or_altered_previous_digest_rejected(){
         let x=fixture();let f=store(&x);consume(&x,&f);
         let t=trust(&x);
         let first=anchor(&t,f.checkpoint().unwrap(),1,None);
         let second=anchor(&t,f.checkpoint().unwrap(),3,Some(digest(&first)));
-        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[first.clone(),second]).is_err());
+        assert!(galia_core_shadow::replay_anchor::verify_anchor_chain(&t,&x.trust,&x.policy,&[first.clone(),second]).is_err());
         let second=anchor(&t,f.checkpoint().unwrap(),2,Some(h('f')));
-        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[first,second]).is_err());
+        assert!(galia_core_shadow::replay_anchor::verify_anchor_chain(&t,&x.trust,&x.policy,&[first,second]).is_err());
     }
     #[test]fn same_height_different_digest_even_if_resigned_rejected(){
         let x=fixture();let f=store(&x);consume(&x,&f);
@@ -580,7 +580,7 @@ mod replay_anchor_tests{
         let mut altered=f.checkpoint().unwrap();
         altered.journal_tip_sha256=Some(h('f'));
         let b=anchor(&t,altered,2,Some(digest(&a)));
-        assert!(verify_anchor_chain(&t,&x.trust,&x.policy,&[a,b]).is_err());
+        assert!(galia_core_shadow::replay_anchor::verify_anchor_chain(&t,&x.trust,&x.policy,&[a,b]).is_err());
     }
     #[test]fn signed_but_invented_larger_journal_is_rejected(){
         let x=fixture();let f=store(&x);consume(&x,&f);
