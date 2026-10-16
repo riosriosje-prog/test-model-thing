@@ -34,3 +34,6 @@ pub mod replay_fence;
 
 #[cfg(feature="scratch-store")]
 pub mod replay_anchor;
+
+#[cfg(feature="tls-transport")]
+pub mod tls_checkpoint;

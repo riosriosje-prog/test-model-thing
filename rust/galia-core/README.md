@@ -71,3 +71,13 @@ P1/P2 state machine and stage guards; advisory P5/P6 structural decision/preflig
 - A compromised real signer can sign a fork; a malicious actor rolling back BOTH the local journal and externally supplied high-water pin may evade detection. Independently protected monotonic retention/publication and accountability are still required.
 - The local file lock protects cooperating processes using the same scratch directory only, not malicious filesystem writers or independent hosts; no guaranteed distributed transaction with a remote witness. An interrupted create/fsync can leave a corrupt record which fails closed.
 - Successful offline signature verification is never a human P5 authorization, an executable P2 guard or a canonical HEAD/Supabase/DW8 modification. All production permissions remain held. AUTHORITY_HOLD continues. PR draft/unmerged.
+
+
+## NEW v0.19 — real TLS 1.3 client transport (OPT-IN, no deployed server)
+
+- The new tls-transport feature enables PinnedMtlsClient using rustls 0.23 and X.509 parser. Unlike v0.16 mock peer evidence, it opens a real TCP connection, negotiates TLS 1.3 with verified server certificates and locally provisioned client credentials.
+- A verified server SubjectPublicKeyInfo SHA-256 is checked against an independently pinned service trust value; mismatch rejects even if the normal certificate chain is valid. A live TLS exporter is derived after the handshake. The challenge is scoped to exact service, tenant, case, stream, nonce, checkpoint floor and the exporter FROM THAT SESSION.
+- The response is length-prefixed and bounded to 1 MiB, read only over TLS; callers must run the existing independently signed v0.16 checkpoint verification and opt-in anchored v0.18 nonce acceptance if appropriate.
+- Three real-network loopback tests exercise an authenticated TLS 1.3 session with a test server mandating client-certificate verification, complete signed checkpoint verification, a wrong valid server SPKI pin, and a disconnected listener.
+- Test certificates/keys are generated in-process, never persisted in the repository. TLS security does not imply that an arbitrary malicious server MUST request client credentials; the test server requires them and a future independently deployed service must have mandatory client authentication audited.
+- No deployed server, HSM/KMS custody, independent trust root enrollment, protected monotonic external checkpoint, cross-host replay ledger, Byzantine fault tolerance or trusted clock is delivered by this client transport. All previous Rust modules remain noncanonical, with AUTHORITY_HOLD and default feature disabled. No production database or merge.

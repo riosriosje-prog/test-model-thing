@@ -637,3 +637,131 @@ mod replay_anchor_tests{
         assert!(!result.canonical_writeback&&!result.authority_transfer);
     }
 }
+
+
+// v0.19: real rustls TLS 1.3 loopback handshakes with mandatory test-server
+// client-certificate verification. NOT a deployed independent auditor.
+#[cfg(feature="tls-transport")]
+mod live_tls_tests{
+    use super::*;
+    use std::net::{TcpListener,SocketAddr};
+    use std::io::{Read,Write};
+    use std::sync::Arc;
+    use std::thread;
+    use std::time::Duration;
+    use rcgen::generate_simple_self_signed;
+    use rustls::{RootCertStore,ServerConfig,ServerConnection,StreamOwned,ProtocolVersion};
+    use rustls::pki_types::{PrivatePkcs8KeyDer,CertificateDer};
+    use rustls::server::WebPkiClientVerifier;
+    use galia_core_shadow::tls_checkpoint::PinnedMtlsClient;
+
+    fn tls_configs()->(PinnedMtlsClient,Arc<ServerConfig>,String){
+        let server=generate_simple_self_signed(vec!["localhost".into()]).unwrap();
+        let client=generate_simple_self_signed(vec!["client.test".into()]).unwrap();
+        let (_,cert)=x509_parser::parse_x509_certificate(server.cert.der().as_ref()).unwrap();
+        let pin=sha256(cert.public_key().raw);
+        let mut roots=RootCertStore::empty();
+        roots.add(server.cert.der().clone()).unwrap();
+        let client_tls= PinnedMtlsClient::new(
+            roots,vec![client.cert.der().clone()],
+            PrivatePkcs8KeyDer::from(client.signing_key.serialize_der()).into(),
+            "localhost",Duration::from_secs(5)
+        ).unwrap();
+        let mut trusted_clients=RootCertStore::empty();
+        trusted_clients.add(client.cert.der().clone()).unwrap();
+        let verifier=WebPkiClientVerifier::builder(Arc::new(trusted_clients))
+            .build().unwrap();
+        let server_tls=ServerConfig::builder_with_protocol_versions(&[&rustls::version::TLS13])
+            .with_client_cert_verifier(verifier)
+            .with_single_cert(vec![server.cert.der().clone()],
+                PrivatePkcs8KeyDer::from(server.signing_key.serialize_der()).into()).unwrap();
+        (client_tls,Arc::new(server_tls),pin)
+    }
+    fn server_once(
+        server_tls:Arc<ServerConfig>,
+        template:SignedRemoteCheckpointResponse
+    )->(SocketAddr,thread::JoinHandle<Result<bool,String>>){
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr=listener.local_addr().unwrap();
+        let join=thread::spawn(move||->Result<bool,String>{
+            let (mut socket,_)=listener.accept().map_err(|e|e.to_string())?;
+            socket.set_read_timeout(Some(Duration::from_secs(5))).map_err(|e|e.to_string())?;
+            socket.set_write_timeout(Some(Duration::from_secs(5))).map_err(|e|e.to_string())?;
+            let mut conn=ServerConnection::new(server_tls).map_err(|e|e.to_string())?;
+            while conn.is_handshaking(){
+                conn.complete_io(&mut socket).map_err(|e|e.to_string())?;
+            }
+            if conn.protocol_version()!=Some(ProtocolVersion::TLSv1_3)||
+               conn.peer_certificates().and_then(|v|v.first()).is_none() {
+               return Err("test server did not authenticate mandatory TLS client certificate".into())
+            }
+            let mut exporter=[0u8;32];
+            conn.export_keying_material(&mut exporter,
+                b"EXPORTER-GALIA-CHECKPOINT-V0.19",
+                Some(b"checkpoint-service-a")).map_err(|e|e.to_string())?;
+            let exporter_hash=sha256(&exporter);
+            let mut io=StreamOwned::new(conn,socket);
+            let mut len=[0u8;4];io.read_exact(&mut len).map_err(|e|e.to_string())?;
+            let n=u32::from_be_bytes(len) as usize;
+            if n==0||n>1024*1024{return Err("oversized or empty TLS request".into())}
+            let mut req=vec![0u8;n];io.read_exact(&mut req).map_err(|e|e.to_string())?;
+            let challenge:RemoteCheckpointChallenge=serde_json::from_slice(&req)
+                .map_err(|e|e.to_string())?;
+            if challenge.tls_exporter_sha256!=exporter_hash {
+                return Err("TLS 1.3 session exporter mismatch".into())
+            }
+            let payload=RemoteCheckpointPayload{
+                format:RESPONSE_FORMAT.into(),
+                service_id:challenge.service_id.clone(),
+                signer_id:"service-key-a".into(),
+                challenge_sha256:sha256(&canonical(&challenge)),
+                nonce_sha256:challenge.nonce_sha256.clone(),
+                tls_exporter_sha256:exporter_hash,
+                signed_at_unix_seconds:1_800_000_020,
+                checkpoint_chain:template.payload.checkpoint_chain,
+            };
+            let signed=SignedRemoteCheckpointResponse{
+                signature_hex:sign(92,RESPONSE_DOMAIN,&payload),payload
+            };
+            let bytes=canonical(&signed);
+            io.write_all(&(bytes.len() as u32).to_be_bytes()).map_err(|e|e.to_string())?;
+            io.write_all(&bytes).map_err(|e|e.to_string())?;
+            io.flush().map_err(|e|e.to_string())?;
+            Ok(true)
+        });
+        (addr,join)
+    }
+    #[test]fn actual_tls13_mtls_checkpoint_exchange_roundtrip_end_to_end(){
+        let mut x=fixture();
+        let (client,server,pin)=tls_configs();
+        x.trust.pinned_tls_peer_spki_sha256=pin;
+        let (addr,server_thread)=server_once(server,x.response.clone());
+        let (challenge,peer,signed)=client.exchange(
+            addr,&x.trust,&x.policy,&h('c'),1_800_000_000,1_800_000_060).unwrap();
+        assert!(server_thread.join().unwrap().unwrap());
+        let report=verify_remote_exchange(&x.board,&x.policy,&x.trust,
+            &challenge,&peer,&signed,1_800_000_040).unwrap();
+        assert_eq!(report.checkpoint_count,1);
+        assert!(report.claimed_tls_identity_matched);
+        assert!(!report.external_service_deployed_verified);
+        assert!(!report.human_authority_verified&&!report.canonical_writeback);
+    }
+    #[test]fn negotiated_certificate_valid_but_wrong_spki_pin_denied(){
+        let mut x=fixture();
+        let (client,server,_pin)=tls_configs();
+        x.trust.pinned_tls_peer_spki_sha256=h('f');
+        let (addr,server_thread)=server_once(server,x.response.clone());
+        assert!(client.exchange(addr,&x.trust,&x.policy,
+            &h('c'),1_800_000_000,1_800_000_060).is_err());
+        let _=server_thread.join(); // no request is ever accepted
+    }
+    #[test]fn no_live_tls_listener_is_hard_failure_not_fake_peer_evidence(){
+        let x=fixture();
+        let (client,_server,_pin)=tls_configs();
+        let listener=TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr=listener.local_addr().unwrap();
+        drop(listener);
+        assert!(client.exchange(addr,&x.trust,&x.policy,
+            &h('c'),1_800_000_000,1_800_000_060).is_err());
+    }
+}
