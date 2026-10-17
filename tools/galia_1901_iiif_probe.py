@@ -145,13 +145,13 @@ def atomic_write_bytes(destination: Path, data: bytes) -> None:
         except BaseException:
             temp_path.unlink(missing_ok=True)
             raise
+    # Linking a completed temp file into a new pathname is atomic and
+    # fails if another process has created that pathname in the meantime.
+    # Path.rename() can overwrite an existing destination on POSIX.
     try:
-        if destination.exists():
-            raise FileExistsError(f"refusing to overwrite {destination}")
-        temp_path.rename(destination)
-    except BaseException:
+        os.link(temp_path, destination)
+    finally:
         temp_path.unlink(missing_ok=True)
-        raise
 
 
 def capture_candidate(date: str, output_dir: Path, *, opener=urlopen) -> dict:
