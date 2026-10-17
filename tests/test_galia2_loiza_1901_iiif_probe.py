@@ -160,6 +160,26 @@ class Loiza1901IIIFProbeTests(unittest.TestCase):
             probe.read_jpeg(url, opener=lambda url, timeout: FakeResponse(
                 url, VALID_JPEG), maximum=100)
 
+    def test_default_transport_rejects_redirect_before_requesting_target(self):
+        from urllib.error import HTTPError
+        from urllib.request import HTTPRedirectHandler
+        handler = probe.RejectRedirects()
+        self.assertIsInstance(handler, HTTPRedirectHandler)
+        request = probe.Request(probe.iiif_candidate_url("1901-01-23"))
+        self.assertIsNone(handler.redirect_request(
+            request, None, 302, "Found",
+            {"Location": "https://example.com/untrusted-image"},
+            "https://example.com/untrusted-image",
+        ))
+        class SimulatedOpener:
+            def open(self, request, timeout):
+                raise HTTPError(request.full_url, 302, "Redirect blocked",
+                                {"Location": "https://example.com/"}, None)
+        with patch.object(probe, "build_opener", return_value=SimulatedOpener()) as factory:
+            with self.assertRaises(HTTPError):
+                probe.read_jpeg(probe.iiif_candidate_url("1901-01-23"))
+            self.assertIsInstance(factory.call_args.args[0], probe.RejectRedirects)
+
     def test_wrong_domain_cannot_produce_raw_image(self):
         for url in (
             "http://tile.loc.gov/image-services/iiif/abc",
