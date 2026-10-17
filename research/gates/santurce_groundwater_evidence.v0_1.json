@@ -1,0 +1,236 @@
+{
+  "schema_version": "galia.santurce.hydrogeology.evidence.v0.1",
+  "case_id": "SANTURCE-WATER-TABLE-BACKGROUND-2005-2006",
+  "created_on": "2026-10-17",
+  "target_area": "Santurce, San Juan, Puerto Rico",
+  "state": "AUTHORITY_HOLD",
+  "canonical_write_authorized": false,
+  "raw_capture_complete": false,
+  "human_review_status": "PENDING",
+  "current_water_table_map_available": false,
+  "point_level_prediction_authorized": false,
+  "georeferencing_authorized": false,
+  "spatial_scope": "DOCUMENTARY_RESEARCH_NOT_A_PARCEL_OR_SUBBARRIO_SURVEY",
+  "source_register": [
+    {
+      "source_id": "GSA-HENGESH-BACHHUBER-2005",
+      "title": "Liquefaction susceptibility zonation map of San Juan, Puerto Rico",
+      "authors": [
+        "James V. Hengesh",
+        "Jeffrey L. Bachhuber"
+      ],
+      "publication_year": 2005,
+      "doi": "10.1130/0-8137-2385-X.249",
+      "url": "https://www.researchgate.net/publication/289105099_Liquefaction_susceptibility_zonation_map_of_San_Juan_Puerto_Rico",
+      "publisher": "Geological Society of America Special Paper 385, pp. 249–262",
+      "source_kind": "PEER_REVIEWED_REGIONAL_GEOTECHNICAL_STUDY_ACCESSIBLE_TEXT_SURROGATE",
+      "reviewed_portion": "transcribed full-text reading; specific original borehole dataset and digital geometry not obtained",
+      "reported_exploratory_logs": 224,
+      "source_binary_retained": false,
+      "source_binary_sha256": null,
+      "boring_originals_retained": false,
+      "original_map_georeferenced": false
+    },
+    {
+      "source_id": "JPI-RAMOS-CONSERVATORIO-2006",
+      "title": "Eloy Ramos professional project resume, Conservatorio de Música–Santurce project",
+      "publication_year": null,
+      "project_period_start": "2006-02-16",
+      "project_period_end": "2006-06-08",
+      "url": "https://jpiconst.com/wp-content/uploads/2021/02/EloyRamosResume.pdf",
+      "source_kind": "PROJECT_ENGINEER_PROFESSIONAL_RESUME_NOT_GEOTECHNICAL_BORING_LOG",
+      "source_pdf_page_index_zero_based": 4,
+      "visual_page_read": true,
+      "source_binary_retained": false,
+      "source_binary_sha256": null,
+      "boring_originals_retained": false,
+      "well_identifier": null
+    },
+    {
+      "source_id": "USGS-ANDERSON-WRI75-41-1976",
+      "title": "Ground water in the San Juan metropolitan area, Puerto Rico",
+      "publication_year": 1976,
+      "doi": "10.3133/wri7541",
+      "url": "https://pubs.usgs.gov/publication/wri7541",
+      "source_kind": "USGS_REGIONAL_HYDROGEOLOGY_REPORT_ABSTRACT",
+      "source_binary_retained": false,
+      "source_binary_sha256": null,
+      "well_identifier": null
+    },
+    {
+      "source_id": "EPA-CMP-SMART-GROWTH-BUENA-VISTA",
+      "title": "Smart Growth Implementation Assistance: Caño Martín Peña, San Juan, Puerto Rico",
+      "publication_year": null,
+      "url": "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P1015DNO.TXT",
+      "source_kind": "EPA_COMMUNITY_DRAINAGE_AND_FLOODING_PLANNING_STUDY",
+      "source_binary_retained": false,
+      "source_binary_sha256": null,
+      "quantitative_well_data_present": false
+    },
+    {
+      "source_id": "USGS-NGWMN-MUNOZ-MARIN-1C8-2026",
+      "title": "PIEZOMETER MUÑOz Marín 1C-8, San Juan, USGS station 182443066041502",
+      "publication_year": 2026,
+      "url": "https://www.usgs.gov/apps/ngwmn/provider/USGS/site/182443066041502/",
+      "source_kind": "MONITORING_WELL_DATA_OUTSIDE_UNVERIFIED_SANTURCE_SCOPE",
+      "site_number": "182443066041502",
+      "displayed_depth_ft_below_ground": 15.42,
+      "displayed_measurement_date": "2026-07-21",
+      "is_santurce_site_verified": false,
+      "eligible_for_santurce_depth_inference": false,
+      "source_binary_retained": false,
+      "source_binary_sha256": null
+    }
+  ],
+  "groundwater_evidence": [
+    {
+      "observation_id": "SAN-JUAN-2005-SWAMP-SHALLOW-WATER-TABLE",
+      "source_id": "GSA-HENGESH-BACHHUBER-2005",
+      "type": "REGIONAL_GEOLOGIC_UNIT_CONDITION",
+      "landform_type": "COASTAL_LOWLAND_SWAMP_OR_FILL_OVER_SWAMP",
+      "study_area": "San Juan Quadrangle (not identical to Santurce)",
+      "lower_bound_m_below_ground": null,
+      "upper_bound_m_below_ground": 1.5,
+      "upper_bound_relation": "APPROXIMATELY_LESS_THAN",
+      "reported_wording": "Groundwater generally encountered within approximately 1.5 m in deposits along lagoon margins / reclaimed coastal lowlands.",
+      "site_specific_measurement": false,
+      "includes_santurce_well_id": false,
+      "quantity_is_current": false,
+      "coordinates": null,
+      "subbarrio_id": null,
+      "observation_event_date": null,
+      "method_summary": "Study analyzed 224 geotechnical boring/well logs for San Juan Quadrangle, not a validated Santurce subbarrio series.",
+      "confidence_tier": "REGIONAL_CONTEXT_FROM_PUBLISHED_STUDY",
+      "human_review_status": "PENDING"
+    },
+    {
+      "observation_id": "SAN-JUAN-2005-REGIONAL-DEPTH-VARIABILITY",
+      "source_id": "GSA-HENGESH-BACHHUBER-2005",
+      "type": "REGIONAL_STUDY_RANGE_AND_MODELLING_ASSUMPTION",
+      "landform_type": "MIXED_QUATERNARY_UNITS_OF_SAN_JUAN",
+      "study_area": "San Juan Quadrangle (not identical to Santurce)",
+      "reported_regional_depth_m_approx": [
+        3,
+        7
+      ],
+      "modelling_conservative_assumed_max_depth_m": 1.5,
+      "site_specific_measurement": false,
+      "coordinates": null,
+      "subbarrio_id": null,
+      "observation_event_date": null,
+      "quantity_is_current": false,
+      "confidence_tier": "REGIONAL_MODEL_BACKGROUND_NOT_A_SANTURCE_MEASURED_RANGE",
+      "note": "The authors' conservative liquefaction modeling assumption (<1.5 m anywhere in the study) must NOT be reported as measured groundwater at every location; their approximately 3–7 m commentary is not a city-wide minimum/maximum or a Santurce parcel prediction.",
+      "human_review_status": "PENDING"
+    },
+    {
+      "observation_id": "SANTURCE-CONSERVATORIO-2006-PROJECT",
+      "source_id": "JPI-RAMOS-CONSERVATORIO-2006",
+      "type": "PROJECT_LEVEL_REPORTED_GROUNDWATER_DEPTH",
+      "landform_type": "URBAN_EXCAVATION_SITE_UNKNOWN_PRECISE_SUBBARRIO",
+      "study_area": "Conservatorio de Música construction, Santurce",
+      "reported_depth_ft_below_ground": [
+        8,
+        10
+      ],
+      "reported_depth_m_below_ground_approx": [
+        2.44,
+        3.05
+      ],
+      "period_start": "2006-02-16",
+      "period_end": "2006-06-08",
+      "measurement_event_date": null,
+      "method_or_instrument": "NOT_REPORTED_IN_RESUME",
+      "boring_log_available": false,
+      "site_specific_project": true,
+      "point_level_prediction_authorized": false,
+      "coordinates": null,
+      "subbarrio_id": null,
+      "quantity_is_current": false,
+      "confidence_tier": "PROJECT_RESUME_SECONDARY_ENGINEERING_REPORT",
+      "human_review_status": "PENDING"
+    },
+    {
+      "observation_id": "BUENA-VISTA-SANTURCE-EPA-DRAINAGE",
+      "source_id": "EPA-CMP-SMART-GROWTH-BUENA-VISTA",
+      "type": "QUALITATIVE_COMMUNITY_DRAINAGE_AND_GROUNDWATER_OVERFLOW",
+      "study_area": "Buena Vista Santurce vicinity Caño Martín Peña",
+      "hydrogeology_numeric_depth_m": null,
+      "description": "EPA planning document discusses groundwater overflow and runoff/flooding interactions; not a groundwater well depth or static water-table series.",
+      "coordinates": null,
+      "subbarrio_polygon_verified": false,
+      "measured_well_id": null,
+      "quantity_is_current": false,
+      "confidence_tier": "QUALITATIVE_STORMWATER_AND_COMMUNITY_FLOODING_CONTEXT",
+      "human_review_status": "PENDING"
+    }
+  ],
+  "source_scope_exclusions": [
+    {
+      "source_id": "USGS-NGWMN-MUNOZ-MARIN-1C8-2026",
+      "reason": "Station is in San Juan; its placement inside Santurce was not established and hydrogeologic units may differ. Neither its 15.42-ft reading nor its statistics may populate a Santurce water-table map.",
+      "excluded_measurement_ft": 15.42,
+      "measurement_date": "2026-07-21",
+      "allow_extrapolation": false
+    }
+  ],
+  "prospective_study_zones": [
+    {
+      "zone": "Historic wetland and filled lowland near Caño Martín Peña",
+      "depth_estimate_m": null,
+      "actual_station_measurements_available": false,
+      "unit_association": "QUALITATIVE_HYPOTHESIS_REQUIRES_SURVEY"
+    },
+    {
+      "zone": "Coastal/beach sands from Condado through Ocean Park",
+      "depth_estimate_m": null,
+      "actual_station_measurements_available": false,
+      "unit_association": "CROSSWALK_TO_GEOLOGIC_MAP_REQUIRED"
+    },
+    {
+      "zone": "Older sand and terrace units in inland Santurce",
+      "depth_estimate_m": null,
+      "actual_station_measurements_available": false,
+      "unit_association": "CROSSWALK_TO_GEOLOGIC_MAP_REQUIRED"
+    }
+  ],
+  "discrepancies": [
+    {
+      "discrepancy_id": "GROUNDWATER-VS-ELEVATION",
+      "status": "NOT_RESOLVED_FOR_LOCAL_PARCELS",
+      "note": "Depth below local ground surface, hydraulic head and sea-level elevation are different quantities; a direct conversion is not possible without a datum and local topographic survey."
+    },
+    {
+      "discrepancy_id": "MODEL-ASSUMPTION-VS-WELL-MEASUREMENT",
+      "status": "REQUIRES_LAND_FORM_SPECIFIC_REVIEW",
+      "note": "Conservative <1.5m liquefaction model scenario must not be treated as a directly measured level for all Santurce."
+    },
+    {
+      "discrepancy_id": "2006-PROJECT-TO-2026-WATER-TABLE",
+      "status": "NO_TEMPORAL_EXTRAPOLATION_AUTHORIZED",
+      "note": "Project-level report is historical and lacks instrument, piezometer time series and known seasonality."
+    },
+    {
+      "discrepancy_id": "SAN-JUAN-PIEZOMETER-TO-SANTURCE",
+      "status": "EXCLUDED_UNTIL_GEO_BOUNDARY_AND_AQUIFER_VERIFIED",
+      "note": "Nearby-municipal station reading does not resolve water-table at a Santurce parcel."
+    }
+  ],
+  "prohibited_promotions": [
+    "regional_quadrangle_assumption_to_parcel_depth",
+    "2006_construction_level_to_2026_current",
+    "qualitative_flooding_to_numeric_groundwater_depth",
+    "wells_outside_verified_santurce_to_santurce_data",
+    "modelled_water_table_to_ground_surveyed_water_table",
+    "geologic_unit_name_to_well_or_piezometer_reading",
+    "document_date_to_groundwater_measurement_date",
+    "any_religious_historic_structure_georeferencing",
+    "unreviewed_groundwater_value_to_canonical_map"
+  ],
+  "pending_work": [
+    "Locate source boring logs or dated piezometer records near Santurce with geodetic vertical datum, location, instrument and actual static water level.",
+    "Retrieve the USGS/NEHRP mapped Quaternary units and boring-map appendix (if available), controlling scale and lineage.",
+    "Compare historic wetlands, engineered fill and caño margins with modern authoritative parcels without treating historical overlays as ground-water measurements.",
+    "Require credentialed geotechnical/hydrogeological reviewer for excavations, foundation design or property-specific predictions."
+  ]
+}
