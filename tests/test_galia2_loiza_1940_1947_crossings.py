@@ -217,6 +217,104 @@ def gate(candidate):
     ):
         if prohibition not in candidate["prohibited_promotions"]:
             raise ValueError("missing historical pre-1918 press promotion prohibition")
+    # LOC official gazette index leads are earlier than the 1910 commercial
+    # candidate, but still lack inspected/custodied page images.
+    prior = candidate["pre_1910_official_and_press_locator_candidates"]
+    expected = {
+        "1901-01-23": (
+            "LOC-GACETA-1901-01-23-0077", "OFFICIAL_COURT_NOTICE",
+            "en lindes con el camino de Loiza", "CAMINO DE LOIZA"),
+        "1901-01-24": (
+            "LOC-GACETA-1901-01-24-0080", "OFFICIAL_COURT_NOTICE",
+            "seis metros al Norte con el camino de Loiza", "CAMINO DE LOIZA"),
+        "1901-10-06": (
+            "LOC-GACETA-1901-10-06-0121", "OFFICIAL_COURT_NOTICE",
+            "colinda por el Norte con camino de Loiza", "CAMINO DE LOIZA"),
+        "1909-03-09": (
+            "UFDC-CORRESPONDENCIA-1909-03-09-08384",
+            "COMMERCIAL_LAND_ADVERTISEMENT",
+            "calle de Loiza con afirmado", "CALLE DE LOIZA"),
+        "1909-11-18": (
+            "LOC-CORRESPONDENCIA-1909-11-18-0873",
+            "MUNICIPAL_ENGINEER_ANNUAL_REPORT_NEWS",
+            "1660 metros lineales en las calles de Santurce y camino de Loiza",
+            "CAMINO DE LOIZA"),
+    }
+    if len(prior) != len(expected):
+        raise ValueError("unexpected 1901/1909 discovery count")
+    if {item["issue_date_candidate"] for item in prior} != set(expected):
+        raise ValueError("1901/1909 candidate issue dates changed")
+    for item in prior:
+        day = item["issue_date_candidate"]
+        source_id, record_kind, phrase, original_name = expected[day]
+        if (
+            item["source_id"] != source_id
+            or item["documentary_record_type"] != record_kind
+            or item["indexed_name_phrase"] != phrase
+            or item["name_form"] != original_name
+            or item["issue_date_basis"] != "SEARCH_INDEX_AND_URI_METADATA_ONLY"
+            or item["discovery_tier"] not in (
+                "LOC_NEWSPAPER_SEARCH_INDEX_OCR_NO_PAGE_CAPTURE",
+                "UFDC_SEARCH_INDEX_OCR_NO_ORIGINAL_PDF_CAPTURE",
+            )
+            or item["original_page_image_read"] is not False
+            or item["original_issue_masthead_read"] is not False
+            or item["archival_original_bytes_retained"] is not False
+            or item["original_pdf_sha256"] is not None
+            or item["original_pdf_byte_length"] is not None
+            or item["original_printed_page_number"] is not None
+            or item["legal_street_naming_act_verified"] is not False
+            or item["road_segment_surveyed"] is not False
+            or item["road_improvement_length_attributed_to_loiza_alone"] is not False
+            or item["historical_event_date"] is not None
+            or item["claimed_earliest_historical_use"] is not False
+            or item["coordinates"] is not None
+            or item["human_review_state"] != "PENDING"
+            or item["canonical_write_authorized"] is not False
+        ):
+            raise ValueError("1901/1909 index lead falsely promoted")
+        source = source_by_id.get(source_id)
+        if (
+            source is None
+            or source["discovery_mode"] != item["discovery_tier"]
+            or source["reported_edition_date"] != day
+            or source["date_inferred_from"] != "SEARCH_INDEX_AND_URI_METADATA_ONLY"
+            or source["source_binary_sha256"] is not None
+            or source["source_binary_byte_length"] is not None
+            or source["source_bytes_retained"] is not False
+            or source["reviewed_printed_pages"] != []
+        ):
+            raise ValueError("1901/1909 source locator or custody drift")
+    gazette_23 = next(x for x in prior if x["issue_date_candidate"]=="1901-01-23")
+    gazette_24 = next(x for x in prior if x["issue_date_candidate"]=="1901-01-24")
+    if (
+        gazette_23["judicial_notice_signed_date"] != "1901-01-21"
+        or gazette_23["duplicate_or_related_notice_source_id"] !=
+           gazette_24["source_id"]
+        or gazette_24["duplicate_or_related_notice_source_id"] !=
+           gazette_23["source_id"]
+    ):
+        raise ValueError("1901 two-issue judicial notice lineage lost")
+    summary = candidate["pre_1910_index_discovery_summary"]
+    if (
+        summary["earliest_currently_discovered_gazette_issue_date"] !=
+           "1901-01-23"
+        or summary["earliest_currently_discovered_source_id"] !=
+           gazette_23["source_id"]
+        or summary["chronology_event_date_from_issue_date_prohibited"] is not True
+        or summary["historical_same_alignment_1901_to_2026_unestablished"] is not True
+        or summary["source_capture_gate"] != "RAW_CAPTURE_REQUIRED"
+    ):
+        raise ValueError("incorrect first-use authority from search chronology")
+    for code in (
+        "repeated_1901_judicial_notice_to_independent_multiple_road_events",
+        "loc_ocr_index_to_verified_1901_gazette_original_page",
+        "1909_1660m_combined_santurce_works_to_loiza_specific_length",
+        "1909_land_ad_affirmado_to_canonical_street_construction_date",
+        "earliest_indexed_1901_notice_to_first_road_name_use",
+    ):
+        if code not in candidate["prohibited_promotions"]:
+            raise ValueError(f"missing indexed judicial/press hold: {code}")
     allowed = set(source_ids)
     observations = candidate["observations"]
     ids = [o["observation_id"] for o in observations]
@@ -287,7 +385,7 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
 
     def test_versioned_manifest_fails_closed(self):
         self.assertTrue(gate(self.candidate))
-        self.assertEqual(len(self.candidate["sources"]), 15)
+        self.assertEqual(len(self.candidate["sources"]), 20)
         self.assertEqual(len(self.candidate["observations"]), 12)
         self.assertEqual(
             {s["discovery_mode"] for s in self.candidate["sources"]
@@ -595,6 +693,64 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
         item["issue_date_candidate"] = "1911-05-23"
         with self.assertRaises(ValueError):
             gate(changed)
+
+    def test_1901_gazette_precedes_1910_commercial_index(self):
+        archive = self.candidate["pre_1910_official_and_press_locator_candidates"]
+        self.assertEqual(len(archive), 5)
+        self.assertEqual(
+            {x["documentary_record_type"] for x in archive},
+            {"OFFICIAL_COURT_NOTICE", "COMMERCIAL_LAND_ADVERTISEMENT",
+             "MUNICIPAL_ENGINEER_ANNUAL_REPORT_NEWS"},
+        )
+        jan23 = next(x for x in archive if x["issue_date_candidate"]=="1901-01-23")
+        jan24 = next(x for x in archive if x["issue_date_candidate"]=="1901-01-24")
+        self.assertEqual(jan23["judicial_notice_signed_date"], "1901-01-21")
+        self.assertEqual(
+            jan23["duplicate_or_related_notice_source_id"], jan24["source_id"]
+        )
+        self.assertEqual(
+            jan24["duplicate_or_related_notice_source_id"], jan23["source_id"]
+        )
+        self.assertTrue(all(not x["claimed_earliest_historical_use"]
+                            for x in archive))
+        self.assertTrue(all(x["historical_event_date"] is None
+                            for x in archive))
+        self.assertTrue(gate(self.candidate))
+
+    def test_1909_engineer_aggregate_does_not_prove_road_specific_length(self):
+        entries = self.candidate["pre_1910_official_and_press_locator_candidates"]
+        public_works = next(x for x in entries
+                            if x["issue_date_candidate"]=="1909-11-18")
+        self.assertIn("1660 metros", public_works["indexed_name_phrase"])
+        self.assertIn("COMBINED", public_works["interpretive_scope"])
+        self.assertFalse(
+            public_works["road_improvement_length_attributed_to_loiza_alone"]
+        )
+        land_ad = next(x for x in entries
+                       if x["issue_date_candidate"]=="1909-03-09")
+        self.assertEqual(land_ad["name_form"], "CALLE DE LOIZA")
+        self.assertFalse(land_ad["road_segment_surveyed"])
+
+    def test_1901_1909_unearned_custody_date_and_event_fail_closed(self):
+        probes = (
+            ("fake_page", 0, "original_page_image_read", True),
+            ("fake_masthead", 0, "original_issue_masthead_read", True),
+            ("fake_pdf_hash", 1, "original_pdf_sha256", "a" * 64),
+            ("fake_page_number", 2, "original_printed_page_number", 3),
+            ("false_first_use", 0, "claimed_earliest_historical_use", True),
+            ("event_equals_edition", 0, "historical_event_date", "1901-01-23"),
+            ("invented_geopoint", 1, "coordinates", [18.4, -66.1]),
+            ("false_road_length", 4,
+             "road_improvement_length_attributed_to_loiza_alone", True),
+            ("original_claim_promoted", 3, "canonical_write_authorized", True),
+            ("misquoted_1901", 0, "indexed_name_phrase", "Calle Loiza"),
+        )
+        for name, i, field, value in probes:
+            with self.subTest(case=name):
+                changed = copy.deepcopy(self.candidate)
+                changed["pre_1910_official_and_press_locator_candidates"][i][field] = value
+                with self.assertRaises(ValueError):
+                    gate(changed)
 
     def test_current_transit_stops_remain_contemporary_only(self):
         reference = self.candidate["contemporary_separate_reference"]
