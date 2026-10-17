@@ -620,7 +620,10 @@
     "earliest_indexed_1901_notice_to_first_road_name_use",
     "gambaro_1901_republication_to_two_independent_title_events",
     "gambaro_ocr_column_interleaving_to_verbatim_notarial_record",
-    "ambiguous_1901_solar_applicant_to_confirmed_person_identity"
+    "ambiguous_1901_solar_applicant_to_confirmed_person_identity",
+    "jan23_unattributed_judicial_footer_to_ginorio_or_gambaro_event",
+    "gambaro_repeated_name_to_verified_same_judicial_case",
+    "candidate_1901_republication_to_established_notice_identity"
   ],
   "pending_work": [
     "Independently obtain and hash source document binaries.",
@@ -641,7 +644,8 @@
     "Retrieve and visually verify original LOC Gaceta 1901-01-23 p3 and 1901-01-24 p3 (potential repeated Ginorio notice plus separate Gámbaro parcel). Original PDFs returned 403 via web reader; no authenticated bytes or page hashes captured.",
     "Verify LOC Gaceta 1901-10-06 Machuchal Margarida notice and UFDC Correspondencia 1909-03-09 lots advertisement using page images and issue mastheads.",
     "Read the complete LOC Correspondencia 1909-11-18 municipal engineer F. Montilla report; 1660m total applies collectively to Santurce streets and Camino de Loíza, not solely Calle Loíza.",
-    "Corrected 1901 cross-issue source attribution: Jan 23 OCR already names Enrique W. Gámbaro Correa and his road-side strip. Visually compare Jan 23 / 24 p.3 original images before establishing whether exact notice duplicated; separately confirm attribution of Calle VI/Emilia Turull solar."
+    "Corrected 1901 cross-issue source attribution: Jan 23 OCR already names Enrique W. Gámbaro Correa and his road-side strip. Visually compare Jan 23 / 24 p.3 original images before establishing whether exact notice duplicated; separately confirm attribution of Calle VI/Emilia Turull solar.",
+    "Audit 1901 unsigned/dated OCR: determine which legally named applicant (if any) is associated with Jan 21 signature date and Calle VI/Emilia Turull lot; do not attribute without source page columns."
   ],
   "cartographic_comparison_1917_1918": {
     "record_type": "RESEARCH_ONLY_CHRONOLOGY_AND_LEGIBILITY_CROSSWALK",
@@ -881,7 +885,7 @@
       "name_form": "CAMINO DE LOIZA",
       "index_context": "Web-extracted OCR of January 23 page 3 includes a Santurce solar bounded by Calle VI, camino de Loiza, Emilia Turull and Higinio Ayende; also on THAT SAME PAGE an explicitly named Enrique W. Gámbaro Correa title-registration paragraph describes a strip of land between the carretera and Camino de Loiza. The attribution of the first solar to Emigdio S. Ginorio is not independently established from the inspected OCR span.",
       "interpretive_scope": "The named Gámbaro application already appears in the indexed January 23 page OCR. Jan 24 also carries a Gámbaro application: do not count it as a newly arising event. Optical recognition and column interleaving require original image verification.",
-      "judicial_notice_signed_date": "1901-01-21",
+      "judicial_notice_signed_date": null,
       "duplicate_or_related_notice_source_id": "LOC-GACETA-1901-01-24-0080",
       "discovery_tier": "LOC_NEWSPAPER_SEARCH_INDEX_OCR_NO_PAGE_CAPTURE",
       "original_page_image_read": false,
@@ -897,7 +901,10 @@
       "claimed_earliest_historical_use": false,
       "coordinates": null,
       "human_review_state": "PENDING",
-      "canonical_write_authorized": false
+      "canonical_write_authorized": false,
+      "unattributed_ocr_signed_date_candidate": "1901-01-21",
+      "unattributed_signed_date_source_context": "Unassigned 1901-01-23 OCR footer/date snippet. The source text can overlap distinct column notices; no applicant or specific legal transaction linked to this signing date.",
+      "notice_applicant_of_calle_vi_solar": "UNKNOWN_PENDING_ORIGINAL_COLUMN_READ"
     },
     {
       "observation_id": "LOIZA-INDEX-1901-01-24-0080",
@@ -1020,10 +1027,6 @@
     "earliest_currently_discovered_gazette_issue_date": "1901-01-23",
     "earliest_currently_discovered_source_id": "LOC-GACETA-1901-01-23-0077",
     "conclusion": "Only earliest currently indexed locator found in this search, not historically first use of the road name",
-    "same_notice_republication": [
-      "LOC-GACETA-1901-01-23-0077",
-      "LOC-GACETA-1901-01-24-0080"
-    ],
     "road_surface_statement_1909": "Advertisement uses 'con afirmado'; does not prove municipal acceptance or surface specification",
     "combined_works_1909": "1908–1909 municipal annual works article reports 1660 linear meters jointly across Santurce streets AND Camino de Loiza; not a road-specific length",
     "source_capture_gate": "RAW_CAPTURE_REQUIRED",
@@ -1051,8 +1054,83 @@
       "source_page_hash_sha256": null,
       "event_date": null,
       "case_number": null,
-      "juridical_disposition": "NONCANONICAL_DUPLICATE_PUBLICATION_REVIEW_REQUIRED",
+      "juridical_disposition": "NONCANONICAL_POSSIBLE_CROSS_ISSUE_REPEAT_UNVERIFIED",
       "note": "Source OCR text, which may interleave columns, includes Gámbaro already on Jan 23, contrary to prior description treating his notice as a new Jan 24 item. Jan 23 also has a Calle VI/Santurce solar whose applicant attribution remains unverified by original image. This corrects source assignment only, not historical street authority."
+    },
+    "candidate_cross_issue_republication": {
+      "source_ids": [
+        "LOC-GACETA-1901-01-23-0077",
+        "LOC-GACETA-1901-01-24-0080"
+      ],
+      "relationship_status": "POSSIBLE_REPUBLICATION_UNVERIFIED",
+      "same_notarial_or_judicial_case_proven": false,
+      "exact_verbatim_identity_proven": false,
+      "distinct_case_count": null,
+      "event_date": null,
+      "legal_effect_date": null,
+      "comment": "Jan 23 PDF OCR and Jan 24 search excerpt have Gámbaro naming and overlapping Calle de Loíza boundary terms. Original typeset columns not examined; document identity and number of cases cannot be deduced from two dates."
     }
-  }
+  },
+  "discrepancy_ledger": [
+    {
+      "id": "LOIZA-DISC-1901-JAN23-APPLICANT-DATE",
+      "topic": "unknown_applicant_and_notice_footer_attribution",
+      "source_ids": [
+        "LOC-GACETA-1901-01-23-0077"
+      ],
+      "status": "UNRESOLVED_RAW_PAGE_REQUIRED",
+      "prior_assertion": "1901-01-21 notice signing attributed to a specific Calle VI parcel applicant without original column alignment.",
+      "correction": "Remove asserted notice signature date from parcel observation; store Jan 21 only as unattributed OCR signing-date candidate. Applicant of Calle VI parcel unknown.",
+      "support_tier": "SEARCH_INDEX_OCR_ONLY",
+      "original_page_checked": false,
+      "reviewer_approved": false,
+      "resolution_event_date": null
+    },
+    {
+      "id": "LOIZA-DISC-1901-GAMBARO-CROSS-ISSUE",
+      "topic": "gambaro_notice_publication_identity",
+      "source_ids": [
+        "LOC-GACETA-1901-01-23-0077",
+        "LOC-GACETA-1901-01-24-0080"
+      ],
+      "status": "UNRESOLVED_RAW_PAGE_REQUIRED",
+      "prior_assertion": "Gámbaro entered corpus only on Jan 24; dates might represent distinct events.",
+      "correction": "Jan 23 OCR already names Gámbaro, Jan 24 index also names Gámbaro. Establish possible cross-issue repetition, not legally proven same event, nor two events.",
+      "support_tier": "WEB_PDF_TEXT_AND_SEARCH_INDEX_MIXED",
+      "original_page_checked": false,
+      "reviewer_approved": false,
+      "resolution_event_date": null
+    },
+    {
+      "id": "LOIZA-DISC-1918-SECOND-SECTION-DATE",
+      "topic": "conflicted_1918_map_section_date",
+      "source_ids": [
+        "GEOISLA-SANTURCE-1917-1918",
+        "OECH-CANGREJOS-SANTURCE-S2-INDEXED-REPRODUCTION",
+        "NPS-NRHP-LOAIZA-CORDERO-FIG19-1918",
+        "NPS-NRHP-ASHFORD-LOIZA-ROAD-WILSON-1918-MAP"
+      ],
+      "status": "UNRESOLVED_ORIGINAL_CARTOUCHE_REQUIRED",
+      "prior_assertion": "January 30 versus June 30 1918 secondary section dates not reconciled.",
+      "correction": "Secondary January references corroborate one another but original Fire Underwriters map cartouche has not been visually authenticated.",
+      "support_tier": "SECONDARY_CAPTIONS_AND_MAP_INDEX_ONLY",
+      "original_page_checked": false,
+      "reviewer_approved": false,
+      "resolution_event_date": null
+    },
+    {
+      "id": "LOIZA-DISC-1909-MONITLLA-AGGREGATE",
+      "topic": "municipal_public_works_length_scope",
+      "source_ids": [
+        "LOC-CORRESPONDENCIA-1909-11-18-0873"
+      ],
+      "status": "UNRESOLVED_RAW_PAGE_REQUIRED",
+      "prior_assertion": "1,660 meters could be misread as pavement solely on Camino de Loíza.",
+      "correction": "Aggregate across Santurce streets and Camino de Loíza; cannot assign any particular share to Camino de Loíza.",
+      "support_tier": "SEARCH_INDEX_OCR_ONLY",
+      "original_page_checked": false,
+      "reviewer_approved": false,
+      "resolution_event_date": null
+    }
+  ]
 }
