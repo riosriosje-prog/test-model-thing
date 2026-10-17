@@ -261,7 +261,7 @@ class Loiza1901IIIFProbeTests(unittest.TestCase):
                 expected.write_bytes(b"do not overwrite")
                 def opener(url, timeout):
                     return FakeResponse(url, VALID_JPEG)
-                with self.assertRaises(FileExistsError):
+                with self.assertRaisesRegex(RuntimeError, "incomplete prior quarantine capture"):
                     probe.capture_candidate(date, base, opener=opener)
                 self.assertEqual(expected.read_bytes(), b"do not overwrite")
                 self.assertEqual(len(list(base.iterdir())), 1)
