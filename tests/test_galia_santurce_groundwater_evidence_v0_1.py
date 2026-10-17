@@ -28,14 +28,14 @@ def validate(record):
     ):
         raise ValueError("Unreviewed groundwater claim was promoted")
     source_by_id = {s["source_id"]: s for s in record["source_register"]}
-    if len(source_by_id) != 5 or len(record["source_register"]) != 5:
+    if len(source_by_id) != 6 or len(record["source_register"]) != 6:
         raise ValueError("Unexpected or duplicate source IDs")
     if any(s["source_binary_sha256"] is not None
            or s["source_binary_retained"] is not False
            for s in record["source_register"]):
         raise ValueError("Invented captured-source digest")
     obs = record["groundwater_evidence"]
-    if len(obs) != 4 or len({o["observation_id"] for o in obs}) != 4:
+    if len(obs) != 12 or len({o["observation_id"] for o in obs}) != 12:
         raise ValueError("Unexpected groundwater observations")
     for item in obs:
         if item["source_id"] not in source_by_id:
@@ -62,7 +62,10 @@ def validate(record):
     model = next(o for o in obs if o["observation_id"] ==
                  "SAN-JUAN-2005-REGIONAL-DEPTH-VARIABILITY")
     if (
-        model["reported_regional_depth_m_approx"] != [3, 7]
+        "reported_regional_depth_m_approx" in model
+        or "LESS THAN" not in model["reported_regional_depth_text"]
+        or model["santurce_sands_geologic_unit_code"] != "Qss"
+        or model["santurce_sands_Qss_groundwater_depth_m_approx"] != [2, 7]
         or model["modelling_conservative_assumed_max_depth_m"] != 1.5
         or model["site_specific_measurement"] is not False
         or model["confidence_tier"] !=
@@ -123,7 +126,7 @@ def validate(record):
         for z in zones
     ):
         raise ValueError("Historically motivated terrain zones imply numbers")
-    if len(record["discrepancies"]) != 4:
+    if len(record["discrepancies"]) != 7:
         raise ValueError("Missing hydrogeologic distinction")
     for needed in (
         "regional_quadrangle_assumption_to_parcel_depth",
