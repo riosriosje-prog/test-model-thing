@@ -190,7 +190,13 @@ def capture_candidate(date: str, output_dir: Path, *, opener=None) -> dict:
     data = read_jpeg(url, opener=opener)
     image_path = output_dir / f"gaceta_{date}_page3_candidate.jpg"
     receipt_path = output_dir / f"gaceta_{date}_page3_candidate.receipt.json"
-    if receipt_path.exists() or image_path.exists():
+    # Orphaned image from a prior interrupted capture must never be
+    # interpreted as a completed image/receipt transaction.
+    if image_path.exists() and not receipt_path.exists():
+        raise RuntimeError("incomplete prior quarantine capture: image without receipt")
+    if receipt_path.exists() and not image_path.exists():
+        raise RuntimeError("incomplete prior quarantine capture: receipt without image")
+    if receipt_path.exists() or image_path.exists() or receipt_path.is_symlink() or image_path.is_symlink():
         raise FileExistsError("candidate image or receipt already exists")
     receipt = {
         "receipt_version": "galia.iiif.binary_receipt.v0.1",
