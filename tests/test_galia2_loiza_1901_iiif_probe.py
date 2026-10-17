@@ -4,11 +4,13 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from urllib.parse import unquote, urlsplit
 
 
@@ -160,6 +162,21 @@ class Loiza1901IIIFProbeTests(unittest.TestCase):
             with self.subTest(url=url):
                 with self.assertRaises(ValueError):
                     probe.read_jpeg(url, opener=lambda url, timeout: None)
+
+    def test_atomic_create_does_not_overwrite_competing_writer(self):
+        with tempfile.TemporaryDirectory() as temp:
+            destination = Path(temp) / "evidence.jpg"
+            original_link = os.link
+            def other_writer_arrives(src, dst):
+                Path(dst).write_bytes(b"competing source image")
+                return original_link(src, dst)
+            with patch.object(probe.os, "link", side_effect=other_writer_arrives):
+                with self.assertRaises(FileExistsError):
+                    probe.atomic_write_bytes(destination, VALID_JPEG)
+            self.assertEqual(destination.read_bytes(), b"competing source image")
+            self.assertEqual(
+                [p.name for p in Path(temp).iterdir()], ["evidence.jpg"]
+            )
 
     def test_existing_image_or_receipt_prevents_overwrite(self):
         for kind in ("image", "receipt"):
