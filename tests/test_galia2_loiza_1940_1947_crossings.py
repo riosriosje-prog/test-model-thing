@@ -437,6 +437,90 @@ def gate(candidate):
     ):
         if code not in candidate["prohibited_promotions"]:
             raise ValueError(f"missing indexed judicial/press hold: {code}")
+    # Institutional routing is a PLAN ONLY: a public UPR contact page
+    # cannot establish microfilm inventory, source-image receipt or approval.
+    acquisition = candidate["archive_acquisition_plan_1901"]
+    if (
+        acquisition["plan_version"] != "galia.archive_acquisition.1901.v0.1"
+        or acquisition["authority_state"] != "AUTHORITY_HOLD"
+        or acquisition["access_resolution"] !=
+           "ALTERNATIVE_INSTITUTIONAL_CONTACT_IDENTIFIED"
+        or acquisition["institutional_access_status"] !=
+           "PUBLIC_CONTACTS_VERIFIED_NO_HOLDING_OR_FACSIMILE_RECEIPT"
+        or acquisition["request_submission_status"] != "NOT_SENT"
+        or acquisition["response_received"] is not False
+        or acquisition["source_material_received"] is not False
+        or acquisition["source_original_image_inspected"] is not False
+        or acquisition["exact_microfilm_reel_confirmed"] is not False
+        or acquisition["ownership_provenance_authenticated"] is not False
+        or acquisition["independent_human_review_status"] != "PENDING"
+        or acquisition["delivery_state"] != "RECEIPT_NOT_AVAILABLE"
+        or acquisition["original_binary_sha256"] is not None
+        or acquisition["digital_frame_sha256"] is not None
+        or acquisition["delivery_receipt_id"] is not None
+    ):
+        raise ValueError("UPR institutional contact promoted to archival receipt")
+    lib = acquisition["candidate_repository"]
+    if (
+        lib["holding_claim_level"] !=
+           "SEARCH_RESULT_SNIPPET_UNVERIFIED_CURRENT_INVENTORY_OR_REEL"
+        or lib["holding_index_search_result"] !=
+           "Gaceta de Puerto Rico — 1901 — enero–abril"
+        or not lib["reproduction_service_page"].startswith(
+            "https://www.upr.edu/biblioteca-rrp/"
+        )
+    ):
+        raise ValueError("unverified UPR microfilm holding treated as fact")
+    contacts = acquisition["public_routing_options"]
+    if (
+        len(contacts) != 2
+        or {x["public_email"] for x in contacts} != {
+            "david.reyes5@upr.edu", "ilia.ortiz1@upr.edu"
+        }
+        or any(
+            x["contact_verified_from_public_staff_page"] is not True
+            or x["person_contacted"] is not False
+            for x in contacts
+        )
+    ):
+        raise ValueError("public contacts falsely recorded as requested")
+    targets = acquisition["target_issue_candidates"]
+    required = {
+        ("GACETA-1901-01-23-ED1-P3", "LOC-GACETA-1901-01-23-0077",
+         "1901-01-23"),
+        ("GACETA-1901-01-24-ED1-P3", "LOC-GACETA-1901-01-24-0080",
+         "1901-01-24"),
+    }
+    if (
+        len(targets) != 2
+        or {
+            (x["document_id"], x["reference_source_id"],
+             x["issue_date_candidate"]) for x in targets
+        } != required
+        or any(
+            x["reference_source_id"] not in source_by_id
+            or x["candidate_printed_page"] != 3
+            or x["original_page_number_verified"] is not False
+            or x["holding_roll_identifier"] is not None
+            or x["request_sent"] is not False
+            or x["facsimile_received"] is not False
+            or x["full_page_masthead_checked"] is not False
+            or x["source_page_hash_sha256"] is not None
+            or x["claim_review_status"] != "PENDING"
+            for x in targets
+        )
+    ):
+        raise ValueError("1901 UPR target state inaccurately claims receipt")
+    if len(acquisition["acquisition_required_fields"]) < 8:
+        raise ValueError("acquisition plan missing chain-of-custody checks")
+    for forbidden in (
+        "upr_public_directory_to_confirmed_issue_holding_or_reel",
+        "upr_potential_contact_to_request_sent_or_source_received",
+        "microfilm_request_plan_to_authentic_original_source_binary",
+        "upr_catalog_snippet_to_verified_source_custody",
+    ):
+        if forbidden not in candidate["prohibited_promotions"]:
+            raise ValueError("missing UPR acquisition anti-promotion gate")
     allowed = set(source_ids)
     observations = candidate["observations"]
     ids = [o["observation_id"] for o in observations]
@@ -1015,6 +1099,43 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
             with self.subTest(case=name):
                 changed = copy.deepcopy(self.candidate)
                 changed["pre_1910_official_and_press_locator_candidates"][i][field] = value
+                with self.assertRaises(ValueError):
+                    gate(changed)
+
+    def test_1901_upr_microfilm_route_is_contact_only(self):
+        plan = self.candidate["archive_acquisition_plan_1901"]
+        self.assertEqual(plan["request_submission_status"], "NOT_SENT")
+        self.assertFalse(plan["source_material_received"])
+        self.assertFalse(plan["exact_microfilm_reel_confirmed"])
+        self.assertFalse(plan["source_original_image_inspected"])
+        self.assertEqual(len(plan["target_issue_candidates"]), 2)
+        self.assertIsNone(plan["delivery_receipt_id"])
+        self.assertTrue(gate(self.candidate))
+
+    def test_upr_contact_and_holding_cannot_be_upgraded_without_receipt(self):
+        probes = (
+            ("fake_request", ("request_submission_status",), "SENT"),
+            ("fake_source", ("source_material_received",), True),
+            ("fake_original", ("source_original_image_inspected",), True),
+            ("fake_microfilm_id", ("exact_microfilm_reel_confirmed",), True),
+            ("fake_receipt", ("delivery_receipt_id",), "UPR-RECEIVED"),
+            ("fake_scan_sha", ("original_binary_sha256",), "b" * 64),
+            ("fake_reel", ("target_issue_candidates", 0,
+                           "holding_roll_identifier"), "R-1901"),
+            ("fake_page_read", ("target_issue_candidates", 1,
+                                "original_page_number_verified"), True),
+            ("fake_contact", ("public_routing_options", 0,
+                              "person_contacted"), True),
+            ("false_inventory", ("candidate_repository",
+                                 "holding_claim_level"), "CONFIRMED"),
+        )
+        for name, loc, value in probes:
+            with self.subTest(mutation=name):
+                changed = copy.deepcopy(self.candidate)
+                obj = changed["archive_acquisition_plan_1901"]
+                for key in loc[:-1]:
+                    obj = obj[key]
+                obj[loc[-1]] = value
                 with self.assertRaises(ValueError):
                     gate(changed)
 
