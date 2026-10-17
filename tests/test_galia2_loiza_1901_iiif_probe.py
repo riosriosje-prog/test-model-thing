@@ -206,6 +206,21 @@ class Loiza1901IIIFProbeTests(unittest.TestCase):
                 [p.name for p in Path(temp).iterdir()], ["evidence.jpg"]
             )
 
+    def test_symlinked_quarantine_paths_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            actual = root / "actual"
+            actual.mkdir()
+            alias = root / "alias"
+            alias.symlink_to(actual, target_is_directory=True)
+            with self.assertRaises(ValueError):
+                probe.atomic_write_bytes(alias / "image.jpg", VALID_JPEG)
+            self.assertFalse((actual / "image.jpg").exists())
+            dangling = root / "dangling.jpg"
+            dangling.symlink_to(root / "missing.jpg")
+            with self.assertRaises(ValueError):
+                probe.atomic_write_bytes(dangling, VALID_JPEG)
+
     def test_existing_image_or_receipt_prevents_overwrite(self):
         for kind in ("image", "receipt"):
             with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
