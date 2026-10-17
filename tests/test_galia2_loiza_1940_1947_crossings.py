@@ -463,7 +463,7 @@ def gate(candidate):
     lib = acquisition["candidate_repository"]
     if (
         lib["holding_claim_level"] !=
-           "SEARCH_RESULT_SNIPPET_UNVERIFIED_CURRENT_INVENTORY_OR_REEL"
+           "PUBLIC_CATALOG_INDEX_ROW_S9_ONLY_UNVERIFIED_CURRENT_HOLDING_OR_REEL"
         or lib["holding_index_search_result"] !=
            "Gaceta de Puerto Rico — 1901 — enero–abril"
         or not lib["reproduction_service_page"].startswith(
@@ -471,6 +471,46 @@ def gate(candidate):
         )
     ):
         raise ValueError("unverified UPR microfilm holding treated as fact")
+    catalog = lib["public_catalog_row_from_search_index"]
+    loc = acquisition["library_of_congress_crosswalk"]
+    req = acquisition["archival_request_locator_bundle"]
+    if (
+        catalog["newspaper_title_as_indexed"] != "Gaceta de Puerto Rico, La"
+        or catalog["year_as_indexed"] != "1901"
+        or catalog["period_as_indexed"] != "enero - abril"
+        or catalog["location_codes_as_indexed"] != ["CPR", "CM"]
+        or catalog["drawer_or_gaveta_code_as_indexed"] != "S - 9"
+        or catalog["access_type"] !=
+           "PUBLIC_SEARCH_ENGINE_INDEXED_CATALOG_TEXT_BUT_DOCUMENT_PREVIEW_LOGIN_BLOCKED"
+        or catalog["direct_library_inventory_confirmed"] is not False
+        or catalog["issue_dates_individually_verified_in_holdings"] is not False
+        or catalog["u_p_r_specific_roll_identifier"] is not None
+        or catalog["source_issue_images_received"] is not False
+        or loc["lccn"] != "2013201074"
+        or loc["ndnp_reel_number_candidate"] != "00415662968"
+        or loc["reel_number_authenticated_for_target_jan23_jan24_images"]
+           is not False
+        or loc["u_p_r_reel_equivalence_confirmed"] is not False
+        or loc["original_frame_image_received"] is not False
+        or loc["original_frame_sha256"] is not None
+        or loc["candidate_urls_accessed_as_original_images"] is not False
+        or loc["source_access_state"] !=
+           "TARGET_LOC_AND_LEGACY_DIRECT_PDF_UNAVAILABLE"
+        or req["upr_drawer_or_gaveta_code_candidate"] != "S - 9"
+        or req["loc_candidate_reel"] != "00415662968"
+        or req["request_ready"] is not False
+        or req["sent_or_delivered"] is not False
+        or req["reviewer_approved"] is not False
+    ):
+        raise ValueError("indexed UPR drawer / LOC reel promoted to custodial certainty")
+    for forbidden in (
+        "public_upr_indexed_s9_drawer_to_confirmed_microfilm_reel",
+        "loc_april_1901_reel_to_verified_january_1901_issue_image",
+        "loc_migration_resource_pattern_to_direct_scan_access",
+        "catalog_codes_CPR_CM_to_source_received_or_digitized_original",
+    ):
+        if forbidden not in candidate["prohibited_promotions"]:
+            raise ValueError("missing catalog and reel source authority holds")
     contacts = acquisition["public_routing_options"]
     if (
         len(contacts) != 2
@@ -1138,6 +1178,53 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
                 obj[loc[-1]] = value
                 with self.assertRaises(ValueError):
                     gate(changed)
+
+    def test_upr_drawer_and_loc_reel_are_separate_locator_systems(self):
+        acquisition = self.candidate["archive_acquisition_plan_1901"]
+        lib = acquisition["candidate_repository"][
+            "public_catalog_row_from_search_index"
+        ]
+        loc = acquisition["library_of_congress_crosswalk"]
+        self.assertEqual(lib["drawer_or_gaveta_code_as_indexed"], "S - 9")
+        self.assertEqual(lib["location_codes_as_indexed"], ["CPR", "CM"])
+        self.assertEqual(loc["ndnp_reel_number_candidate"], "00415662968")
+        self.assertFalse(loc["u_p_r_reel_equivalence_confirmed"])
+        self.assertFalse(lib["direct_library_inventory_confirmed"])
+        self.assertFalse(acquisition["source_material_received"])
+        self.assertTrue(gate(self.candidate))
+
+    def test_public_catalog_codes_cannot_forge_original_custody(self):
+        cases = (
+            ("source_catalog_confirmed",
+             ("candidate_repository", "public_catalog_row_from_search_index",
+              "direct_library_inventory_confirmed"), True),
+            ("invented_upr_reel",
+             ("candidate_repository", "public_catalog_row_from_search_index",
+              "u_p_r_specific_roll_identifier"), "00415662968"),
+            ("invented_reel_equivalence",
+             ("library_of_congress_crosswalk",
+              "u_p_r_reel_equivalence_confirmed"), True),
+            ("loc_image_verified",
+             ("library_of_congress_crosswalk",
+              "original_frame_image_received"), True),
+            ("loc_resource_misrepresented",
+             ("library_of_congress_crosswalk",
+              "candidate_urls_accessed_as_original_images"), True),
+            ("request_sent_without_receipt",
+             ("archival_request_locator_bundle", "sent_or_delivered"), True),
+            ("catalog_relabelled_as_firm",
+             ("candidate_repository", "holding_claim_level"),
+             "HOLDING_VERIFIED"),
+        )
+        for name, loc, value in cases:
+            with self.subTest(mutation=name):
+                modified = copy.deepcopy(self.candidate)
+                target = modified["archive_acquisition_plan_1901"]
+                for key in loc[:-1]:
+                    target = target[key]
+                target[loc[-1]] = value
+                with self.assertRaises(ValueError):
+                    gate(modified)
 
     def test_current_transit_stops_remain_contemporary_only(self):
         reference = self.candidate["contemporary_separate_reference"]
