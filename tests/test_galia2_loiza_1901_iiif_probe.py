@@ -25,7 +25,7 @@ class FakeResponse:
     status = 200
 
     def __init__(self, url, payload, content_type="image/jpeg", redirect=None):
-        self.url = redirect or url
+        self.url = redirect or (url.full_url if hasattr(url, "full_url") else url)
         self.payload = payload
         self.headers = {"Content-Type": content_type}
 
@@ -66,6 +66,11 @@ class Loiza1901IIIFProbeTests(unittest.TestCase):
                 url = probe.iiif_candidate_url(date)
                 self.assertEqual(urlsplit(url).hostname, "tile.loc.gov")
                 self.assertTrue(url.endswith("/full/pct:25/0/default.jpg"))
+                self.assertNotIn("%3A", url.upper())
+                self.assertEqual(
+                    probe.iiif_candidate_info_url(date),
+                    url.rsplit("/full/", 1)[0] + "/info.json",
+                )
                 resource = unquote(urlsplit(url).path.split("/")[3])
                 self.assertEqual(
                     resource,
@@ -89,12 +94,15 @@ class Loiza1901IIIFProbeTests(unittest.TestCase):
             self.assertFalse(output["network_access_attempted"])
             self.assertFalse(output["filesystem_modified"])
             self.assertEqual(len(output["candidate_iiif_urls"]), 2)
+            self.assertEqual(len(output["candidate_iiif_metadata_urls"]), 2)
             self.assertFalse(dest.exists())
 
     def test_mock_valid_jpeg_writes_bytes_and_hashed_unapproved_receipt(self):
         date = "1901-01-23"
         def fake_opener(url, timeout):
             self.assertEqual(timeout, 30)
+            self.assertEqual(url.get_header("User-agent"), "GALIA-Historical-Research/0.1")
+            self.assertEqual(url.get_header("Accept"), "image/jpeg")
             return FakeResponse(url, VALID_JPEG)
 
         with tempfile.TemporaryDirectory() as tmp:
