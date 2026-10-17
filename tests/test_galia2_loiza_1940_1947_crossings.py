@@ -865,7 +865,7 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
         self.assertIsNone(group["source_page_hash_sha256"])
         self.assertEqual(
             group["juridical_disposition"],
-            "NONCANONICAL_DUPLICATE_PUBLICATION_REVIEW_REQUIRED",
+            "NONCANONICAL_POSSIBLE_CROSS_ISSUE_REPEAT_UNVERIFIED",
         )
 
     def test_duplicate_1901_publication_cannot_claim_unique_events(self):
