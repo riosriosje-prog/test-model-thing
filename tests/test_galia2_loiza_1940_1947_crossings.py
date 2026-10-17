@@ -306,6 +306,65 @@ def gate(candidate):
         or summary["source_capture_gate"] != "RAW_CAPTURE_REQUIRED"
     ):
         raise ValueError("incorrect first-use authority from search chronology")
+    cross = summary["cross_issue_notice_identity"]
+    if (
+        cross["claim_id"] !=
+           "LOIZA-1901-GAMBARO-REPEATED-NEWSPAPER-APPEARANCE-CANDIDATE"
+        or cross["applicant_named_in_both_text_layers"] !=
+           "Enrique W. Gámbaro Correa"
+        or cross["publication_source_ids"] !=
+           [gazette_23["source_id"], gazette_24["source_id"]]
+        or cross["publication_issue_dates"] !=
+           ["1901-01-23", "1901-01-24"]
+        or cross["jan23_web_pdf_text_extracted"] is not True
+        or cross["jan24_web_search_index_excerpt_extracted"] is not True
+        or cross["jan23_gambaro_identified_in_web_extracted_page_text"]
+           is not True
+        or cross["jan24_gambaro_identified_in_search_index_text"]
+           is not True
+        or cross["page_number_from_pdf_printed_header_candidate"] != 3
+        or cross["page_image_visually_checked"] is not False
+        or cross["two_independent_land_registration_events_established"]
+           is not False
+        or cross["verbatim_notice_identity_confirmed_against_images"]
+           is not False
+        or cross["source_page_hash_sha256"] is not None
+        or cross["event_date"] is not None
+        or cross["case_number"] is not None
+        or cross["juridical_disposition"] !=
+           "NONCANONICAL_DUPLICATE_PUBLICATION_REVIEW_REQUIRED"
+    ):
+        raise ValueError("1901 Gámbaro duplicate-publication evidence promoted")
+    if (
+        "Gámbaro Correa" not in gazette_23["index_context"]
+        or "Gámbaro Correa" not in gazette_24["index_context"]
+    ):
+        raise ValueError("Jan 23 Gámbaro OCR mention absent or misattributed")
+    if (
+        source_by_id[gazette_23["source_id"]][
+            "web_text_retrieval_status"
+        ] != "OCR_TEXT_EXTRACTED_BUT_SOURCE_IMAGE_SCREENSHOT_403"
+        or source_by_id[gazette_23["source_id"]][
+            "web_indexed_pdf_text_examined"
+        ] is not True
+        or source_by_id[gazette_23["source_id"]][
+            "original_page_image_verified"
+        ] is not False
+        or source_by_id[gazette_24["source_id"]][
+            "web_indexed_pdf_text_examined"
+        ] is not False
+        or source_by_id[gazette_24["source_id"]][
+            "original_page_image_verified"
+        ] is not False
+    ):
+        raise ValueError("Jan 23/24 source access falsely authenticated")
+    for code in (
+        "gambaro_1901_republication_to_two_independent_title_events",
+        "gambaro_ocr_column_interleaving_to_verbatim_notarial_record",
+        "ambiguous_1901_solar_applicant_to_confirmed_person_identity",
+    ):
+        if code not in candidate["prohibited_promotions"]:
+            raise ValueError("missing Jan 1901 cross-issue anti-promotion hold")
     for code in (
         "repeated_1901_judicial_notice_to_independent_multiple_road_events",
         "loc_ocr_index_to_verified_1901_gazette_original_page",
@@ -716,6 +775,68 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
         self.assertTrue(all(x["historical_event_date"] is None
                             for x in archive))
         self.assertTrue(gate(self.candidate))
+
+    def test_1901_gambaro_already_present_on_jan23_ocr(self):
+        group = self.candidate["pre_1910_index_discovery_summary"][
+            "cross_issue_notice_identity"
+        ]
+        self.assertEqual(
+            group["applicant_named_in_both_text_layers"],
+            "Enrique W. Gámbaro Correa",
+        )
+        self.assertEqual(
+            group["publication_issue_dates"],
+            ["1901-01-23", "1901-01-24"],
+        )
+        self.assertTrue(
+            group["jan23_gambaro_identified_in_web_extracted_page_text"]
+        )
+        self.assertFalse(group["page_image_visually_checked"])
+        self.assertFalse(
+            group["two_independent_land_registration_events_established"]
+        )
+        self.assertFalse(
+            group["verbatim_notice_identity_confirmed_against_images"]
+        )
+        self.assertIsNone(group["source_page_hash_sha256"])
+        self.assertEqual(
+            group["juridical_disposition"],
+            "NONCANONICAL_DUPLICATE_PUBLICATION_REVIEW_REQUIRED",
+        )
+
+    def test_duplicate_1901_publication_cannot_claim_unique_events(self):
+        for field, value in (
+            ("two_independent_land_registration_events_established", True),
+            ("verbatim_notice_identity_confirmed_against_images", True),
+            ("page_image_visually_checked", True),
+            ("source_page_hash_sha256", "a" * 64),
+            ("case_number", "INVENTED"),
+            ("event_date", "1901-01-23"),
+        ):
+            with self.subTest(field=field):
+                changed = copy.deepcopy(self.candidate)
+                changed["pre_1910_index_discovery_summary"][
+                    "cross_issue_notice_identity"
+                ][field] = value
+                with self.assertRaises(ValueError):
+                    gate(changed)
+
+    def test_1901_original_page_image_false_claim_is_rejected(self):
+        changed = copy.deepcopy(self.candidate)
+        source = next(
+            x for x in changed["sources"]
+            if x["source_id"] == "LOC-GACETA-1901-01-23-0077"
+        )
+        source["original_page_image_verified"] = True
+        with self.assertRaises(ValueError):
+            gate(changed)
+        changed = copy.deepcopy(self.candidate)
+        first = changed["pre_1910_official_and_press_locator_candidates"][0]
+        first["index_context"] = first["index_context"].replace(
+            "Gámbaro Correa", "unknown applicant"
+        )
+        with self.assertRaises(ValueError):
+            gate(changed)
 
     def test_1909_engineer_aggregate_does_not_prove_road_specific_length(self):
         entries = self.candidate["pre_1910_official_and_press_locator_candidates"]
