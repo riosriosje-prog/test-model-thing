@@ -214,6 +214,11 @@ def capture_candidate(date: str, output_dir: Path, *, opener=None) -> dict:
     }
     atomic_write_bytes(image_path, data)
     try:
+        # Verify persisted bytes before publishing a companion receipt.
+        # A receipt is never a substitute for checking source custody.
+        if (hashlib.sha256(image_path.read_bytes()).hexdigest()
+                != receipt["retrieved_jpeg_sha256"]):
+            raise ValueError("quarantine image digest mismatch")
         atomic_write_bytes(
             receipt_path,
             (json.dumps(receipt, indent=2, ensure_ascii=False) + "\n").encode(),
