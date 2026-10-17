@@ -237,6 +237,16 @@ class Loiza1901IIIFProbeTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 probe.atomic_write_bytes(dangling, VALID_JPEG)
 
+    def test_interrupted_quarantine_pair_requires_manual_recovery(self):
+        for suffix in (".jpg", ".receipt.json"):
+            with self.subTest(suffix=suffix), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / ("gaceta_1901-01-23_page3_candidate" + suffix)).write_bytes(b"orphan")
+                with self.assertRaisesRegex(RuntimeError, "incomplete prior quarantine capture"):
+                    probe.capture_candidate("1901-01-23", root,
+                        opener=lambda req, timeout: FakeResponse(req, VALID_JPEG))
+                self.assertEqual(len(list(root.iterdir())), 1)
+
     def test_existing_image_or_receipt_prevents_overwrite(self):
         for kind in ("image", "receipt"):
             with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
