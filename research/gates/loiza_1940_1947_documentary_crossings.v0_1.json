@@ -627,7 +627,11 @@
     "upr_public_directory_to_confirmed_issue_holding_or_reel",
     "upr_potential_contact_to_request_sent_or_source_received",
     "microfilm_request_plan_to_authentic_original_source_binary",
-    "upr_catalog_snippet_to_verified_source_custody"
+    "upr_catalog_snippet_to_verified_source_custody",
+    "public_upr_indexed_s9_drawer_to_confirmed_microfilm_reel",
+    "loc_april_1901_reel_to_verified_january_1901_issue_image",
+    "loc_migration_resource_pattern_to_direct_scan_access",
+    "catalog_codes_CPR_CM_to_source_received_or_digitized_original"
   ],
   "pending_work": [
     "Independently obtain and hash source document binaries.",
@@ -650,7 +654,8 @@
     "Read the complete LOC Correspondencia 1909-11-18 municipal engineer F. Montilla report; 1660m total applies collectively to Santurce streets and Camino de Loíza, not solely Calle Loíza.",
     "Corrected 1901 cross-issue source attribution: Jan 23 OCR already names Enrique W. Gámbaro Correa and his road-side strip. Visually compare Jan 23 / 24 p.3 original images before establishing whether exact notice duplicated; separately confirm attribution of Calle VI/Emilia Turull solar.",
     "Audit 1901 unsigned/dated OCR: determine which legally named applicant (if any) is associated with Jan 21 signature date and Calle VI/Emilia Turull lot; do not attribute without source page columns.",
-    "Use institutional UPR microfilm reproduction pathway to verify if reel covering La Gaceta Jan-Apr 1901 includes Jan 23 & 24 pp.3; contact request not yet sent; add signed accession/capture receipt only after source transmission."
+    "Use institutional UPR microfilm reproduction pathway to verify if reel covering La Gaceta Jan-Apr 1901 includes Jan 23 & 24 pp.3; contact request not yet sent; add signed accession/capture receipt only after source transmission.",
+    "For custodial enquiry cite UPR period enero-abril 1901, ubicación CPR / CM and gaveta S-9 (public search-indexed catalog row, source preview authorization blocked) and LOC LCCN 2013201074/reel candidate 00415662968; request institutional confirmation of Jan 23/24 p3 frame and assigned microfilm reel, preserving pending/unsent receipt."
   ],
   "cartographic_comparison_1917_1918": {
     "record_type": "RESEARCH_ONLY_CHRONOLOGY_AND_LEGIBILITY_CROSSWALK",
@@ -1158,10 +1163,38 @@
       "building": "Biblioteca José M. Lázaro",
       "holding_index_url": "https://www.upr.edu/biblioteca-rrp/?_mdocs-preview=1d1fa4742e&mdocs-preview=5011",
       "holding_index_search_result": "Gaceta de Puerto Rico — 1901 — enero–abril",
-      "holding_claim_level": "SEARCH_RESULT_SNIPPET_UNVERIFIED_CURRENT_INVENTORY_OR_REEL",
+      "holding_claim_level": "PUBLIC_CATALOG_INDEX_ROW_S9_ONLY_UNVERIFIED_CURRENT_HOLDING_OR_REEL",
       "librarian_staff_directory": "https://uprrp.libguides.com/coleccionpuertorriquena/personalbibliotecario",
       "reproduction_service_page": "https://www.upr.edu/biblioteca-rrp/sb-reproduccion-de-documentos/",
-      "archive_name_consistency": "Catalog's Gaceta and LOC's Gazeta/Gaceta variants are bibliographic search aliases; title-identity authority must be confirmed by original masthead."
+      "archive_name_consistency": "Catalog's Gaceta and LOC's Gazeta/Gaceta variants are bibliographic search aliases; title-identity authority must be confirmed by original masthead.",
+      "public_catalog_row_from_search_index": {
+        "source_url": "https://www.upr.edu/biblioteca-rrp/?_mdocs-preview=1d1fa4742e&mdocs-preview=5011",
+        "access_type": "PUBLIC_SEARCH_ENGINE_INDEXED_CATALOG_TEXT_BUT_DOCUMENT_PREVIEW_LOGIN_BLOCKED",
+        "newspaper_title_as_indexed": "Gaceta de Puerto Rico, La",
+        "year_as_indexed": "1901",
+        "period_as_indexed": "enero - abril",
+        "location_codes_as_indexed": [
+          "CPR",
+          "CM"
+        ],
+        "material_type_as_indexed": "Periódico",
+        "drawer_or_gaveta_code_as_indexed": "S - 9",
+        "field_hierarchy_as_indexed": [
+          "TÍTULO",
+          "AÑO",
+          "PERÍODO",
+          "UBICACIÓN",
+          "FORMATO",
+          "CÓDIGO",
+          "GAVETA"
+        ],
+        "source_catalog_page_candidate": 43,
+        "direct_library_inventory_confirmed": false,
+        "issue_dates_individually_verified_in_holdings": false,
+        "u_p_r_specific_roll_identifier": null,
+        "source_issue_images_received": false,
+        "note": "The indexed UPR catalog text provides a concrete drawer/code and holdings period. Access to the source catalog preview itself yields an authorization error; title/period/format values are a locator, not checked physical holdings or custodian confirmation."
+      }
     },
     "public_routing_options": [
       {
@@ -1236,6 +1269,49 @@
     "original_binary_sha256": null,
     "digital_frame_sha256": null,
     "delivery_receipt_id": null,
-    "notes": "Official public webpages establish reachable staff/service options, not that a custodian holds this specific frame, can fulfill the request, was contacted, or transferred any source image. Earlier LOC direct page PDF returned HTTP 403 from accessible web runtime."
+    "notes": "Official public webpages establish reachable staff/service options, not that a custodian holds this specific frame, can fulfill the request, was contacted, or transferred any source image. Earlier LOC direct page PDF returned HTTP 403 from accessible web runtime.",
+    "library_of_congress_crosswalk": {
+      "lccn": "2013201074",
+      "title_catalog_form": "Gazeta de Puerto-Rico",
+      "ndnp_reel_number_candidate": "00415662968",
+      "reel_number_supporting_source": "https://www.loc.gov/resource/2013201074/1901-04-24/ed-1/?st=gallery",
+      "reel_number_supporting_source_scope": "LOC public catalog displays reel 00415662968 on an April 24 1901 item. Jan 23/24 original URLs also include 00415662968 in their archive path; no original frame reached or independently validated.",
+      "target_legacy_archive_reel_path_matches_candidate": true,
+      "reel_number_authenticated_for_target_jan23_jan24_images": false,
+      "u_p_r_reel_equivalence_confirmed": false,
+      "original_frame_image_received": false,
+      "original_frame_sha256": null,
+      "official_migration_guide": "https://wwws.loc.gov/ndnp/migration/",
+      "official_new_resource_url_pattern": "https://www.loc.gov/resource/2013201074/YYYY-MM-DD/ed-1/?sp=3",
+      "candidate_target_resource_urls": [
+        "https://www.loc.gov/resource/2013201074/1901-01-23/ed-1/?sp=3",
+        "https://www.loc.gov/resource/2013201074/1901-01-24/ed-1/?sp=3"
+      ],
+      "candidate_urls_accessed_as_original_images": false,
+      "source_access_state": "TARGET_LOC_AND_LEGACY_DIRECT_PDF_UNAVAILABLE",
+      "note": "Reel candidates and URL patterns are navigation/custodial request metadata, not proof of access, review or historical correctness."
+    },
+    "archival_request_locator_bundle": {
+      "primary_title": "Gaceta de Puerto Rico / Gazeta de Puerto-Rico",
+      "requested_dates": [
+        "1901-01-23",
+        "1901-01-24"
+      ],
+      "target_printed_page_candidates": [
+        3
+      ],
+      "upr_drawer_or_gaveta_code_candidate": "S - 9",
+      "upr_catalog_formats": [
+        "CPR",
+        "CM"
+      ],
+      "upr_catalog_period": "enero - abril 1901",
+      "loc_lccn": "2013201074",
+      "loc_candidate_reel": "00415662968",
+      "request_ready": false,
+      "request_ready_reason": "Need confirmation from UPR of specific physical reel/frames, reproduction terms, and whether exact issue pages exist. No request sent.",
+      "sent_or_delivered": false,
+      "reviewer_approved": false
+    }
   }
 }
