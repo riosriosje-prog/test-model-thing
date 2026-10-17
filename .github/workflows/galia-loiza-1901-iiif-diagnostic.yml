@@ -1,0 +1,119 @@
+name: GALIA Loiza 1901 IIIF source diagnostic
+
+on:
+  push:
+    branches:
+      - galia-loiza-1940-1947-boundary-candidate-v0-1
+    paths:
+      - .github/workflows/galia-loiza-1901-iiif-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: External page source diagnostic (NOT authentication)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify source acquisition tool offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_galia2_loiza_1901_iiif_probe.py' -v
+
+      - name: Attempt noncanonical LoC IIIF JPEG candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p capture
+          set +e
+          python tools/galia_1901_iiif_probe.py \
+            --fetch --output-dir capture/candidate_images \
+            > capture/probe.ndjson 2> capture/probe.stderr.txt
+          rc="$?"
+          set -e
+          PROBE_EXIT_CODE="$rc" python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("capture")
+          records = []
+          for line in (root / "probe.ndjson").read_text(encoding="utf-8").splitlines():
+              if line.strip():
+                  records.append(json.loads(line))
+          expected = {"GACETA-1901-01-23-ED1-P3",
+                      "GACETA-1901-01-24-ED1-P3"}
+          observed = {record.get("document_id") for record in records}
+          if observed != expected or len(records) != len(expected):
+              raise ValueError("Diagnostic did not return exactly two known page records")
+          captured = []
+          blocked = []
+          for item in records:
+              state = item.get("status")
+              if state == "RAW_BYTES_RECEIVED_PENDING_VISUAL_REVIEW":
+                  target = root / "candidate_images" / item["local_image_filename"]
+                  data = target.read_bytes()
+                  if (
+                      len(data) != item["retrieved_jpeg_bytes"]
+                      or hashlib.sha256(data).hexdigest()
+                         != item["retrieved_jpeg_sha256"]
+                      or item["original_source_custody_authenticated"] is not False
+                      or item["historical_human_review_complete"] is not False
+                      or item["canonical_write_authorized"] is not False
+                  ):
+                      raise ValueError("Captured image receipt not self-consistent")
+                  captured.append(item["document_id"])
+              elif state == "REMOTE_BLOCKED_NO_SOURCE_BYTES":
+                  if item["source_original_image_received"] is not False:
+                      raise ValueError("Blocked source marked as received")
+                  blocked.append(item["document_id"])
+              else:
+                  raise ValueError("Unexpected source diagnostic status")
+          final_state = (
+              "IIIF_JPEG_CANDIDATES_RECEIVED_NO_HISTORICAL_AUTHENTICATION"
+              if captured else "REMOTE_BLOCKED_NO_SOURCE_BYTES"
+          )
+          receipt = {
+              "schema": "galia.loiza.iiif_network_diagnostic.v0.1",
+              "state": final_state,
+              "probe_command_exit_code": int(os.environ["PROBE_EXIT_CODE"]),
+              "captured_candidate_document_ids": captured,
+              "blocked_document_ids": blocked,
+              "all_historical_authority_still_held": True,
+              "human_review_performed": False,
+              "canonical_write_authorized": False,
+              "source_image_identity_visually_verified": False,
+              "original_custodial_pdf_or_jp2_captured": False,
+              "source_item_legal_dates_confirmed": False,
+              "claim_promotion_performed": False,
+              "next_action": (
+                  "Review original images with custodian metadata and human historian"
+                  if captured else
+                  "Use UPR microfilm acquisition route; LoC IIIF access unavailable"
+              ),
+          }
+          (root / "CAPTURE_DIAGNOSTIC.json").write_text(
+              json.dumps(receipt, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(receipt, ensure_ascii=False))
+          PY
+
+      - name: Upload diagnostic and noncanonical candidates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_LOIZA_1901_IIIF_DIAGNOSTIC_ONLY
+          path: capture/
+          if-no-files-found: warn
+          retention-days: 30
