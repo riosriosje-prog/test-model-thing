@@ -153,8 +153,16 @@ def read_jpeg(url: str, *, opener=None, maximum: int = MAX_JPEG_BYTES) -> bytes:
 
 def atomic_write_bytes(destination: Path, data: bytes) -> None:
     """Persist after validation, or leave no partial image on failure."""
+    # Fail closed on symlinked quarantine paths (including dangling leaves).
+    # This is a local preflight guard, not a substitute for dirfd-based
+    # O_NOFOLLOW isolation against hostile concurrent path replacement.
+    for parent in (destination.parent, *destination.parent.parents):
+        if parent.is_symlink():
+            raise ValueError("symlinked quarantine directory is forbidden")
+    if destination.is_symlink():
+        raise ValueError("symlinked quarantine destination is forbidden")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    if destination.exists():
+    if destination.exists() or destination.is_symlink():
         raise FileExistsError(f"refusing to overwrite {destination}")
     with tempfile.NamedTemporaryFile(
         prefix=".galia-iiif-", dir=destination.parent, delete=False
