@@ -25,7 +25,7 @@ import os
 from pathlib import Path
 import tempfile
 from urllib.parse import unquote, urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 MANIFEST = (
@@ -104,7 +104,19 @@ def validate_manifest() -> dict:
     return record
 
 
-def read_jpeg(url: str, *, opener=urlopen, maximum: int = MAX_JPEG_BYTES) -> bytes:
+class RejectRedirects(HTTPRedirectHandler):
+    """Refuse redirects before any HTTP request to the Location target."""
+
+    def redirect_request(self, request, fp, code, msg, headers, newurl):
+        return None
+
+
+def no_redirect_open(request, timeout):
+    """Always fetch using an opener that refuses HTTP redirects."""
+    return build_opener(RejectRedirects()).open(request, timeout=timeout)
+
+
+def read_jpeg(url: str, *, opener=None, maximum: int = MAX_JPEG_BYTES) -> bytes:
     """Retrieve bounded JPEG bytes only from exact LOC IIIF host."""
     parsed = urlsplit(url)
     if parsed.scheme != "https" or parsed.hostname != IIIF_HOST:
@@ -121,7 +133,7 @@ def read_jpeg(url: str, *, opener=urlopen, maximum: int = MAX_JPEG_BYTES) -> byt
         "User-Agent": "GALIA-Historical-Research/0.1",
         "Accept": "image/jpeg",
     })
-    with opener(request, timeout=30) as response:
+    with (opener or no_redirect_open)(request, timeout=30) as response:
         status = getattr(response, "status", 200)
         final_url = response.geturl()
         if status != 200 or final_url != url:
@@ -164,7 +176,7 @@ def atomic_write_bytes(destination: Path, data: bytes) -> None:
         temp_path.unlink(missing_ok=True)
 
 
-def capture_candidate(date: str, output_dir: Path, *, opener=urlopen) -> dict:
+def capture_candidate(date: str, output_dir: Path, *, opener=None) -> dict:
     """Return a quarantine receipt; never call the canonical HistoricalStore."""
     url = iiif_candidate_url(date)
     data = read_jpeg(url, opener=opener)
