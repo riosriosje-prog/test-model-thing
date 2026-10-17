@@ -586,7 +586,9 @@
     "epa_slide15_depth_interval_to_slide10_legend_class_identity",
     "usgs_kaye_80ft_lithology_to_80ft_water_table",
     "usgs_kaye_1959_report_year_to_specific_boring_date",
-    "old_unverified_grid_coordinates_to_present_day_santurce_pin"
+    "old_unverified_grid_coordinates_to_present_day_santurce_pin",
+    "uncaptured_supplemental_boring_logs_to_verified_well_levels",
+    "unmapped_nrcs_soil_series_to_santurce_subbarrio_groundwater"
   ],
   "pending_work": [
     "Locate source boring logs or dated piezometer records near Santurce with geodetic vertical datum, location, instrument and actual static water level.",
@@ -597,7 +599,9 @@
     "Overlay site street names from 2015 EPA map against authoritative Caño Martín Peña communities/subbarrio polygons only after obtaining verified spatial coordinates; do not pin unverified points or historical religious sites.",
     "Regional Hengesh & Bachhuber 2005 phrasing repaired: <~3–7 m across study as unit-dependent upper bound, Qss 2–7 m by geologic unit, conservative <1.5 m model assumption distinct from observation.",
     "Request original EPA March 2015 master data sheet explicitly referenced on slide 15, with field log, depth convention, per-site sampling dates, probe locations, and groundwater equilibration details; table is verified at published slide level only.",
-    "Locate actual original Kaye-era Ponce de León foundation boring log, well-level observation if recorded, and grid-coordinate datum; preserve 80 ft as stratigraphic penetration only."
+    "Locate actual original Kaye-era Ponce de León foundation boring log, well-level observation if recorded, and grid-coordinate datum; preserve 80 ft as stratigraphic penetration only.",
+    "Supplemental USACE 2021 225-page boring logs found; inspect original station reports and Figure A-22/Table A-13 with per-station CRS, vertical datum, observation time, and Santurce inclusion before admitting any water depth. See supplemental_locators gate.",
+    "USDA NRCS MARTIN_PENA series high water table refers to a pedological soil class with type locality at Sabana Seca; not a numeric Santurce water table or 2026 monitoring record."
   ],
   "epa_2015_pedon_profile_table": {
     "record_id": "EPA-CMP-2015-P15-DEPTH-TO-SATURATION-AND-ANTHROPOGENIC-HORIZONS",
@@ -861,5 +865,14 @@
     "historic_boring_not_georeferenced": true,
     "source_observation_tier": "HISTORICAL_USGS_PUBLISHED_LITHOLOGIC_DESCRIPTION_NOT_GROUNDWATER_OBSERVATION",
     "human_review_status": "PENDING"
+  },
+  "supplemental_uncaptured_sources": {
+    "path": "research/gates/santurce_groundwater_supplemental_locators.v0_1.json",
+    "state": "LOCATOR_ONLY_AUTHORITY_HOLD",
+    "additional_official_source_locators": 2,
+    "additional_confirmed_santurce_water_level_measurements": 0,
+    "counted_in_source_register": false,
+    "counted_as_groundwater_evidence_observation": false,
+    "priority": "Verify original borehole identity/datum, mapped soil units, and EPA 2015 original master data sheet; do not merge categories into current water table map."
   }
 }
