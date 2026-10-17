@@ -28,7 +28,7 @@ def validate(record):
     ):
         raise ValueError("Unreviewed groundwater claim was promoted")
     source_by_id = {s["source_id"]: s for s in record["source_register"]}
-    if len(source_by_id) != 6 or len(record["source_register"]) != 6:
+    if len(source_by_id) != 7 or len(record["source_register"]) != 7:
         raise ValueError("Unexpected or duplicate source IDs")
     if any(s["source_binary_sha256"] is not None
            or s["source_binary_retained"] is not False
@@ -183,6 +183,95 @@ def validate(record):
     ):
         if needed not in record["prohibited_promotions"]:
             raise ValueError("Missing hydropedology epistemic barrier")
+
+    # Slide 15: three STRATIGRAPHIC soil-profile variables, not precise
+    # time-varying water-table depth or equilibrium piezometer readings.
+    table = record["epa_2015_pedon_profile_table"]
+    kaye = source_by_id.get("USGS-KAYE-1959-PP317A")
+    if (
+        table["source_id"] != "EPA-SHUSTER-ENLACE-SOIL-HYDROLOGY-MAR2015"
+        or table["pdf_page_index_zero_based"] != 15
+        or table["printed_slide_number"] != 15
+        or table["current_groundwater_level_interpretation_authorized"] is not False
+        or table["original_pdf_binary_sha256"] is not None
+        or table["original_field_master_sheet_available"] is not False
+        or table["map_legends_and_table_are_separate_representations"] is not True
+        or table["field_sample_date_per_site"] is not None
+        or table["independent_boring_log_receipt"] is not None
+        or table["no_extrapolation_to_citywide_average"] is not True
+        or epa["source_pdf_pedon_profile_table_index_zero_based"] != 15
+        or epa["full_master_data_sheet_referenced_but_not_obtained"] is not True
+    ):
+        raise ValueError("EPA soil-profile table presented as certified water table")
+    profile_expected = {
+        "Calle 14": ([35,120],[120,420],[0,150]),
+        "Calle William": ([120,360],None,[0,360]),
+        "Calle del Pilar": (None,[85,360],[0,360]),
+        "Calle Principal": (None,[120,360],[0,360]),
+        "Plaza Israel": ([0,25],[100,360],[0,140]),
+        "Calle Paraguay": (None,[70,240],[0,215]),
+        "Calle C": (None,[160,240],[0,160]),
+        "Calle San José": (None,[160,360],[0,150]),
+    }
+    if (
+        len(table["rows"]) != 8
+        or {p["site_label_on_slide"] for p in table["rows"]} != set(profile_expected)
+    ):
+        raise ValueError("EPA slide 15 soil-profile rows missing/duplicated")
+    for profile in table["rows"]:
+        expected = profile_expected[profile["site_label_on_slide"]]
+        if (
+            (
+                profile["redox_interval_cm"],
+                profile["saturation_profile_interval_cm"],
+                profile["anthropogenic_material_interval_cm"]
+            ) != expected
+            or profile["source_figure_depth_to_saturation_class_preserved_separately"] is not True
+            or profile["exact_groundwater_head_measurement_cm"] is not None
+            or profile["piezometer_equilibrium_record_available"] is not False
+            or profile["per_site_field_data_sheet_available"] is not False
+            or profile["geographic_coordinates_verified"] is not False
+            or profile["local_subbarrio_polygon_verified"] is not False
+            or profile["depth_reference_datum_verified"] is not False
+            or profile["groundwater_level_2026"] is not None
+            or profile["human_review_status"] != "PENDING"
+        ):
+            raise ValueError("Soil-profile interval elevated to quantified aquifer")
+    geo = record["geological_sand_boring_context"]
+    if (
+        kaye is None
+        or kaye["publication_year"] != 1959
+        or kaye["doi"] != "10.3133/pp317A"
+        or kaye["metadata_verified_from_usgs_publication_warehouse"] is not True
+        or kaye["original_page_image_visual_review"] is not False
+        or kaye["original_boring_log_available"] is not False
+        or kaye["source_binary_sha256"] is not None
+        or kaye["source_report_year_is_not_boring_event_year"] is not True
+        or geo["source_id"] != kaye["source_id"]
+        or geo["measured_stratigraphic_penetration_ft"] != 80
+        or geo["boring_reached_bottom_of_sand"] is not False
+        or geo["water_table_depth_recorded_ft"] is not None
+        or geo["groundwater_level_measured"] is not False
+        or geo["water_level_measurement_date"] is not None
+        or geo["historical_map_grid_coordinate_system_verified"] is not False
+        or geo["old_coordinate_to_modern_geodesy_crosswalk_allowed"] is not False
+        or geo["exact_surveyed_station_location_verified"] is not False
+        or geo["coordinates"] is not None
+        or geo["human_review_status"] != "PENDING"
+    ):
+        raise ValueError("1959 lithologic thickness falsely converted to groundwater")
+    for needed in (
+        "epa_profile_interval_to_exact_water_table_level",
+        "epa_anthropogenic_debris_depth_to_groundwater_depth",
+        "epa_redox_depth_to_current_groundwater_depth",
+        "epa_null_saturation_to_dry_or_zero_saturation",
+        "epa_slide15_depth_interval_to_slide10_legend_class_identity",
+        "usgs_kaye_80ft_lithology_to_80ft_water_table",
+        "usgs_kaye_1959_report_year_to_specific_boring_date",
+        "old_unverified_grid_coordinates_to_present_day_santurce_pin",
+    ):
+        if needed not in record["prohibited_promotions"]:
+            raise ValueError("Missing observed-stratum vs groundwater gate")
     zones = record["prospective_study_zones"]
     if len(zones) != 3 or any(
         z["depth_estimate_m"] is not None
@@ -190,7 +279,7 @@ def validate(record):
         for z in zones
     ):
         raise ValueError("Historically motivated terrain zones imply numbers")
-    if len(record["discrepancies"]) != 7:
+    if len(record["discrepancies"]) != 9:
         raise ValueError("Missing hydrogeologic distinction")
     for needed in (
         "regional_quadrangle_assumption_to_parcel_depth",
@@ -271,6 +360,48 @@ class SanturceGroundwaterEvidenceTests(unittest.TestCase):
                 for key in route[:-1]:
                     item = item[key]
                 item[route[-1]] = value
+                with self.assertRaises(ValueError):
+                    validate(changed)
+
+
+    def test_epa_profile_rows_are_2015_soil_horizons_not_well_levels(self):
+        details=self.record["epa_2015_pedon_profile_table"]
+        self.assertEqual(len(details["rows"]),8)
+        self.assertTrue(details["map_legends_and_table_are_separate_representations"])
+        self.assertTrue(details["no_extrapolation_to_citywide_average"])
+        missing=next(x for x in details["rows"] if x["site_label_on_slide"]=="Calle William")
+        self.assertIsNone(missing["saturation_profile_interval_cm"])
+        self.assertEqual(missing["anthropogenic_material_interval_cm"],[0,360])
+        self.assertTrue(validate(self.record))
+
+    def test_1959_kaye_sand_boring_is_lithology_not_water_table(self):
+        hole=self.record["geological_sand_boring_context"]
+        self.assertEqual(hole["measured_stratigraphic_penetration_ft"],80)
+        self.assertFalse(hole["groundwater_level_measured"])
+        self.assertIsNone(hole["water_table_depth_recorded_ft"])
+        self.assertFalse(hole["historic_boring_not_georeferenced"] is False)
+        self.assertIsNone(hole["coordinates"])
+
+    def test_soil_horizon_misclassification_fails_closed(self):
+        edits=[
+            (("epa_2015_pedon_profile_table","rows",0,"saturation_profile_interval_cm"),[120,150]),
+            (("epa_2015_pedon_profile_table","rows",1,"saturation_profile_interval_cm"),[0,0]),
+            (("epa_2015_pedon_profile_table","rows",2,"exact_groundwater_head_measurement_cm"),85),
+            (("epa_2015_pedon_profile_table","rows",3,"piezometer_equilibrium_record_available"),True),
+            (("epa_2015_pedon_profile_table","rows",4,"anthropogenic_material_interval_cm"),[0,360]),
+            (("epa_2015_pedon_profile_table","rows",5,"groundwater_level_2026"),1.0),
+            (("epa_2015_pedon_profile_table","field_sample_date_per_site"),"2015-03-16"),
+            (("source_register",6,"original_page_image_visual_review"),True),
+            (("geological_sand_boring_context","water_table_depth_recorded_ft"),80),
+            (("geological_sand_boring_context","old_coordinate_to_modern_geodesy_crosswalk_allowed"),True)
+        ]
+        for route,value in edits:
+            with self.subTest(field=route):
+                changed=copy.deepcopy(self.record)
+                node=changed
+                for k in route[:-1]:
+                    node=node[k]
+                node[route[-1]]=value
                 with self.assertRaises(ValueError):
                     validate(changed)
 
