@@ -288,13 +288,18 @@ def gate(candidate):
     gazette_23 = next(x for x in prior if x["issue_date_candidate"]=="1901-01-23")
     gazette_24 = next(x for x in prior if x["issue_date_candidate"]=="1901-01-24")
     if (
-        gazette_23["judicial_notice_signed_date"] != "1901-01-21"
+        gazette_23["judicial_notice_signed_date"] is not None
+        or gazette_24["judicial_notice_signed_date"] is not None
+        or gazette_23["unattributed_ocr_signed_date_candidate"] !=
+           "1901-01-21"
+        or gazette_23["notice_applicant_of_calle_vi_solar"] !=
+           "UNKNOWN_PENDING_ORIGINAL_COLUMN_READ"
         or gazette_23["duplicate_or_related_notice_source_id"] !=
            gazette_24["source_id"]
         or gazette_24["duplicate_or_related_notice_source_id"] !=
            gazette_23["source_id"]
     ):
-        raise ValueError("1901 two-issue judicial notice lineage lost")
+        raise ValueError("1901 unsigned and cross-issue candidate lineage lost")
     summary = candidate["pre_1910_index_discovery_summary"]
     if (
         summary["earliest_currently_discovered_gazette_issue_date"] !=
@@ -307,6 +312,64 @@ def gate(candidate):
     ):
         raise ValueError("incorrect first-use authority from search chronology")
     cross = summary["cross_issue_notice_identity"]
+    candidate_repeat = summary["candidate_cross_issue_republication"]
+    if (
+        candidate_repeat["source_ids"] !=
+           [gazette_23["source_id"], gazette_24["source_id"]]
+        or candidate_repeat["relationship_status"] !=
+           "POSSIBLE_REPUBLICATION_UNVERIFIED"
+        or candidate_repeat["same_notarial_or_judicial_case_proven"] is not False
+        or candidate_repeat["exact_verbatim_identity_proven"] is not False
+        or candidate_repeat["distinct_case_count"] is not None
+        or candidate_repeat["event_date"] is not None
+        or candidate_repeat["legal_effect_date"] is not None
+        or "same_notice_republication" in summary
+    ):
+        raise ValueError("two Gámbaro publications promoted to one legal event")
+    if (
+        len(candidate["discrepancy_ledger"]) != 4
+        or len({r["id"] for r in candidate["discrepancy_ledger"]}) != 4
+    ):
+        raise ValueError("discrepancy ledger missing or duplicated")
+    unresolved = {
+        "LOIZA-DISC-1901-JAN23-APPLICANT-DATE":
+            "UNRESOLVED_RAW_PAGE_REQUIRED",
+        "LOIZA-DISC-1901-GAMBARO-CROSS-ISSUE":
+            "UNRESOLVED_RAW_PAGE_REQUIRED",
+        "LOIZA-DISC-1918-SECOND-SECTION-DATE":
+            "UNRESOLVED_ORIGINAL_CARTOUCHE_REQUIRED",
+        "LOIZA-DISC-1909-MONITLLA-AGGREGATE":
+            "UNRESOLVED_RAW_PAGE_REQUIRED",
+    }
+    by_id = {r["id"]: r for r in candidate["discrepancy_ledger"]}
+    for identifier, status in unresolved.items():
+        if identifier not in by_id:
+            raise ValueError("discrepancy missing")
+        record = by_id[identifier]
+        if (
+            record["status"] != status
+            or record["reviewer_approved"] is not False
+            or record["original_page_checked"] is not False
+            or record["resolution_event_date"] is not None
+            or not record["source_ids"]
+            or any(sid not in source_by_id for sid in record["source_ids"])
+        ):
+            raise ValueError("unreviewed documentary discrepancy promoted")
+    if by_id["LOIZA-DISC-1901-JAN23-APPLICANT-DATE"][
+        "source_ids"
+    ] != [gazette_23["source_id"]]:
+        raise ValueError("ambiguous 1901 applicant linked to wrong issue")
+    if by_id["LOIZA-DISC-1901-GAMBARO-CROSS-ISSUE"][
+        "source_ids"
+    ] != [gazette_23["source_id"], gazette_24["source_id"]]:
+        raise ValueError("Gámbaro cross-issue source lineage changed")
+    for code in (
+        "jan23_unattributed_judicial_footer_to_ginorio_or_gambaro_event",
+        "gambaro_repeated_name_to_verified_same_judicial_case",
+        "candidate_1901_republication_to_established_notice_identity",
+    ):
+        if code not in candidate["prohibited_promotions"]:
+            raise ValueError("new judicial-source anti-promotion gate omitted")
     if (
         cross["claim_id"] !=
            "LOIZA-1901-GAMBARO-REPEATED-NEWSPAPER-APPEARANCE-CANDIDATE"
@@ -332,7 +395,7 @@ def gate(candidate):
         or cross["event_date"] is not None
         or cross["case_number"] is not None
         or cross["juridical_disposition"] !=
-           "NONCANONICAL_DUPLICATE_PUBLICATION_REVIEW_REQUIRED"
+           "NONCANONICAL_POSSIBLE_CROSS_ISSUE_REPEAT_UNVERIFIED"
     ):
         raise ValueError("1901 Gámbaro duplicate-publication evidence promoted")
     if (
@@ -763,7 +826,8 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
         )
         jan23 = next(x for x in archive if x["issue_date_candidate"]=="1901-01-23")
         jan24 = next(x for x in archive if x["issue_date_candidate"]=="1901-01-24")
-        self.assertEqual(jan23["judicial_notice_signed_date"], "1901-01-21")
+        self.assertIsNone(jan23["judicial_notice_signed_date"])
+        self.assertEqual(jan23["unattributed_ocr_signed_date_candidate"], "1901-01-21")
         self.assertEqual(
             jan23["duplicate_or_related_notice_source_id"], jan24["source_id"]
         )
@@ -837,6 +901,87 @@ class Loiza1940And1947CandidateTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             gate(changed)
+
+    def test_unattributed_1901_footer_does_not_become_signed_notice(self):
+        row = next(
+            x for x in self.candidate[
+                "pre_1910_official_and_press_locator_candidates"
+            ] if x["issue_date_candidate"] == "1901-01-23"
+        )
+        self.assertIsNone(row["judicial_notice_signed_date"])
+        self.assertEqual(
+            row["unattributed_ocr_signed_date_candidate"], "1901-01-21"
+        )
+        self.assertEqual(
+            row["notice_applicant_of_calle_vi_solar"],
+            "UNKNOWN_PENDING_ORIGINAL_COLUMN_READ",
+        )
+        summary = self.candidate["pre_1910_index_discovery_summary"]
+        self.assertNotIn("same_notice_republication", summary)
+        self.assertEqual(
+            summary["candidate_cross_issue_republication"][
+                "relationship_status"
+            ], "POSSIBLE_REPUBLICATION_UNVERIFIED",
+        )
+        self.assertFalse(
+            summary["candidate_cross_issue_republication"][
+                "same_notarial_or_judicial_case_proven"
+            ]
+        )
+        self.assertIsNone(
+            summary["candidate_cross_issue_republication"][
+                "distinct_case_count"
+            ]
+        )
+
+    def test_discrepancy_ledger_retains_unresolved_evidence_holds(self):
+        ledger = self.candidate["discrepancy_ledger"]
+        self.assertEqual(len(ledger), 4)
+        self.assertEqual(len({item["id"] for item in ledger}), 4)
+        for item in ledger:
+            self.assertTrue(item["status"].startswith("UNRESOLVED_"))
+            self.assertFalse(item["reviewer_approved"])
+            self.assertFalse(item["original_page_checked"])
+            self.assertIsNone(item["resolution_event_date"])
+        self.assertTrue(gate(self.candidate))
+
+    def test_forged_1901_notice_relation_or_discrepancy_promotion_fails(self):
+        def jan23(data):
+            return next(
+                x for x in data["pre_1910_official_and_press_locator_candidates"]
+                if x["issue_date_candidate"] == "1901-01-23"
+            )
+        cases = [
+            ("unsupported_signed_date", lambda d: jan23(d).__setitem__(
+                "judicial_notice_signed_date", "1901-01-21")),
+            ("invented_solar_applicant", lambda d: jan23(d).__setitem__(
+                "notice_applicant_of_calle_vi_solar", "Emigdio S. Ginorio")),
+            ("forged_identical_case", lambda d: d[
+                "pre_1910_index_discovery_summary"
+            ]["candidate_cross_issue_republication"].__setitem__(
+                "same_notarial_or_judicial_case_proven", True)),
+            ("duplicate_reported_as_two_cases", lambda d: d[
+                "pre_1910_index_discovery_summary"
+            ]["candidate_cross_issue_republication"].__setitem__(
+                "distinct_case_count", 2)),
+            ("forged_discrepancy_resolution", lambda d: d[
+                "discrepancy_ledger"][0].__setitem__(
+                "status", "RESOLVED")),
+            ("unearned_original_read", lambda d: d[
+                "discrepancy_ledger"][1].__setitem__(
+                "original_page_checked", True)),
+            ("fake_human_review", lambda d: d[
+                "discrepancy_ledger"][2].__setitem__(
+                "reviewer_approved", True)),
+            ("missing_discrepancy", lambda d: d[
+                "discrepancy_ledger"].pop()),
+        ]
+        for label, mutation in cases:
+            with self.subTest(case=label):
+                changed = copy.deepcopy(self.candidate)
+                mutation(changed)
+                with self.assertRaises(ValueError):
+                    gate(changed)
 
     def test_1909_engineer_aggregate_does_not_prove_road_specific_length(self):
         entries = self.candidate["pre_1910_official_and_press_locator_candidates"]
