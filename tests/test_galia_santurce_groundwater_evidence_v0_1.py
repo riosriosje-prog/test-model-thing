@@ -119,6 +119,70 @@ def validate(record):
         or well["displayed_measurement_date"] != "2026-07-21"
     ):
         raise ValueError("San Juan well misused as Santurce measurement")
+
+    epa = source_by_id.get("EPA-SHUSTER-ENLACE-SOIL-HYDROLOGY-MAR2015")
+    if not epa or (
+        epa["source_kind"] !=
+        "EPA_ORIGINAL_TECHNICAL_SLIDES_FIELD_SATURATION_CATEGORICAL_MAP_VISUALLY_REVIEWED"
+        or epa["field_campaign_month"] != "2015-03"
+        or epa["source_pdf_water_table_slide_index_zero_based"] != 10
+        or epa["visual_slide_inspected"] is not True
+        or epa["source_binary_retained"] is not False
+        or epa["source_binary_sha256"] is not None
+        or epa["per_site_field_logs_retained"] is not False
+        or epa["per_site_measurement_day"] is not None
+    ):
+        raise ValueError("EPA source or fieldwork provenance misrepresented")
+    classes = [o for o in obs if
+        o["type"] == "EPA_FIELD_DEPTH_TO_SATURATION_CLASS_2015"]
+    expected = {
+        "Calle Paraguay": (None, 70, "UP_TO_AND_INCLUDING"),
+        "Calle del Pilar": (71, 85, "INCLUSIVE_INTERVAL"),
+        "Plaza Israel": (86, 100, "INCLUSIVE_INTERVAL"),
+        "Calle 14": (110, 120, "INCLUSIVE_INTERVAL"),
+        "Calle Principal": (110, 120, "INCLUSIVE_INTERVAL"),
+        "Calle San José": (130, 160, "INCLUSIVE_INTERVAL"),
+        "Calle C": (130, 160, "INCLUSIVE_INTERVAL"),
+        "Calle William": (None, None, "NO_RESULT_NULL"),
+    }
+    if len(classes) != 8 or {
+        x["site_label_on_figure"] for x in classes
+    } != set(expected):
+        raise ValueError("Field screening labels or count changed")
+    for point in classes:
+        if (
+            point["source_id"] != "EPA-SHUSTER-ENLACE-SOIL-HYDROLOGY-MAR2015"
+            or (
+                point["categorical_lower_bound_cm"],
+                point["categorical_upper_bound_cm"],
+                point["categorical_interval_interpretation"],
+            ) != expected[point["site_label_on_figure"]]
+            or point["measured_exact_numeric_value_cm"] is not None
+            or point["quantity"] !=
+                "DEPTH_TO_SATURATION_SCREENING_CLASS_CM_BELOW_LOCAL_GROUND"
+            or point["source_pdf_page_zero_based"] != 10
+            or point["observation_month_candidate"] != "2015-03"
+            or point["observation_event_date"] is not None
+            or point["well_or_piezometer_id"] is not None
+            or point["original_field_log_available"] is not False
+            or point["station_coordinates_available_in_source"] is not False
+            or point["hydraulic_head_elevation"] is not None
+            or point["hydrological_well_level_certified"] is not False
+            or point["location_verified_inside_santurce_subbarrio"] is not False
+            or point["quantity_is_current"] is not False
+        ):
+            raise ValueError("EPA legend class falsely promoted to a well reading")
+    for needed in (
+        "epa_water_table_figure_color_class_to_exact_centimeter_measurement",
+        "epa_2015_depth_to_saturation_to_2026_current_groundwater",
+        "epa_field_saturation_to_piezometer_equilibrium_hydraulic_head",
+        "epa_fig_map_markers_to_unreviewed_exact_geographic_coordinates",
+        "epa_named_street_label_to_confirmed_santurce_subbarrio",
+        "epa_null_calle_william_to_numeric_zero_depth",
+        "regional_sanjuan_less_than_3_to_7m_upper_bound_to_3_to_7m_santurce_measured_interval",
+    ):
+        if needed not in record["prohibited_promotions"]:
+            raise ValueError("Missing hydropedology epistemic barrier")
     zones = record["prospective_study_zones"]
     if len(zones) != 3 or any(
         z["depth_estimate_m"] is not None
@@ -167,6 +231,48 @@ class SanturceGroundwaterEvidenceTests(unittest.TestCase):
     def test_nearby_usgs_reading_cannot_replace_santurce_measurement(self):
         well = self.record["source_register"][4]
         self.assertFalse(well["eligible_for_santurce_depth_inference"])
+
+
+    def test_epa_march2015_has_seven_bands_and_one_missing_point(self):
+        points = self.record["groundwater_evidence"][4:]
+        self.assertEqual(len(points), 8)
+        self.assertEqual(
+            sum(p["categorical_upper_bound_cm"] is not None for p in points),
+            7,
+        )
+        missing = next(
+            p for p in points if p["site_label_on_figure"] == "Calle William"
+        )
+        self.assertEqual(
+            missing["categorical_interval_interpretation"], "NO_RESULT_NULL"
+        )
+        self.assertTrue(all(p["measured_exact_numeric_value_cm"] is None
+                            for p in points))
+        self.assertTrue(validate(self.record))
+
+    def test_epa_field_category_cannot_claim_piezometer_or_subbarrio(self):
+        changes = (
+            (("groundwater_evidence", 4, "measured_exact_numeric_value_cm"), 70),
+            (("groundwater_evidence", 5, "observation_event_date"), "2015-03-17"),
+            (("groundwater_evidence", 6, "well_or_piezometer_id"), "W-99"),
+            (("groundwater_evidence", 7, "hydraulic_head_elevation"), 3.5),
+            (("groundwater_evidence", 8,
+              "location_verified_inside_santurce_subbarrio"), True),
+            (("groundwater_evidence", 9, "categorical_lower_bound_cm"), 101),
+            (("groundwater_evidence", 10, "source_pdf_page_zero_based"), 9),
+            (("groundwater_evidence", 11, "categorical_upper_bound_cm"), 0),
+            (("source_register", 5, "per_site_measurement_day"), "2015-03-15"),
+            (("source_register", 5, "source_binary_sha256"), "a" * 64),
+        )
+        for route, value in changes:
+            with self.subTest(field=route):
+                changed = copy.deepcopy(self.record)
+                item = changed
+                for key in route[:-1]:
+                    item = item[key]
+                item[route[-1]] = value
+                with self.assertRaises(ValueError):
+                    validate(changed)
 
     def test_fail_closed_on_invented_parcel_reading_or_source_custody(self):
         tests = [
