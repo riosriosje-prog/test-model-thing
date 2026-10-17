@@ -623,7 +623,11 @@
     "ambiguous_1901_solar_applicant_to_confirmed_person_identity",
     "jan23_unattributed_judicial_footer_to_ginorio_or_gambaro_event",
     "gambaro_repeated_name_to_verified_same_judicial_case",
-    "candidate_1901_republication_to_established_notice_identity"
+    "candidate_1901_republication_to_established_notice_identity",
+    "upr_public_directory_to_confirmed_issue_holding_or_reel",
+    "upr_potential_contact_to_request_sent_or_source_received",
+    "microfilm_request_plan_to_authentic_original_source_binary",
+    "upr_catalog_snippet_to_verified_source_custody"
   ],
   "pending_work": [
     "Independently obtain and hash source document binaries.",
@@ -645,7 +649,8 @@
     "Verify LOC Gaceta 1901-10-06 Machuchal Margarida notice and UFDC Correspondencia 1909-03-09 lots advertisement using page images and issue mastheads.",
     "Read the complete LOC Correspondencia 1909-11-18 municipal engineer F. Montilla report; 1660m total applies collectively to Santurce streets and Camino de Loíza, not solely Calle Loíza.",
     "Corrected 1901 cross-issue source attribution: Jan 23 OCR already names Enrique W. Gámbaro Correa and his road-side strip. Visually compare Jan 23 / 24 p.3 original images before establishing whether exact notice duplicated; separately confirm attribution of Calle VI/Emilia Turull solar.",
-    "Audit 1901 unsigned/dated OCR: determine which legally named applicant (if any) is associated with Jan 21 signature date and Calle VI/Emilia Turull lot; do not attribute without source page columns."
+    "Audit 1901 unsigned/dated OCR: determine which legally named applicant (if any) is associated with Jan 21 signature date and Calle VI/Emilia Turull lot; do not attribute without source page columns.",
+    "Use institutional UPR microfilm reproduction pathway to verify if reel covering La Gaceta Jan-Apr 1901 includes Jan 23 & 24 pp.3; contact request not yet sent; add signed accession/capture receipt only after source transmission."
   ],
   "cartographic_comparison_1917_1918": {
     "record_type": "RESEARCH_ONLY_CHRONOLOGY_AND_LEGIBILITY_CROSSWALK",
@@ -1132,5 +1137,105 @@
       "reviewer_approved": false,
       "resolution_event_date": null
     }
-  ]
+  ],
+  "archive_acquisition_plan_1901": {
+    "plan_version": "galia.archive_acquisition.1901.v0.1",
+    "plan_created_date": "2026-10-17",
+    "authority_state": "AUTHORITY_HOLD",
+    "purpose": "Independent visual confirmation of the 23 and 24 January 1901 Gaceta de Puerto Rico Santurce land notices, issue mastheads, column alignment, transcription, and possible cross-issue republication.",
+    "access_resolution": "ALTERNATIVE_INSTITUTIONAL_CONTACT_IDENTIFIED",
+    "institutional_access_status": "PUBLIC_CONTACTS_VERIFIED_NO_HOLDING_OR_FACSIMILE_RECEIPT",
+    "request_submission_status": "NOT_SENT",
+    "response_received": false,
+    "source_material_received": false,
+    "source_original_image_inspected": false,
+    "exact_microfilm_reel_confirmed": false,
+    "ownership_provenance_authenticated": false,
+    "independent_human_review_status": "PENDING",
+    "candidate_repository": {
+      "institution": "Universidad de Puerto Rico, Recinto de Río Piedras",
+      "unit": "Biblioteca y Hemeroteca Puertorriqueña / Centro de Reproducción y Microfilmación",
+      "building": "Biblioteca José M. Lázaro",
+      "holding_index_url": "https://www.upr.edu/biblioteca-rrp/?_mdocs-preview=1d1fa4742e&mdocs-preview=5011",
+      "holding_index_search_result": "Gaceta de Puerto Rico — 1901 — enero–abril",
+      "holding_claim_level": "SEARCH_RESULT_SNIPPET_UNVERIFIED_CURRENT_INVENTORY_OR_REEL",
+      "librarian_staff_directory": "https://uprrp.libguides.com/coleccionpuertorriquena/personalbibliotecario",
+      "reproduction_service_page": "https://www.upr.edu/biblioteca-rrp/sb-reproduccion-de-documentos/",
+      "archive_name_consistency": "Catalog's Gaceta and LOC's Gazeta/Gaceta variants are bibliographic search aliases; title-identity authority must be confirmed by original masthead."
+    },
+    "public_routing_options": [
+      {
+        "service": "Microfilm digitization and government documents",
+        "public_role": "Bibliotecario auxiliar, digitalización de micropelículas",
+        "staff_name": "David Reyes Ruiz",
+        "public_email": "david.reyes5@upr.edu",
+        "switchboard_phone": "787-764-0000",
+        "extension": "85744",
+        "source_url": "https://uprrp.libguides.com/coleccionpuertorriquena/personalbibliotecario",
+        "contact_verified_from_public_staff_page": true,
+        "person_contacted": false
+      },
+      {
+        "service": "Microfilm reproductions / document copies",
+        "public_role": "Centro de Reproducción",
+        "staff_name": "Ilia Ortiz Martínez",
+        "public_email": "ilia.ortiz1@upr.edu",
+        "switchboard_phone": "787-764-0000",
+        "extensions": [
+          "85516",
+          "85517"
+        ],
+        "source_url": "https://www.upr.edu/biblioteca-rrp/sb-reproduccion-de-documentos/",
+        "contact_verified_from_public_staff_page": true,
+        "person_contacted": false
+      }
+    ],
+    "target_issue_candidates": [
+      {
+        "document_id": "GACETA-1901-01-23-ED1-P3",
+        "reference_source_id": "LOC-GACETA-1901-01-23-0077",
+        "issue_date_candidate": "1901-01-23",
+        "requested_section": "Providencias judiciales",
+        "candidate_printed_page": 3,
+        "original_page_number_verified": false,
+        "holding_roll_identifier": null,
+        "request_sent": false,
+        "facsimile_received": false,
+        "full_page_masthead_checked": false,
+        "source_page_hash_sha256": null,
+        "claim_review_status": "PENDING"
+      },
+      {
+        "document_id": "GACETA-1901-01-24-ED1-P3",
+        "reference_source_id": "LOC-GACETA-1901-01-24-0080",
+        "issue_date_candidate": "1901-01-24",
+        "requested_section": "Providencias judiciales",
+        "candidate_printed_page": 3,
+        "original_page_number_verified": false,
+        "holding_roll_identifier": null,
+        "request_sent": false,
+        "facsimile_received": false,
+        "full_page_masthead_checked": false,
+        "source_page_hash_sha256": null,
+        "claim_review_status": "PENDING"
+      }
+    ],
+    "acquisition_required_fields": [
+      "custodian_assigned_roll_or_original_item_id",
+      "custodian_reproduction_permission_or_use_terms",
+      "full_page_scan_with_header_and_visible_column_separators",
+      "page_masthead_and_issue_date_visual_reading",
+      "column_order_reconstruction_without_OCR_interleaving",
+      "Calle_VI_solar_applicant_and_judicial_signing_date_attribution",
+      "Gambaro_notice_comparison_across_both_issue_images",
+      "binary_byte_count_and_SHA256_of_received_original_copy",
+      "capture_receipt_with_actual_timestamp_and_request_identifier",
+      "historian_review_signed_or_attested_before_canonical_promotion"
+    ],
+    "delivery_state": "RECEIPT_NOT_AVAILABLE",
+    "original_binary_sha256": null,
+    "digital_frame_sha256": null,
+    "delivery_receipt_id": null,
+    "notes": "Official public webpages establish reachable staff/service options, not that a custodian holds this specific frame, can fulfill the request, was contacted, or transferred any source image. Earlier LOC direct page PDF returned HTTP 403 from accessible web runtime."
+  }
 }
