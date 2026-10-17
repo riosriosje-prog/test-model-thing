@@ -107,7 +107,32 @@
       "per_site_measurement_day": null,
       "probe_method_per_site": null,
       "source_type_tier": "PRIMARY_PUBLISHED_EPA_PRESENTATION_VISUAL_WEB_RENDER_NO_LOCAL_BINARY_CUSTODY",
-      "note": "Field program in March 2015 across Caño Martín Peña corridor, not a groundwater-monitoring well time series. Circles are map-based screening observations and null one is missing-data category. Field geolocations and subbarrio boundaries unverified."
+      "note": "Field program in March 2015 across Caño Martín Peña corridor, not a groundwater-monitoring well time series. Circles are map-based screening observations and null one is missing-data category. Field geolocations and subbarrio boundaries unverified.",
+      "source_pdf_pedon_profile_table_index_zero_based": 15,
+      "visually_read_profile_table_header": "Depth range of saturation (cm)",
+      "visually_read_debris_table_header": "Depth range of anthropogenic material (cm)",
+      "visually_read_redox_table_header": "Depth range of redox (cm)",
+      "full_master_data_sheet_referenced_but_not_obtained": true,
+      "missing_saturation_value_not_equivalent_to_dry_soil": true
+    },
+    {
+      "source_id": "USGS-KAYE-1959-PP317A",
+      "title": "Geology of the San Juan metropolitan area, Puerto Rico",
+      "author": "Clifford A. Kaye",
+      "publication_year": 1959,
+      "doi": "10.3133/pp317A",
+      "url": "https://pubs.usgs.gov/publication/pp317A",
+      "document_pdf_url": "https://pubs.usgs.gov/pp/0317a/report.pdf",
+      "source_kind": "USGS_HISTORICAL_STRATIGRAPHIC_DESCRIPTIVE_REPORT",
+      "metadata_verified_from_usgs_publication_warehouse": true,
+      "section": "Santurce Sand",
+      "claimed_source_phrase": "A foundation boring next to the Puerto Rico Water Resources building on Avenida Ponce de León, Santurce, penetrated 80 feet of quartz sand and slightly clayey quartz sand without reaching the bottom of the deposit.",
+      "reviewed_via_public_search_index_text": true,
+      "original_page_image_visual_review": false,
+      "source_binary_retained": false,
+      "source_binary_sha256": null,
+      "original_boring_log_available": false,
+      "source_report_year_is_not_boring_event_year": true
     }
   ],
   "groundwater_evidence": [
@@ -524,6 +549,16 @@
       "discrepancy_id": "EPA-MARCH-2015-DAY-UNKNOWN",
       "status": "OBSERVATION_MONTH_KNOWN_EXACT_DAYS_UNKNOWN",
       "note": "Presentation describes one week of 2015 March fieldwork, not the per-site observation day. Page updated 2025 is not measurement date."
+    },
+    {
+      "discrepancy_id": "EPA-SLIDE10-CLASS-VS-SLIDE15-PROFILE-RANGE",
+      "status": "DIFFERENT_METRICS_NOT_COMBINED",
+      "note": "Slide 10 shows a map class for depth to saturation; slide 15 separately reports vertical-profile saturation intervals, plus redox and anthropogenic horizons. Do not substitute upper profile range for water-table depth."
+    },
+    {
+      "discrepancy_id": "USGS-KAYE-1959-SAND-PENETRATION-VS-GROUNDWATER",
+      "status": "GEOLOGICAL_OBSERVATION_ONLY",
+      "note": "80-ft boring penetration into Santurce sand is lithologic thickness, not a measured groundwater level."
     }
   ],
   "prohibited_promotions": [
@@ -543,7 +578,15 @@
     "epa_named_street_label_to_confirmed_santurce_subbarrio",
     "epa_null_calle_william_to_numeric_zero_depth",
     "epa_2015_field_infiltration_rate_to_groundwater_level",
-    "regional_sanjuan_less_than_3_to_7m_upper_bound_to_3_to_7m_santurce_measured_interval"
+    "regional_sanjuan_less_than_3_to_7m_upper_bound_to_3_to_7m_santurce_measured_interval",
+    "epa_profile_interval_to_exact_water_table_level",
+    "epa_anthropogenic_debris_depth_to_groundwater_depth",
+    "epa_redox_depth_to_current_groundwater_depth",
+    "epa_null_saturation_to_dry_or_zero_saturation",
+    "epa_slide15_depth_interval_to_slide10_legend_class_identity",
+    "usgs_kaye_80ft_lithology_to_80ft_water_table",
+    "usgs_kaye_1959_report_year_to_specific_boring_date",
+    "old_unverified_grid_coordinates_to_present_day_santurce_pin"
   ],
   "pending_work": [
     "Locate source boring logs or dated piezometer records near Santurce with geodetic vertical datum, location, instrument and actual static water level.",
@@ -552,6 +595,271 @@
     "Require credentialed geotechnical/hydrogeological reviewer for excavations, foundation design or property-specific predictions.",
     "Recover March 2015 EPA/ENLACE master data sheet and soil core log for each labelled street location, with exact date, penetration method, saturated depth and surveyed position; EPA slides p10 show categorical bounds only and cannot support hydraulic-head claims.",
     "Overlay site street names from 2015 EPA map against authoritative Caño Martín Peña communities/subbarrio polygons only after obtaining verified spatial coordinates; do not pin unverified points or historical religious sites.",
-    "Regional Hengesh & Bachhuber 2005 phrasing repaired: <~3–7 m across study as unit-dependent upper bound, Qss 2–7 m by geologic unit, conservative <1.5 m model assumption distinct from observation."
-  ]
+    "Regional Hengesh & Bachhuber 2005 phrasing repaired: <~3–7 m across study as unit-dependent upper bound, Qss 2–7 m by geologic unit, conservative <1.5 m model assumption distinct from observation.",
+    "Request original EPA March 2015 master data sheet explicitly referenced on slide 15, with field log, depth convention, per-site sampling dates, probe locations, and groundwater equilibration details; table is verified at published slide level only.",
+    "Locate actual original Kaye-era Ponce de León foundation boring log, well-level observation if recorded, and grid-coordinate datum; preserve 80 ft as stratigraphic penetration only."
+  ],
+  "epa_2015_pedon_profile_table": {
+    "record_id": "EPA-CMP-2015-P15-DEPTH-TO-SATURATION-AND-ANTHROPOGENIC-HORIZONS",
+    "source_id": "EPA-SHUSTER-ENLACE-SOIL-HYDROLOGY-MAR2015",
+    "pdf_page_index_zero_based": 15,
+    "printed_slide_number": 15,
+    "source_kind": "OFFICIAL_EPA_VISUALLY_REVIEWED_PRESENTATION_TABLE",
+    "units": "cm below local surface as labeled in table, no common geodetic datum",
+    "table_columns": [
+      "Site",
+      "Depth range of redox (cm)",
+      "Depth range of saturation (cm)",
+      "Depth range of anthropogenic material (cm)",
+      "Type of anthropogenic material"
+    ],
+    "rows": [
+      {
+        "site_label_on_slide": "Calle 14",
+        "redox_interval_cm": [
+          35,
+          120
+        ],
+        "saturation_profile_interval_cm": [
+          120,
+          420
+        ],
+        "anthropogenic_material_interval_cm": [
+          0,
+          150
+        ],
+        "reported_anthropogenic_materials": [
+          "concrete",
+          "charcoal"
+        ],
+        "source_figure_depth_to_saturation_class_preserved_separately": true,
+        "exact_groundwater_head_measurement_cm": null,
+        "piezometer_equilibrium_record_available": false,
+        "per_site_field_data_sheet_available": false,
+        "geographic_coordinates_verified": false,
+        "local_subbarrio_polygon_verified": false,
+        "depth_reference_datum_verified": false,
+        "groundwater_level_2026": null,
+        "human_review_status": "PENDING"
+      },
+      {
+        "site_label_on_slide": "Calle William",
+        "redox_interval_cm": [
+          120,
+          360
+        ],
+        "saturation_profile_interval_cm": null,
+        "anthropogenic_material_interval_cm": [
+          0,
+          360
+        ],
+        "reported_anthropogenic_materials": [
+          "concrete",
+          "building gravel",
+          "brick",
+          "tile"
+        ],
+        "source_figure_depth_to_saturation_class_preserved_separately": true,
+        "exact_groundwater_head_measurement_cm": null,
+        "piezometer_equilibrium_record_available": false,
+        "per_site_field_data_sheet_available": false,
+        "geographic_coordinates_verified": false,
+        "local_subbarrio_polygon_verified": false,
+        "depth_reference_datum_verified": false,
+        "groundwater_level_2026": null,
+        "human_review_status": "PENDING"
+      },
+      {
+        "site_label_on_slide": "Calle del Pilar",
+        "redox_interval_cm": null,
+        "saturation_profile_interval_cm": [
+          85,
+          360
+        ],
+        "anthropogenic_material_interval_cm": [
+          0,
+          360
+        ],
+        "reported_anthropogenic_materials": [
+          "concrete",
+          "building gravel"
+        ],
+        "source_figure_depth_to_saturation_class_preserved_separately": true,
+        "exact_groundwater_head_measurement_cm": null,
+        "piezometer_equilibrium_record_available": false,
+        "per_site_field_data_sheet_available": false,
+        "geographic_coordinates_verified": false,
+        "local_subbarrio_polygon_verified": false,
+        "depth_reference_datum_verified": false,
+        "groundwater_level_2026": null,
+        "human_review_status": "PENDING"
+      },
+      {
+        "site_label_on_slide": "Calle Principal",
+        "redox_interval_cm": null,
+        "saturation_profile_interval_cm": [
+          120,
+          360
+        ],
+        "anthropogenic_material_interval_cm": [
+          0,
+          360
+        ],
+        "reported_anthropogenic_materials": [
+          "building rock",
+          "brick",
+          "wood",
+          "plastic"
+        ],
+        "source_figure_depth_to_saturation_class_preserved_separately": true,
+        "exact_groundwater_head_measurement_cm": null,
+        "piezometer_equilibrium_record_available": false,
+        "per_site_field_data_sheet_available": false,
+        "geographic_coordinates_verified": false,
+        "local_subbarrio_polygon_verified": false,
+        "depth_reference_datum_verified": false,
+        "groundwater_level_2026": null,
+        "human_review_status": "PENDING"
+      },
+      {
+        "site_label_on_slide": "Plaza Israel",
+        "redox_interval_cm": [
+          0,
+          25
+        ],
+        "saturation_profile_interval_cm": [
+          100,
+          360
+        ],
+        "anthropogenic_material_interval_cm": [
+          0,
+          140
+        ],
+        "reported_anthropogenic_materials": [
+          "concrete",
+          "building rocks",
+          "slag"
+        ],
+        "source_figure_depth_to_saturation_class_preserved_separately": true,
+        "exact_groundwater_head_measurement_cm": null,
+        "piezometer_equilibrium_record_available": false,
+        "per_site_field_data_sheet_available": false,
+        "geographic_coordinates_verified": false,
+        "local_subbarrio_polygon_verified": false,
+        "depth_reference_datum_verified": false,
+        "groundwater_level_2026": null,
+        "human_review_status": "PENDING"
+      },
+      {
+        "site_label_on_slide": "Calle Paraguay",
+        "redox_interval_cm": null,
+        "saturation_profile_interval_cm": [
+          70,
+          240
+        ],
+        "anthropogenic_material_interval_cm": [
+          0,
+          215
+        ],
+        "reported_anthropogenic_materials": [
+          "concrete",
+          "building rock",
+          "brick",
+          "tile",
+          "wood"
+        ],
+        "source_figure_depth_to_saturation_class_preserved_separately": true,
+        "exact_groundwater_head_measurement_cm": null,
+        "piezometer_equilibrium_record_available": false,
+        "per_site_field_data_sheet_available": false,
+        "geographic_coordinates_verified": false,
+        "local_subbarrio_polygon_verified": false,
+        "depth_reference_datum_verified": false,
+        "groundwater_level_2026": null,
+        "human_review_status": "PENDING"
+      },
+      {
+        "site_label_on_slide": "Calle C",
+        "redox_interval_cm": null,
+        "saturation_profile_interval_cm": [
+          160,
+          240
+        ],
+        "anthropogenic_material_interval_cm": [
+          0,
+          160
+        ],
+        "reported_anthropogenic_materials": [
+          "concrete",
+          "building rock"
+        ],
+        "source_figure_depth_to_saturation_class_preserved_separately": true,
+        "exact_groundwater_head_measurement_cm": null,
+        "piezometer_equilibrium_record_available": false,
+        "per_site_field_data_sheet_available": false,
+        "geographic_coordinates_verified": false,
+        "local_subbarrio_polygon_verified": false,
+        "depth_reference_datum_verified": false,
+        "groundwater_level_2026": null,
+        "human_review_status": "PENDING"
+      },
+      {
+        "site_label_on_slide": "Calle San José",
+        "redox_interval_cm": null,
+        "saturation_profile_interval_cm": [
+          160,
+          360
+        ],
+        "anthropogenic_material_interval_cm": [
+          0,
+          150
+        ],
+        "reported_anthropogenic_materials": [
+          "concrete",
+          "building rock"
+        ],
+        "source_figure_depth_to_saturation_class_preserved_separately": true,
+        "exact_groundwater_head_measurement_cm": null,
+        "piezometer_equilibrium_record_available": false,
+        "per_site_field_data_sheet_available": false,
+        "geographic_coordinates_verified": false,
+        "local_subbarrio_polygon_verified": false,
+        "depth_reference_datum_verified": false,
+        "groundwater_level_2026": null,
+        "human_review_status": "PENDING"
+      }
+    ],
+    "no_value_semantics": "DASH / MISSING saturation interval is not 0, not proof of dry ground or an impermeable aquifer",
+    "origin_claim": "March 2015 EPA urban hydropedology project, reported in published slide 15",
+    "field_sample_date_per_site": null,
+    "independent_boring_log_receipt": null,
+    "original_pdf_binary_sha256": null,
+    "current_groundwater_level_interpretation_authorized": false,
+    "original_field_master_sheet_available": false,
+    "map_legends_and_table_are_separate_representations": true,
+    "no_extrapolation_to_citywide_average": true
+  },
+  "geological_sand_boring_context": {
+    "claim_id": "USGS-PP317A-PONCE-DE-LEON-HISTORIC-80FT-SAND",
+    "source_id": "USGS-KAYE-1959-PP317A",
+    "report_year": 1959,
+    "location_description": "Near Puerto Rico Water Resources building, Avenida Ponce de León, Santurce",
+    "historical_map_grid_reference_in_report": "(190,125 m, 68,700 m)",
+    "historical_map_grid_coordinate_system_verified": false,
+    "old_coordinate_to_modern_geodesy_crosswalk_allowed": false,
+    "measured_stratigraphic_penetration_ft": 80,
+    "boring_reached_bottom_of_sand": false,
+    "lithology_reported": [
+      "quartz sand",
+      "slightly clayey quartz sand"
+    ],
+    "water_table_depth_recorded_ft": null,
+    "groundwater_level_measured": false,
+    "water_level_measurement_date": null,
+    "exact_surveyed_station_location_verified": false,
+    "coordinates": null,
+    "historic_boring_not_georeferenced": true,
+    "source_observation_tier": "HISTORICAL_USGS_PUBLISHED_LITHOLOGIC_DESCRIPTION_NOT_GROUNDWATER_OBSERVATION",
+    "human_review_status": "PENDING"
+  }
 }
