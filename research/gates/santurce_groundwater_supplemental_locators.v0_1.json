@@ -1,0 +1,137 @@
+{
+  "schema": "galia.santurce.groundwater.supplemental_source_locator.v0.1",
+  "created": "2026-10-17",
+  "state": "AUTHORITY_HOLD",
+  "source_scope": "Two additional official source types; no new certified groundwater station observations",
+  "canonical_write_authorized": false,
+  "georeferencing_authorized": false,
+  "verified_santurce_water_level_station_count": 0,
+  "sources": [
+    {
+      "id": "USDA-NRCS-OSD-MARTIN-PENA-SERIES",
+      "agency": "USDA NRCS National Cooperative Soil Survey",
+      "title": "Official Series Description – Martin Pena",
+      "url": "https://soilseries.sc.egov.usda.gov/OSD_Docs/M/MARTIN_PENA.html",
+      "source_kind": "AUTHORITATIVE_SOIL_SERIES_CHARACTERIZATION_NOT_SITE_MEASUREMENT",
+      "series_established": 1942,
+      "revision": "2000-08",
+      "soil_series_drainage": "VERY_POORLY_DRAINED",
+      "soil_series_permeability": "VERY_SLOW",
+      "reported_habit": "water table at or near surface during most of year",
+      "type_pedon_location": "Sabana Seca Naval Communication Station vicinity",
+      "type_pedon_in_santurce": false,
+      "mapped_santurce_soil_polygon_verified": false,
+      "depth_to_water_at_santurce_cm": null,
+      "present_day_measurement_valid": false,
+      "source_text_checked": true,
+      "source_original_bytes_received": false,
+      "source_sha256": null
+    },
+    {
+      "id": "USACE-SJM-APPENDIX-A-BORING-LOGS-2021",
+      "agency": "US Army Corps of Engineers, Jacksonville District",
+      "title": "San Juan Metro Area Coastal Storm Risk Management Study — Attachment A, boring logs",
+      "url": "https://usace.contentdm.oclc.org/digital/collection/p16021coll7/id/19169/",
+      "mirror_catalog_url": "https://commons.wikimedia.org/wiki/File:Attachment_A_-_boring_logs_-_USACE-p16021coll7-18498.pdf",
+      "published_year": 2021,
+      "library_record_id": "19169",
+      "catalog_file_name": "SJM_Appendix_A_Attachment-A_BORING_LOGS.pdf",
+      "reported_catalog_pdf_page_count": 225,
+      "reported_catalog_pdf_file_bytes": 16127707,
+      "source_kind": "ORIGINAL_USACE_DOCUMENT_LOCATED_BUT_NOT_READ_BOREHOLE_BY_BOREHOLE",
+      "boring_years_stated_in_engineering_context": "1988–2020",
+      "context_report_url": "https://upload.wikimedia.org/wikipedia/commons/5/53/San_Juan_Metro_Area%2C_Puerto_Rico-_Coastal_Storm_Risk_Management_Study%2C_final_integrated_feasibility_report_and_environmental_assessment-_Appendix_A-_Engineering_-_USACE-p16021coll7-19182.pdf",
+      "original_vertical_datums": [
+        "MSL",
+        "NGVD29",
+        "MLW",
+        "MLLW"
+      ],
+      "conversion_target_in_engineering_appendix": "PRVD02",
+      "individual_boring_log_read": false,
+      "specific_boring_station_id": null,
+      "individual_boring_location": null,
+      "individual_boring_inside_santurce_verified": false,
+      "date_of_boring_verified": null,
+      "static_groundwater_depth_ft_below_surface": null,
+      "level_elevation_prvd02_ft": null,
+      "datum_transformation_verified": false,
+      "catalog_lat_lon_is_borehole_site": false,
+      "source_original_bytes_received": false,
+      "source_sha256": null
+    }
+  ],
+  "archive_search": [
+    {
+      "source_id": "USACE-SJM-APPENDIX-A-BORING-LOGS-2021",
+      "next_document_parts": [
+        "Appendix A Engineering Table A-13 (station elevations)",
+        "Figure A-22 (boring location map)",
+        "Attachment A original boring-page PDFs"
+      ],
+      "required_fields": [
+        "station_id",
+        "drilling_start_date",
+        "station_surveyed_coordinate",
+        "horizontal_crs",
+        "collar_or_seabed_datum",
+        "original_vertical_datum",
+        "water_strike_or_static_level",
+        "level_observation_timestamp",
+        "borehole_type_upland_vs_offshore",
+        "groundwater_unit",
+        "original_source_file_sha256"
+      ],
+      "received": false,
+      "verified_station_count": 0
+    },
+    {
+      "source_id": "USDA-NRCS-OSD-MARTIN-PENA-SERIES",
+      "next_document_parts": [
+        "NRCS mapped soil units within Santurce study boundary",
+        "versioned NRCS polygon layer"
+      ],
+      "required_fields": [
+        "soil_map_unit_key",
+        "soil_series_component",
+        "soil_polygon_geo_authority",
+        "soil_hydrologic_context",
+        "survey_date"
+      ],
+      "received": false,
+      "verified_santurce_polygon_count": 0
+    }
+  ],
+  "epa_2015_original_data_acquisition": {
+    "original_presentation_url": "https://www.epa.gov/sites/default/files/2015-10/documents/martinpena_enlace.pdf",
+    "source_reference": "Slide 15: See master data sheet",
+    "presenter": "Bill Shuster, PhD; Research Hydrologist, USEPA ORD",
+    "presenter_public_presentation_email": "Shuster.William@epa.gov",
+    "email_published_on_pdf_zero_based_page": 22,
+    "email_current_deliverability_verified": false,
+    "outbound_request_sent": false,
+    "master_data_sheet_url_located": false,
+    "master_data_sheet_file_received": false,
+    "site_logs_received": false,
+    "per_site_GPS_coordinates_verified": false,
+    "fields_to_request": [
+      "original March 2015 master data sheet",
+      "site code/boring log for eight labelled sites",
+      "method and depth convention for saturation classification",
+      "field date/time and GPS with CRS",
+      "quality assurance and extraction worksheet"
+    ],
+    "note": "A published institutional contact is a locator only; it does not establish availability of the 2015 data."
+  },
+  "prohibited_promotions": [
+    "nrcs_sabana_seca_type_pedon_to_santurce_street_level",
+    "nrcs_high_water_table_soil_series_to_exact_water_depth_cm",
+    "usace_public_catalog_location_to_boring_coordinates",
+    "usace_1988_2020_diverse_datum_series_to_current_water_level",
+    "usace_offshore_mlw_to_upland_santurce_ground_surface",
+    "usace_225_page_catalog_to_source_binary_captured",
+    "epa_researcher_contact_to_sent_data_request",
+    "epa_slide15_see_master_sheet_to_master_sheet_obtained"
+  ],
+  "review_status": "PENDING_HUMAN_HYDROGEOLOGICAL_AND_ARCHIVAL_REVIEW"
+}
