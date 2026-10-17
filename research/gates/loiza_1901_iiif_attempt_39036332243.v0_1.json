@@ -1,0 +1,87 @@
+{
+  "schema": "galia.loiza.1901.iiif_network_attempt.v0.1",
+  "state": "REMOTE_BLOCKED_NO_SOURCE_BYTES",
+  "event_type": "TECHNICAL_RETRIEVAL_ATTEMPT_NOT_HISTORICAL_EVENT",
+  "attempt_date_utc": "2026-10-17",
+  "git": {
+    "repository": "riosriosje-prog/test-model-thing",
+    "branch_at_run": "galia-loiza-1940-1947-boundary-candidate-v0-1",
+    "run_head_sha": "c54a79ec078f3de6acb23dbfaaafe91587678f84",
+    "workflow_run_id": 39036332243,
+    "workflow_url": "https://github.com/riosriosje-prog/test-model-thing/actions/runs/39036332243",
+    "workflow_conclusion": "success",
+    "workflow_conclusion_scope": "Diagnostic script ran and uploaded status artifact, NOT that archival source was retrieved"
+  },
+  "artifact": {
+    "artifact_id": 12102535664,
+    "artifact_name": "GALIA_LOIZA_1901_IIIF_DIAGNOSTIC_ONLY",
+    "artifact_url": "https://github.com/riosriosje-prog/test-model-thing/actions/runs/39036332243/artifacts/12102535664",
+    "artifact_zip_sha256": "9fe614bd4f4202c0ab8a3f139aba5a925057e7c660ad686b2566794b4a4c41af",
+    "artifact_zip_bytes": 1098,
+    "artifact_zip_verified_after_download": true,
+    "contained_files": [
+      "CAPTURE_DIAGNOSTIC.json",
+      "probe.ndjson",
+      "probe.stderr.txt"
+    ],
+    "contained_source_image": false,
+    "contains_original_page_pdf_or_jp2": false,
+    "note": "Digest represents only downloaded GitHub diagnostic ZIP, not original historical source bytes."
+  },
+  "run_result": {
+    "probe_command_exit_code": 1,
+    "captured_candidate_document_ids": [],
+    "blocked_document_ids": [
+      "GACETA-1901-01-23-ED1-P3",
+      "GACETA-1901-01-24-ED1-P3"
+    ],
+    "source_image_files_created": 0,
+    "source_sha256_digests_created": 0,
+    "requests": [
+      {
+        "document_id": "GACETA-1901-01-23-ED1-P3",
+        "source_id": "LOC-GACETA-1901-01-23-0077",
+        "issue_date_candidate": "1901-01-23",
+        "source_resource_id": "service:ndnp:prru:batch_prru_galleta_ver01:data:2013201074:00415662968:1901012301:0077",
+        "url": "https://tile.loc.gov/image-services/iiif/service:ndnp:prru:batch_prru_galleta_ver01:data:2013201074:00415662968:1901012301:0077/full/pct:25/0/default.jpg",
+        "status": "REMOTE_BLOCKED_NO_SOURCE_BYTES",
+        "exception_text": "The read operation timed out",
+        "http_status_observed": null,
+        "jpeg_received": false,
+        "image_sha256": null,
+        "image_bytes": null
+      },
+      {
+        "document_id": "GACETA-1901-01-24-ED1-P3",
+        "source_id": "LOC-GACETA-1901-01-24-0080",
+        "issue_date_candidate": "1901-01-24",
+        "source_resource_id": "service:ndnp:prru:batch_prru_galleta_ver01:data:2013201074:00415662968:1901012401:0080",
+        "url": "https://tile.loc.gov/image-services/iiif/service:ndnp:prru:batch_prru_galleta_ver01:data:2013201074:00415662968:1901012401:0080/full/pct:25/0/default.jpg",
+        "status": "REMOTE_BLOCKED_NO_SOURCE_BYTES",
+        "exception_text": "The read operation timed out",
+        "http_status_observed": null,
+        "jpeg_received": false,
+        "image_sha256": null,
+        "image_bytes": null
+      }
+    ]
+  },
+  "historical_authority": {
+    "authority_state": "AUTHORITY_HOLD",
+    "raw_capture_required": true,
+    "custodial_source_bytes_received": false,
+    "printed_issue_date_visually_verified": false,
+    "source_pages_visually_inspected": false,
+    "column_applicant_attribution_approved": false,
+    "gambaro_notices_legal_identity_verified": false,
+    "historian_human_review_complete": false,
+    "canonical_write_authorized": false,
+    "historical_event_date": null,
+    "geometry": null
+  },
+  "next_escalation": {
+    "route": "UPR Rio Piedras indexed microfilm Gaceta Jan-Apr 1901, gaveta S-9 CPR/CM; verify availability and accession with custodian",
+    "source_acquisition_request_sent": false,
+    "source_material_received": false
+  }
+}
