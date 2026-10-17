@@ -24,8 +24,8 @@ import json
 import os
 from pathlib import Path
 import tempfile
-from urllib.parse import quote, unquote, urlsplit
-from urllib.request import urlopen
+from urllib.parse import unquote, urlsplit
+from urllib.request import Request, urlopen
 
 
 MANIFEST = (
@@ -57,7 +57,12 @@ def iiif_candidate_url(date: str) -> str:
         "2013201074", "00415662968", issue["issue_folder"],
         issue["page_file"],
     ))
-    return IIIF_BASE + quote(resource, safe="") + "/full/pct:25/0/default.jpg"
+    return IIIF_BASE + resource + "/full/pct:25/0/default.jpg"
+
+
+def iiif_candidate_info_url(date: str) -> str:
+    """Unverified IIIF metadata endpoint, never a source-image receipt."""
+    return iiif_candidate_url(date).rsplit("/full/", 1)[0] + "/info.json"
 
 
 def validate_manifest() -> dict:
@@ -111,7 +116,12 @@ def read_jpeg(url: str, *, opener=urlopen, maximum: int = MAX_JPEG_BYTES) -> byt
     resource_path = unquote(parsed.path.split("/")[3])
     if not resource_path.startswith("service:ndnp:prru:batch_prru_galleta_ver01:"):
         raise ValueError("unexpected IIIF source identity")
-    with opener(url, timeout=30) as response:
+    # Identify GALIA to the custodial service rather than Python-urllib.
+    request = Request(url, headers={
+        "User-Agent": "GALIA-Historical-Research/0.1",
+        "Accept": "image/jpeg",
+    })
+    with opener(request, timeout=30) as response:
         status = getattr(response, "status", 200)
         final_url = response.geturl()
         if status != 200 or final_url != url:
@@ -214,6 +224,8 @@ def main() -> int:
             "filesystem_modified": False,
             "candidate_iiif_urls": {date: iiif_candidate_url(date)
                                     for date in dates},
+            "candidate_iiif_metadata_urls": {date: iiif_candidate_info_url(date)
+                                             for date in dates},
             "historical_authority": "AUTHORITY_HOLD",
         }, indent=2))
         return 0
