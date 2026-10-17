@@ -206,6 +206,22 @@ class Loiza1901IIIFProbeTests(unittest.TestCase):
                 [p.name for p in Path(temp).iterdir()], ["evidence.jpg"]
             )
 
+    def test_corrupted_persisted_image_does_not_publish_receipt(self):
+        original = probe.atomic_write_bytes
+        def corrupt_image(destination, data):
+            if destination.suffix == ".jpg":
+                return original(destination, b"corrupted")
+            return original(destination, data)
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)
+            with patch.object(probe, "atomic_write_bytes", side_effect=corrupt_image):
+                with self.assertRaisesRegex(ValueError, "digest mismatch"):
+                    probe.capture_candidate(
+                        "1901-01-23", output,
+                        opener=lambda req, timeout: FakeResponse(req, VALID_JPEG),
+                    )
+            self.assertEqual(list(output.iterdir()), [])
+
     def test_symlinked_quarantine_paths_are_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
