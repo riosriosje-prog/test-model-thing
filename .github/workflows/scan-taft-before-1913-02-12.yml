@@ -1,0 +1,132 @@
+name: scan-taft-before-1913-02-12
+
+on:
+  push:
+    branches:
+      - galia2/taft-1915-source-discovery-v0.1
+    paths:
+      - .github/workflows/scan-taft-before-1913-02-12.yml
+      - tools/scan_taft_street_1915.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install PDF tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Resolve and scan 1 Jan through 11 Feb 1913
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scan
+          base="https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97"
+          : > scan/SUMMARY.jsonl
+          : > scan/RESOLVED.tsv
+          : > scan/MISSING_DATES.txt
+
+          python - <<'PY' > scan/dates.txt
+          from datetime import date, timedelta
+          d=date(1913,2,11)
+          while d >= date(1913,1,1):
+              if d.weekday() != 6:
+                  print(d.isoformat())
+              d -= timedelta(days=1)
+          PY
+
+          current=644
+          while read -r date; do
+            file=$(echo "$date" | tr -d '-')01.pdf
+            found=""
+            found_url=""
+
+            # Allow small sequence discontinuities while preserving exact date check.
+            for offset in 0 1 2 3 4; do
+              candidate=$((current-offset))
+              [ "$candidate" -gt 0 ] || continue
+              f=$(printf "%05d" "$candidate")
+              url="$base/$f/$file"
+              code=$(curl --head --location --silent --show-error                 --connect-timeout 10 --max-time 20                 --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"                 --output /tmp/headers.txt --write-out "%{http_code}" "$url" || true)
+              if [ "$code" = "200" ]; then
+                found="$candidate"
+                found_url="$url"
+                break
+              fi
+            done
+
+            if [ -z "$found" ]; then
+              echo "$date" >> scan/MISSING_DATES.txt
+              echo "TAFT_UNRESOLVED_DATE=$date current=$current"
+              continue
+            fi
+
+            printf "%s\t%s\t%s\n" "$date" "$found" "$found_url" >> scan/RESOLVED.tsv
+            echo "TAFT_RESOLVED date=$date folder=$(printf "%05d" "$found")"
+
+            curl --fail --location --silent --show-error               --retry 4 --retry-all-errors --retry-delay 2               --connect-timeout 30 --max-time 300               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"               --output scan/current.pdf "$found_url"
+
+            PYTHONPATH=. python tools/scan_taft_street_1915.py               --pdf scan/current.pdf               --date "$date"               --folder "$found"               --url "$found_url"               --output scan/current.json
+
+            cat scan/current.json >> scan/SUMMARY.jsonl
+
+            python - <<'PY'
+          import json
+          d=json.load(open("scan/current.json"))
+          print("TAFT_PRE1913_RESULT date=%s street_hits=%s generic_taft=%s sha=%s" % (
+              d["date"], len(d["street_hits"]), len(d["taft_diagnostics"]),
+              d["raw_pdf_sha256"]
+          ))
+          for hit in d["street_hits"][:8]:
+              print("TAFT_PRE1913_HIT=" + json.dumps(hit, ensure_ascii=False, sort_keys=True))
+          PY
+
+            rm -f scan/current.pdf scan/current.json
+            current=$((found-1))
+          done < scan/dates.txt
+
+          python - <<'PY'
+          import json
+          rows=[json.loads(x) for x in open("scan/SUMMARY.jsonl") if x.strip()]
+          hits=[r for r in rows if r["street_hits"]]
+          missing=[x.strip() for x in open("scan/MISSING_DATES.txt") if x.strip()]
+          print("TAFT_PRE1913_RESOLVED_ISSUES=" + str(len(rows)))
+          print("TAFT_PRE1913_UNRESOLVED_DATES=" + str(len(missing)))
+          print("TAFT_PRE1913_HIT_ISSUES=" + str(len(hits)))
+          if hits:
+              earliest=min(r["date"] for r in hits)
+              print("EARLIEST_TAFT_PRE1913_DATE=" + earliest)
+              row=next(r for r in hits if r["date"]==earliest)
+              print("EARLIEST_TAFT_PRE1913_URL=" + row["source_url"])
+              print("EARLIEST_TAFT_PRE1913_SHA256=" + row["raw_pdf_sha256"])
+          else:
+              print("EARLIEST_TAFT_PRE1913_DATE=NONE_IN_RESOLVED_WINDOW")
+          if missing:
+              print("TAFT_PRE1913_MISSING_DATES=" + ",".join(missing))
+          PY
+
+      - name: Upload scan evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_TAFT_1913_01_01_TO_02_11_SCAN
+          path: |
+            scan/dates.txt
+            scan/RESOLVED.tsv
+            scan/MISSING_DATES.txt
+            scan/SUMMARY.jsonl
+          if-no-files-found: error
+          retention-days: 30

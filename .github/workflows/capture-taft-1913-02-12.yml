@@ -1,0 +1,107 @@
+name: capture-taft-1913-02-12
+
+on:
+  push:
+    branches:
+      - galia2/taft-1915-source-discovery-v0.1
+    paths:
+      - .github/workflows/capture-taft-1913-02-12.yml
+      - tools/scan_taft_street_1915.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install PDF tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Capture exact UFDC issue
+        shell: bash
+        env:
+          SOURCE_URL: https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/00645/1913021201.pdf
+        run: |
+          set -euo pipefail
+          mkdir -p capture/rendered
+          curl --fail --location --silent --show-error             --retry 5 --retry-all-errors --retry-delay 3             --connect-timeout 30 --max-time 300             --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"             --output capture/el_tiempo_1913_02_12.pdf             "$SOURCE_URL"
+
+          python - <<'PY'
+          import hashlib, pathlib
+          p=pathlib.Path("capture/el_tiempo_1913_02_12.pdf")
+          b=p.read_bytes()
+          assert b.startswith(b"%PDF-")
+          assert len(b) > 1_000_000
+          print("TAFT_1913_RAW_SHA256=" + hashlib.sha256(b).hexdigest())
+          print("TAFT_1913_RAW_SIZE=" + str(len(b)))
+          PY
+
+      - name: Scan for Taft street form
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/00645/1913021201.pdf"
+          PYTHONPATH=. python tools/scan_taft_street_1915.py             --pdf capture/el_tiempo_1913_02_12.pdf             --date 1913-02-12             --folder 645             --url "$url"             --output capture/TAFT_1913_DISCOVERY.json
+
+          python - <<'PY'
+          import json, pathlib
+          d=json.loads(pathlib.Path("capture/TAFT_1913_DISCOVERY.json").read_text())
+          assert d["street_hits"], "No Taft street-form hit found"
+          print("TAFT_1913_HIT_COUNT=" + str(len(d["street_hits"])))
+          pages=sorted({h["page_number"] for h in d["street_hits"]})
+          print("TAFT_1913_HIT_PAGES=" + ",".join(map(str,pages)))
+          for h in d["street_hits"]:
+              print("TAFT_1913_STREET_HIT=" + json.dumps(h, ensure_ascii=False, sort_keys=True))
+          pathlib.Path("capture/HIT_PAGES.txt").write_text(
+              "\n".join(map(str,pages)) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Render hit pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r page; do
+            [ -n "$page" ] || continue
+            pdftoppm -f "$page" -l "$page" -singlefile -png -r 220               capture/el_tiempo_1913_02_12.pdf               "capture/rendered/page_${page}"
+          done < capture/HIT_PAGES.txt
+
+          python - <<'PY'
+          import hashlib, pathlib, json
+          rows=[]
+          for p in sorted(pathlib.Path("capture/rendered").glob("*.png")):
+              b=p.read_bytes()
+              rows.append({"file":p.name,"sha256":hashlib.sha256(b).hexdigest(),"bytes":len(b)})
+          pathlib.Path("capture/RENDER_MANIFEST.json").write_text(
+              json.dumps(rows, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          print("TAFT_1913_RENDER_COUNT=" + str(len(rows)))
+          for row in rows:
+              print("TAFT_1913_RENDER=" + json.dumps(row, sort_keys=True))
+          PY
+
+      - name: Upload primary evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_TAFT_1913_02_12_PRIMARY
+          path: |
+            capture/el_tiempo_1913_02_12.pdf
+            capture/TAFT_1913_DISCOVERY.json
+            capture/HIT_PAGES.txt
+            capture/RENDER_MANIFEST.json
+            capture/rendered/
+          if-no-files-found: error
+          retention-days: 90
