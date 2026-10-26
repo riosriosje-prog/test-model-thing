@@ -1,0 +1,51 @@
+name: retry-mcleary-1915-10-30
+
+on:
+  push:
+    branches:
+      - galia2/mcleary-1915-source-discovery-v0.1
+    paths:
+      - .github/workflows/retry-mcleary-1915-10-30.yml
+      - tools/scan_mcleary_pre_1915_11_22.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install PDF text tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+      - name: Retry 30 Oct 1915
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scan
+          url="https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01425/1915103001.pdf"
+          curl --fail --location --silent --show-error             --retry 6 --retry-all-errors --retry-delay 3             --connect-timeout 30 --max-time 300             --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"             --output scan/1915103001.pdf "$url"
+          PYTHONPATH=. python tools/scan_mcleary_pre_1915_11_22.py             --pdf scan/1915103001.pdf             --date 1915-10-30 --folder 1425 --url "$url"             --output scan/RESULT.json
+          python - <<'PY'
+          import json
+          d=json.load(open("scan/RESULT.json"))
+          print("OCT30_MCLEARY_HITS=" + str(len(d["hits"])))
+          print("OCT30_GENERIC_LEARY=" + str(len(d["leary_diagnostics"])))
+          print("OCT30_SHA256=" + d["raw_pdf_sha256"])
+          for hit in d["hits"]:
+              print("OCT30_MCLEARY_HIT=" + json.dumps(hit, ensure_ascii=False, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_MCLEARY_1915_10_30_RETRY
+          path: scan/RESULT.json
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,131 @@
+name: scan-mcleary-september-1915
+
+on:
+  push:
+    branches:
+      - galia2/mcleary-1915-source-discovery-v0.1
+    paths:
+      - .github/workflows/scan-mcleary-september-1915.yml
+      - tools/scan_mcleary_pre_1915_11_22.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install PDF text tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Resolve September issue mapping and scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scan
+          base="https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97"
+          : > scan/SUMMARY.jsonl
+          : > scan/RESOLVED.tsv
+          : > scan/MISSING_DATES.txt
+
+          anchor_folder=""
+          for folder in $(seq 1399 -1 1380); do
+            f=$(printf "%05d" "$folder")
+            url="$base/$f/1915093001.pdf"
+            code=$(curl --head --location --silent --show-error               --connect-timeout 10 --max-time 20               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"               --output /tmp/headers.txt --write-out "%{http_code}" "$url" || true)
+            if [ "$code" = "200" ]; then
+              anchor_folder="$folder"
+              echo "SEPTEMBER_ANCHOR date=1915-09-30 folder=$f"
+              break
+            fi
+          done
+          test -n "$anchor_folder"
+
+          current="$anchor_folder"
+          python - <<'PY' > scan/dates.txt
+          from datetime import date, timedelta
+          d=date(1915,9,30)
+          while d >= date(1915,9,1):
+              if d.weekday() != 6:
+                  print(d.isoformat())
+              d -= timedelta(days=1)
+          PY
+
+          while read -r date; do
+            file=$(echo "$date" | tr -d '-')01.pdf
+            found=""
+            found_url=""
+            for offset in 0 1 2 3; do
+              candidate=$((current-offset))
+              f=$(printf "%05d" "$candidate")
+              url="$base/$f/$file"
+              code=$(curl --head --location --silent --show-error                 --connect-timeout 10 --max-time 20                 --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"                 --output /tmp/headers.txt --write-out "%{http_code}" "$url" || true)
+              if [ "$code" = "200" ]; then
+                found="$candidate"
+                found_url="$url"
+                break
+              fi
+            done
+
+            if [ -z "$found" ]; then
+              echo "$date" >> scan/MISSING_DATES.txt
+              echo "NO_ISSUE_RESOLVED date=$date current_folder=$current"
+              continue
+            fi
+
+            printf "%s\t%s\t%s\n" "$date" "$found" "$found_url" >> scan/RESOLVED.tsv
+            echo "RESOLVED date=$date folder=$(printf "%05d" "$found")"
+            curl --fail --location --silent --show-error               --retry 4 --retry-all-errors --retry-delay 2               --connect-timeout 30 --max-time 300               --user-agent "Mozilla/5.0 GALIA-Historical-Research/0.2"               --output scan/current.pdf "$found_url"
+
+            PYTHONPATH=. python tools/scan_mcleary_pre_1915_11_22.py               --pdf scan/current.pdf --date "$date" --folder "$found"               --url "$found_url" --output scan/current.json
+            cat scan/current.json >> scan/SUMMARY.jsonl
+
+            python - <<'PY'
+          import json
+          d=json.load(open("scan/current.json"))
+          print("SCAN_RESULT date=%s hits=%s generic_leary=%s sha=%s" % (
+              d["date"], len(d["hits"]), len(d["leary_diagnostics"]),
+              d["raw_pdf_sha256"]
+          ))
+          for hit in d["hits"][:4]:
+              print("MCLEARY_STREET_HIT " + json.dumps(hit, ensure_ascii=False, sort_keys=True))
+          PY
+
+            rm -f scan/current.pdf scan/current.json
+            current=$((found-1))
+          done < scan/dates.txt
+
+          python - <<'PY'
+          import json, pathlib
+          rows=[json.loads(x) for x in open("scan/SUMMARY.jsonl") if x.strip()]
+          hits=[r for r in rows if r["hits"]]
+          missing=[x.strip() for x in open("scan/MISSING_DATES.txt") if x.strip()]
+          print("SEP_RESOLVED_ISSUES=" + str(len(rows)))
+          print("SEP_UNRESOLVED_DATES=" + str(len(missing)))
+          print("SEP_MCLEARY_HIT_ISSUES=" + str(len(hits)))
+          print("EARLIEST_MCLEARY_HIT_DATE=" + (min(r["date"] for r in hits) if hits else "NONE_IN_RESOLVED_CORPUS"))
+          if missing:
+              print("SEP_MISSING_DATES=" + ",".join(missing))
+          PY
+
+      - name: Upload scan summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: GALIA_MCLEARY_SEPTEMBER_1915_SCAN
+          path: |
+            scan/dates.txt
+            scan/RESOLVED.tsv
+            scan/MISSING_DATES.txt
+            scan/SUMMARY.jsonl
+          if-no-files-found: error
+          retention-days: 30
