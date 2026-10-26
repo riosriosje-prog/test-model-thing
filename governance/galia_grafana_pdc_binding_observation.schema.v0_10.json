@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "galia-grafana-pdc-binding-observation-v0.10",
+  "title": "GALIA Grafana PDC Binding Observation v0.10",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_type",
+    "stack_id",
+    "datasource_uid",
+    "pdc_network_display_name",
+    "pdc_tunnel_id",
+    "connected_agents_count",
+    "before",
+    "after",
+    "diff",
+    "secret_material_persisted"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "receipt_type": {
+      "const": "GALIA_GRAFANA_PDC_BINDING_OBSERVATION"
+    },
+    "stack_id": {
+      "type": [
+        "string",
+        "integer"
+      ]
+    },
+    "datasource_uid": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pdc_network_display_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pdc_tunnel_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "connected_agents_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "before": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "jsonData",
+        "secureJsonFields",
+        "observed_at_utc"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "jsonData": {
+          "type": "object"
+        },
+        "secureJsonFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "observed_at_utc": {
+          "type": "string"
+        }
+      }
+    },
+    "after": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "jsonData",
+        "secureJsonFields",
+        "save_and_test_status",
+        "health_status",
+        "observed_at_utc"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "jsonData": {
+          "type": "object"
+        },
+        "secureJsonFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "save_and_test_status": {
+          "const": "DATABASE_CONNECTION_OK"
+        },
+        "health_status": {
+          "enum": [
+            "OK",
+            "PASS"
+          ]
+        },
+        "observed_at_utc": {
+          "type": "string"
+        }
+      }
+    },
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changed_jsonData_paths",
+        "changed_top_level_safe_paths",
+        "candidate_binding_paths",
+        "repeatability_status"
+      ],
+      "properties": {
+        "changed_jsonData_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "changed_top_level_safe_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "candidate_binding_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "repeatability_status": {
+          "enum": [
+            "UNTESTED",
+            "SINGLE_OBSERVATION",
+            "REPEATED_MATCH",
+            "INCONSISTENT"
+          ]
+        }
+      }
+    },
+    "secret_material_persisted": {
+      "const": false
+    }
+  }
+}

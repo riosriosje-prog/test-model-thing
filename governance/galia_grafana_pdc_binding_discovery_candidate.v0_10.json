@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-PDC-BINDING-DISCOVERY-CANDIDATE-v0.10",
+  "status": "AUTHORITY_HOLD_DEPENDENT_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-pdc-binding-discovery-v0-10-candidate",
+  "base_candidate": {
+    "candidate_id": "GALIA-GRAFANA-LIVE-EXECUTION-ADAPTER-CANDIDATE-v0.9",
+    "github_pr": 58,
+    "head": "92db5a34929b9a9fadb7c6f9256ab7009569959c",
+    "candidate_set_sha256": "1633519cc8bd5997a3cc9a6ce46929a8ef8b7140ae3cd708741c63e2f2aa5188"
+  },
+  "authority_dependency": {
+    "candidate_id": "GALIA-GRAFANA-AUTHORITY-RATIFICATION-CANDIDATE-v0.3",
+    "github_pr": 57,
+    "expected_head": "3b84af0b114a416eec7dd73bdba21ee51627bd4c",
+    "expected_candidate_set_sha256": "087baf751ddaf49e58d00ff4bd7a3df1ee7e3f7ed44da79798d771fb773dbab1",
+    "required_state_before_discovery_execution": "PROMOTED",
+    "current_state": "HUMAN_DECISION_PENDING"
+  },
+  "purpose": "Define a no-guessing discovery protocol for the exact Grafana Cloud PDC datasource-binding representation before any API automation is designed.",
+  "current_contract": {
+    "documented_ui_behavior": [
+      "SELECT_EXACT_PDC_NETWORK_IN_DATASOURCE_SETTINGS",
+      "SAVE_AND_TEST",
+      "PDC_NETWORK_MUST_HAVE_CONNECTED_AGENT"
+    ],
+    "documented_observability": [
+      "grafanacloud_grafana_pdc_connected_agents",
+      "tunnelID_LABEL_IDENTIFIES_PDC_NETWORK"
+    ],
+    "standard_datasource_api": [
+      "GET_/api/datasources/uid/:uid",
+      "PUT_/api/datasources/uid/:uid",
+      "GET_/api/datasources/uid/:uid/health"
+    ],
+    "response_secret_behavior": [
+      "SECURE_VALUES_NOT_RETURNED_AS_SECUREJSONDATA",
+      "SECURE_FIELD_PRESENCE_RETURNED_AS_SECUREJSONFIELDS"
+    ],
+    "pdc_plugin_rbac": [
+      "plugins:grafana-pdc-app:private-networks-read",
+      "plugins:grafana-pdc-app:private-networks-write"
+    ],
+    "exact_datasource_pdc_binding_api_field": "UNKNOWN_AND_MUST_NOT_BE_INVENTED"
+  },
+  "discovery_protocol": {
+    "mutation_authorization_required": true,
+    "allowed_only_after_authority_ratification": true,
+    "steps": [
+      "IDENTIFY_EXISTING_OR_NEW_TEST_DATASOURCE_UID_WITHOUT_SECRET_EXPORT",
+      "GET_DATASOURCE_BEFORE_BINDING",
+      "SANITIZE_RESPONSE_TO_REMOVE_ALL_SECRET_VALUES_AND_IDENTIFIERS_NOT_REQUIRED_FOR_DIFF",
+      "RECORD_JSONDATA_KEYS_AND_SAFE_VALUES",
+      "VERIFY_TARGET_PDC_NETWORK_CONNECTED_AGENTS_GT_0_USING_tunnelID",
+      "SELECT_EXACT_PDC_NETWORK_IN_GRAFANA_UI",
+      "SAVE_AND_TEST_AND_REQUIRE_DATABASE_CONNECTION_OK",
+      "GET_DATASOURCE_AFTER_BINDING",
+      "SANITIZE_RESPONSE",
+      "DIFF_BEFORE_AFTER",
+      "IDENTIFY_STABLE_PDC_BINDING_REPRESENTATION_IF_PRESENT",
+      "REPEAT_ON_FRESH_TEST_DATASOURCE_IF_NEEDED_TO_RULE_OUT_UNRELATED_CHANGES",
+      "ONLY_THEN_PROPOSE_AUTOMATION_CONTRACT"
+    ],
+    "no_secret_export": true,
+    "no_token_logging": true,
+    "no_primary_email_logging": true,
+    "no_ca_pem_logging": true,
+    "no_pat_logging": true,
+    "no_pdc_signing_token_logging": true,
+    "no_grafana_service_account_token_logging": true
+  },
+  "minimum_privilege_model": {
+    "datasource_read_for_observation": "datasources:read scoped to target datasource where feasible",
+    "datasource_write_for_binding_execution": "datasources:write scoped to target datasource where feasible",
+    "pdc_network_read": "plugins:grafana-pdc-app:private-networks-read",
+    "pdc_network_write": "NOT_REQUIRED_FOR_SELECTING_AN_EXISTING_NETWORK_UNLESS_GRAFANA_PRODUCT_CONTRACT_DEMONSTRATES_OTHERWISE",
+    "service_account_role_assignment_supported": true
+  },
+  "evidence_requirements": {
+    "before_snapshot": [
+      "datasource_uid",
+      "datasource_version",
+      "jsonData_sanitized",
+      "secureJsonFields_names_only",
+      "timestamp_utc"
+    ],
+    "pdc_network": [
+      "network_display_name",
+      "tunnelID",
+      "connected_agents_count_gt_zero",
+      "stack_id",
+      "observation_timestamp_utc"
+    ],
+    "after_snapshot": [
+      "datasource_uid_same_as_before",
+      "datasource_version_increment_or_other_documented_change",
+      "jsonData_sanitized",
+      "secureJsonFields_names_only",
+      "save_and_test_result",
+      "health_result",
+      "timestamp_utc"
+    ],
+    "comparison": [
+      "changed_jsonData_paths",
+      "changed_top_level_safe_paths",
+      "candidate_binding_paths",
+      "repeatability_assessment"
+    ]
+  },
+  "promotion_eligibility": {
+    "current": false,
+    "reasons": [
+      "AUTHORITY_RATIFICATION_v0_3_NOT_PROMOTED",
+      "DISCOVERY_REQUIRES_SEPARATE_LIVE_MUTATION_AUTHORIZATION",
+      "PDC_BINDING_FIELD_NOT_YET_OBSERVED"
+    ]
+  },
+  "source_evidence": [
+    {
+      "source": "Grafana Configure PDC docs",
+      "assertion": "A datasource using PDC must select the connection/network and use an active PDC agent.",
+      "url": "https://grafana.com/docs/grafana-cloud/observe-and-act/connect-externally-hosted/private-data-source-connect/configure-pdc/"
+    },
+    {
+      "source": "Grafana Configure PDC docs",
+      "assertion": "grafanacloud_grafana_pdc_connected_agents reports connected agents per PDC network via tunnelID.",
+      "url": "https://grafana.com/docs/grafana-cloud/observe-and-act/connect-externally-hosted/private-data-source-connect/configure-pdc/"
+    },
+    {
+      "source": "Grafana Data source HTTP API",
+      "assertion": "GET by UID exposes jsonData and secureJsonFields while secure values remain encrypted/not returned; PUT updates datasource; health endpoint tests datasource.",
+      "url": "https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/data_source/"
+    },
+    {
+      "source": "Grafana plugin RBAC docs",
+      "assertion": "PDC plugin exposes private-networks-read and private-networks-write roles; Grafana RBAC roles can be assigned to service accounts.",
+      "url": "https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/plugin-role-definitions/"
+    }
+  ],
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_pdc_binding_discovery_candidate.v0_10.json",
+      "governance/galia_grafana_pdc_binding_observation.schema.v0_10.json",
+      "docs/galia_grafana_pdc_binding_discovery_protocol.v0_10.md",
+      "tests/test_galia_grafana_pdc_binding_discovery_v0_10.py"
+    ],
+    "self_hash_embedded": false
+  },
+  "non_effects": [
+    "NO_MAIN_MUTATION",
+    "NO_AUTHORITY_RATIFICATION",
+    "NO_DISCOVERY_EXECUTION",
+    "NO_GRAFANA_MUTATION",
+    "NO_SUPABASE_MUTATION",
+    "NO_DATASOURCE_CREATE_OR_UPDATE",
+    "NO_PDC_NETWORK_CREATE_OR_UPDATE",
+    "NO_TOKEN_CREATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_API_BINDING_FIELD_ASSUMPTION"
+  ]
+}

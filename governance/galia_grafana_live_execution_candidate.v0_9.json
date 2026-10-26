@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "candidate_id": "GALIA-GRAFANA-LIVE-EXECUTION-ADAPTER-CANDIDATE-v0.9",
+  "status": "AUTHORITY_HOLD_DEPENDENT_NOT_PROMOTABLE",
+  "repository": "riosriosje-prog/test-model-thing",
+  "branch": "galia-grafana-live-execution-v0-9-candidate",
+  "base_main_commit": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892",
+  "authority_dependency": {
+    "candidate_id": "GALIA-GRAFANA-AUTHORITY-RATIFICATION-CANDIDATE-v0.3",
+    "github_pr": 57,
+    "expected_head": "3b84af0b114a416eec7dd73bdba21ee51627bd4c",
+    "expected_candidate_set_sha256": "087baf751ddaf49e58d00ff4bd7a3df1ee7e3f7ed44da79798d771fb773dbab1",
+    "required_state_before_this_candidate_can_advance": "PROMOTED",
+    "current_state": "HUMAN_DECISION_PENDING"
+  },
+  "predecessor_artifact": {
+    "candidate_id": "GALIA-GRAFANA-DATASOURCE-CANDIDATE-v0.8",
+    "github_pr": 55,
+    "source_head": "b4cb4aee27b1a9479dd6b0ae79f84097e48e6bde",
+    "source_candidate_set_sha256": "3b37c650c8b0302990cd62f6cb967bcbcdcaaa3cc97ad73f7a12637055e79e9d",
+    "github_merge_commit": "a3b60d02e993a5d0b01e6ef40905f5ba0dfc4892",
+    "authority_status": "AUTHORITY_HOLD_PENDING_RATIFICATION"
+  },
+  "purpose": "Separate self-hosted Grafana execution from Grafana Cloud PDC execution, reject unsupported Grafana Cloud direct-IPv6 execution, and define evidence required before any live activation candidate can become eligible.",
+  "supported_profiles": {
+    "SELF_HOSTED_IPV6": {
+      "deployment_surface": "FILE_PROVISIONING",
+      "datasource_config_artifact": "grafana/provisioning/datasources/galia_cangrejos_postgres.v0_7.yaml",
+      "route": "SELF_HOSTED_DIRECT_IPV6",
+      "pdc_required": false,
+      "direct_external_ipv6_required": true,
+      "tls_acceptance": "PSQL_VERIFY_FULL_PLUS_GRAFANA_DATASOURCE_HEALTH",
+      "runtime_acceptance": "tools/run_galia_grafana_runtime_acceptance_v0_7.sh"
+    },
+    "GRAFANA_CLOUD_PDC_IPV6": {
+      "deployment_surface": "GRAFANA_CLOUD_UI_OR_HTTP_API_PLUS_VERIFIED_PDC_BINDING",
+      "file_provisioning_role": "REFERENCE_ONLY_NOT_CLOUD_DEPLOYMENT_MECHANISM",
+      "route": "PDC_AGENT_TO_SUPABASE_IPV6",
+      "pdc_required": true,
+      "direct_grafana_cloud_ipv6_required": false,
+      "pdc_agent_must_be_connected": true,
+      "pdc_network_identity_required": true,
+      "pdc_agent_ipv6_egress_required": true,
+      "permit_remote_open": "db.nzoviwitcqmsacwiizhh.supabase.co:5432",
+      "tls_acceptance": "GRAFANA_SAVE_AND_TEST_OR_DATASOURCE_HEALTH_THROUGH_BOUND_PDC_PLUS_VERIFY_FULL",
+      "standard_http_api_capabilities": [
+        "CREATE_DATASOURCE",
+        "UPDATE_DATASOURCE",
+        "GET_DATASOURCE",
+        "DATASOURCE_HEALTH"
+      ],
+      "pdc_binding_automation_status": "UNVERIFIED_PUBLIC_CONTRACT_DO_NOT_ASSUME"
+    }
+  },
+  "explicitly_unsupported_profiles": [
+    {
+      "profile": "GRAFANA_CLOUD_DIRECT_IPV6",
+      "reason": "CURRENT_GRAFANA_CLOUD_DOCUMENTATION_STATES_EXTERNAL_DATASOURCE_CONNECTIONS_DO_NOT_SUPPORT_IPV6"
+    }
+  ],
+  "credential_domains": {
+    "supabase_database_temporary_access_pat": {
+      "purpose": "POSTGRES_PASSWORD_FOR_TEMPORARY_ACCESS",
+      "expected_prefix": "sbp_fc",
+      "must_bind_to_authorized_gotrue_id": true,
+      "persist_in_repository": false,
+      "persist_in_receipt": false
+    },
+    "grafana_service_account_token": {
+      "purpose": "GRAFANA_HTTP_API_AUTH_IF_API_PATH_IS_USED",
+      "distinct_from_supabase_pat": true,
+      "persist_in_repository": false,
+      "persist_in_receipt": false
+    },
+    "grafana_pdc_signing_token": {
+      "purpose": "PDC_AGENT_TO_GRAFANA_CLOUD_AUTH",
+      "required_scope": "pdc-signing:write",
+      "distinct_from_supabase_pat": true,
+      "distinct_from_grafana_service_account_token": true,
+      "persist_in_repository": false,
+      "persist_in_receipt": false
+    }
+  },
+  "invariants": [
+    "PROFILE_SELECTION_PRECEDES_LIVE_EXECUTION",
+    "GRAFANA_CLOUD_DIRECT_IPV6_IS_REJECTED",
+    "PDC_BOOLEAN_ALONE_IS_NOT_PDC_BINDING_EVIDENCE",
+    "PDC_NETWORK_IDENTITY_AND_CONNECTED_AGENT_EVIDENCE_REQUIRED",
+    "FILE_PROVISIONING_IS_NOT_ASSUMED_TO_BE_A_GRAFANA_CLOUD_USER_DEPLOYMENT_SURFACE",
+    "GRAFANA_HTTP_API_PDC_BINDING_FIELD_MUST_NOT_BE_INVENTED",
+    "SUPABASE_PAT_NEQ_GRAFANA_API_TOKEN",
+    "SUPABASE_PAT_NEQ_PDC_SIGNING_TOKEN",
+    "CONN_MAX_LIFETIME_240_LT_300",
+    "VERIFY_FULL_REQUIRED",
+    "NO_SECRET_PERSISTENCE"
+  ],
+  "external_evidence_required_before_live_candidate": {
+    "common": [
+      "SERVER_ROOT_CA_SHA256",
+      "DEDICATED_IDENTITY_GOTRUE_ID",
+      "SERVICE_SCOPED_PAT_BINDING_VERIFIED",
+      "SSL_ENFORCEMENT_ENABLED_VERIFIED",
+      "TEMPORARY_ACCESS_ENABLED_VERIFIED",
+      "JIT_MAPPING_VERIFIED_AND_NOT_EXPIRED"
+    ],
+    "SELF_HOSTED_IPV6": [
+      "SELF_HOSTED_GRAFANA_HOST_IDENTITY",
+      "SELF_HOSTED_IPV6_EGRESS_CIDR",
+      "SELF_HOSTED_DIRECT_IPV6_REACHABILITY",
+      "PSQL_VERIFY_FULL_PASS",
+      "GRAFANA_DATASOURCE_HEALTH_PASS"
+    ],
+    "GRAFANA_CLOUD_PDC_IPV6": [
+      "GRAFANA_STACK_URL",
+      "GRAFANA_STACK_ID",
+      "PDC_NETWORK_IDENTITY",
+      "PDC_AGENT_CONNECTED",
+      "PDC_AGENT_IPV6_EGRESS_CIDR",
+      "PDC_AGENT_REACHES_SUPABASE_HOST_5432_OVER_IPV6",
+      "PDC_PERMIT_REMOTE_OPEN_CONSTRAINED",
+      "DATASOURCE_BOUND_TO_EXPECTED_PDC_NETWORK",
+      "GRAFANA_SAVE_AND_TEST_OR_HEALTH_PASS",
+      "FIVE_MONITOR_VIEWS_PASS",
+      "NEGATIVE_PERMISSION_TESTS_PASS"
+    ]
+  },
+  "current_gates": {
+    "authority_ratification_v0_3_promoted": false,
+    "deployment_profile_selected": false,
+    "common_external_evidence_complete": false,
+    "profile_specific_external_evidence_complete": false,
+    "live_execution_candidate_eligible": false
+  },
+  "source_evidence": [
+    {
+      "source": "Grafana Cloud docs",
+      "assertion": "Grafana Cloud does not currently support external data source connections over IPv6.",
+      "url": "https://grafana.com/docs/grafana-cloud/learn-and-build/get-started/learn/gs-visualize/"
+    },
+    {
+      "source": "Grafana PDC docs",
+      "assertion": "A PDC network/agent must be selected and active; PDC agent has separate signing token and can be constrained with PermitRemoteOpen.",
+      "url": "https://grafana.com/docs/grafana-cloud/observe-and-act/connect-externally-hosted/private-data-source-connect/configure-pdc/"
+    },
+    {
+      "source": "Grafana PDC optimization docs",
+      "assertion": "PostgreSQL max connection lifetime should be under 300 seconds when used with PDC.",
+      "url": "https://grafana.com/docs/grafana-cloud/observe-and-act/connect-externally-hosted/private-data-source-connect/optimize-data-source-connections/"
+    },
+    {
+      "source": "Grafana HTTP API docs",
+      "assertion": "Datasource create/update/read/health operations are exposed by the Grafana HTTP API using a Grafana service account token.",
+      "url": "https://grafana.com/docs/grafana/latest/developer-resources/api-reference/http-api/api-legacy/data_source/"
+    },
+    {
+      "source": "Supabase Temporary Access docs",
+      "assertion": "SSL enforcement is required; an authorized user's PAT is used as the PostgreSQL role password; restrictions may include validity and IP ranges.",
+      "url": "https://supabase.com/docs/guides/platform/temporary-access"
+    }
+  ],
+  "candidate_set_hash_contract": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "sorted path + NUL + file_sha256 + newline",
+    "included_paths": [
+      "governance/galia_grafana_live_execution_candidate.v0_9.json",
+      "governance/galia_grafana_live_execution_evidence.schema.v0_9.json",
+      "docs/galia_grafana_live_execution_runbook.v0_9.md",
+      "tests/test_galia_grafana_live_execution_v0_9.py"
+    ],
+    "self_hash_embedded": false
+  },
+  "non_effects": [
+    "NO_MAIN_MUTATION",
+    "NO_AUTHORITY_RATIFICATION",
+    "NO_SUPABASE_MUTATION",
+    "NO_GRAFANA_MUTATION",
+    "NO_SSL_CHANGE",
+    "NO_TEMPORARY_ACCESS_CHANGE",
+    "NO_JIT_MAPPING_CHANGE",
+    "NO_PAT_CREATION",
+    "NO_PDC_TOKEN_CREATION",
+    "NO_GRAFANA_SERVICE_ACCOUNT_TOKEN_CREATION",
+    "NO_SECRET_PERSISTENCE",
+    "NO_LIVE_EXECUTION_AUTHORIZATION"
+  ]
+}
