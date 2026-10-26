@@ -7,7 +7,7 @@ on:
     paths:
       - "tools/probe_south_base_ngs.py"
       - "tools/validate_south_base_gates.py"
-      - "research/gates/south_base_gates.v0_8.json"
+      - "research/gates/south_base_gates.v0_9.json"
       - ".github/workflows/galia-south-base-ngs-probe.yml"
 
 permissions:
