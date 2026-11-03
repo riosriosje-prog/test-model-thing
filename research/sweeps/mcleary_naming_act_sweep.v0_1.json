@@ -145,6 +145,57 @@
         "https://icp.pr.gov/wp-content/uploads/2020/10/MunSanJuan_Legajos.pdf"
       ],
       "result": "The finding aids identify the series that would hold a naming act; none is digitized."
+    },
+    {
+      "source": "Library of Congress Chronicling America per-page OCR, Boletín Mercantil de Puerto Rico, LCCN sn91099739",
+      "range": "All 399 LOC-held issues dated 1914-01-02 through 1915-04-30; LOC holds no issues of this title after 1915-04-30",
+      "issues_swept": 363,
+      "page_ocr_files_read": 3279,
+      "incomplete_issues": [
+        "1914-03-05",
+        "1914-05-28",
+        "1914-06-19",
+        "1914-09-07",
+        "1914-09-25",
+        "1914-10-12",
+        "1914-10-24",
+        "1914-12-09",
+        "1914-12-30",
+        "1915-01-12",
+        "1915-01-13",
+        "1915-01-15",
+        "1915-02-01",
+        "1915-02-25",
+        "1915-03-02",
+        "1915-04-03",
+        "1915-04-08",
+        "1915-04-09",
+        "1915-04-10",
+        "1915-04-12",
+        "1915-04-13",
+        "1915-04-14",
+        "1915-04-15",
+        "1915-04-16",
+        "1915-04-17",
+        "1915-04-19",
+        "1915-04-20",
+        "1915-04-21",
+        "1915-04-22",
+        "1915-04-23",
+        "1915-04-24",
+        "1915-04-26",
+        "1915-04-27",
+        "1915-04-28",
+        "1915-04-29",
+        "1915-04-30"
+      ],
+      "pattern": "case-insensitive '(mac|mc|me|mae|mhe)\\s*\\.?\\s*leary|l\\s?eary'; second pass for street cession and renaming language",
+      "result": "All McLeary hits refer to the justice: Supreme Court memorial session and speeches (1914-01-13 to 1914-01-19) and the Hutchinson appointment to the vacancy (1914-05-19). Pitkin's speech (1914-01-17 p3) places the justice's house in Santurce. Other 'Leary' hits are passenger or guest lists and O'Leary citations. No street naming, cession or council text naming McLeary was found.",
+      "limits": [
+        "36 issues were not fully read because of LOC rate limits (listed in incomplete_issues).",
+        "LOC coverage ends 1915-04-30, before the 1915-06-30 cession lead and the 1915-07-21 first print use.",
+        "OCR misreads can hide occurrences."
+      ]
     }
   ],
   "next_archival_targets": [
