@@ -78,6 +78,33 @@
       "relevance": "OCR only and not visually checked. Which 'Parque' is meant is not established."
     }
   ],
+  "naming_mechanism_findings": [
+    {
+      "id": "mech_council_accepts_private_street_cessions_1915",
+      "status": "FACT",
+      "finding": "In 1915 El Tiempo's reports of San Juan Concejo Municipal sessions show the council accepting cessions of private streets in Santurce, sometimes naming them in the same act. This is the most likely route by which a private road such as McLeary became a named municipal street.",
+      "examples": [
+        {"issue_date": "1915-04-09", "ufdc_vid": "01242", "page_file": "0072.txt", "text": "Acepta el Concejo la cesión de terreno para una calle que será conocida por 'Calle Hermanas Látimer', Santurce ... luego de hecha la cesión según dispone la Ordenanza ..."},
+        {"issue_date": "1915-05-28", "ufdc_vid": "01291", "page_file": "0550.txt", "text": "Ordinance renaming calle O'Donnell to José Julián Acosta, approved unanimously; shows street naming by ordinance with signage ('letreros')."},
+        {"issue_date": "1915-06-04", "ufdc_vid": "01298", "page_file": "0629.txt", "text": "El Concejo Municipal ha aceptado el traspaso y cesión de la calle conocida por 'Avenida Nairu', en Santurce."},
+        {"issue_date": "1915-08-14", "ufdc_vid": "01360", "page_file": "0438.txt", "text": "Se aceptó la cesión de la calle de Iturriaga, Santurce. Igualmente se aceptó otra calle cedida por el señor Avelino Vicente, en las cercanías del Hipódromo de Santurce."}
+      ],
+      "relevance": "The naming act being sought may take the form of a council acceptance of a street cession rather than a naming ordinance."
+    },
+    {
+      "id": "lead_unnamed_santurce_cession_1915_06_30",
+      "status": "LEAD_ONLY",
+      "finding": "Report of the ordinary council session of 30 June 1915: 'Fué acuerdo pasar al Ingeniero de la Ciudad y Comisión de Fomento un escrito cediendo una calle en Santurce.' The street is not named.",
+      "source": {"publication": "El Tiempo", "issue_date": "1915-07-02", "ufdc_vid": "01323", "page_file": "0016.txt", "note": "OCR misreads the year as 1916; the METS date is 1915-07-02, a Friday, matching the printed weekday."},
+      "relevance": "This falls three weeks before the first known printed use of 'Mc Leary Avenue' (1915-07-21). It is not identified as McLeary. The AGPR certification for this session (1915, box 110) should be checked."
+    },
+    {
+      "id": "ctx_taft_avenue_in_use_1914",
+      "status": "FACT",
+      "finding": "Taft Avenue is already used as a street address by April 1914 ('5 Taft Ave., Ground floor, Stop 44, Santurce', 1914-04-22) and is described as 'between Dooley and Taft Avenues, Santurce' (1914-05-01).",
+      "sources": ["El Tiempo 1914-04-22, UFDC 01011, 0217.txt", "El Tiempo 1914-05-01, UFDC 01019, 0313.txt"]
+    }
+  ],
   "hypotheses": [
     {
       "id": "hyp_eponym_justice_or_family",
@@ -94,8 +121,15 @@
       "page_ocr_files_read": 6033,
       "missing_ocr_files": 0,
       "pattern": "case-insensitive '(mac|mc|me|mác)\\s*\\.?\\s*leary|leary'",
-      "result": "Name hits were reviewed by hand. Street-name use first appears 1915-07-21. No council, ordinance, naming, opening or dedication text was found.",
-      "limits": ["OCR misreads can hide occurrences.", "Only one newspaper title has been swept issue by issue."]
+      "result": "Name hits were reviewed by hand. Street-name use first appears 1915-07-21. No council, ordinance, naming, opening or dedication text naming McLeary was found. A second full-text pass searched council reports for street naming, cession and acceptance language; findings are under naming_mechanism_findings.",
+      "limits": ["OCR misreads can hide occurrences.", "El Tiempo does not report every council session or every agreement."]
+    },
+    {
+      "source": "UFDC per-page OCR, La Correspondencia de Puerto Rico, bibid AA00031601",
+      "range": "All UFDC issues dated 1914-01-05 through 1915-11-21: vids 09040, 09041, 09042, 09043, 09044, 09046 (1914-08-05, 1914-09-04, 1915-06-18, 1915-07-15, 1915-11-06, 1915-11-10)",
+      "issues_swept": 6,
+      "result": "No McLeary variants.",
+      "limits": ["UFDC holds only these six issues for the window."]
     },
     {
       "source": "Library of Congress Chronicling America full-text search, Puerto Rico titles",
