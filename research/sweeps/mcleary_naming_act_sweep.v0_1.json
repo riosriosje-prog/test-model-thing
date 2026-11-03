@@ -1,0 +1,130 @@
+{
+  "schema_version": "galia.research.sweep.v0.1",
+  "project_id": "mcleary",
+  "gate_id": "MCLEARY-NAMING-ACT-19140105-19151121",
+  "record_date": "2026-11-03",
+  "state": "SWEEP_RECORDED_GATE_STILL_OPEN",
+  "scope": "RESEARCH_PRESENTATION_ONLY",
+  "authority_mutation": false,
+  "outcome": {
+    "naming_act_found": false,
+    "earliest_documented_print_name_use_changed": true,
+    "summary": "No municipal naming, opening or dedication record was found in the swept corpus. The sweep found and visually checked a printed use of the road name on 1915-07-21, earlier than the 1915-11-22 observation already in the evidence file."
+  },
+  "observations": [
+    {
+      "id": "obs_mcleary_print_name_use_1915_07_21",
+      "kind": "PRINTED_STREET_NAME_USE",
+      "issue_date": "1915-07-21",
+      "publication": "El Tiempo / The Times (San Juan, P.R.)",
+      "printed_page": "8",
+      "section": "Personal and Social, column 'Cosmopolitan Wedding'",
+      "printed_text": "Mr. and Mrs. Walter Tischer will be at home to their friends after the fifteenth of August at 2 Mc Leary Avenue, a handsome concrete house which Mr. Tischer has just finished building as a present to his bride.",
+      "spelling_as_printed": "Mc Leary Avenue",
+      "ocr_reading": "2 Me Leary Avenue",
+      "typography_note": "OCR reads 'Me'; the page image shows 'Mc'. The words are split across a line break as 'Mc' / 'Leary'.",
+      "ufdc_bibid": "AA00096997",
+      "ufdc_vid": "01339",
+      "item_url": "https://ufdc.ufl.edu/AA00096997/01339",
+      "page_image_url": "https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01339/0194.jp2",
+      "page_text_url": "https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01339/0194.txt",
+      "issue_pdf_url": "https://ufdcimages.uflib.ufl.edu/AA/00/09/69/97/01339/1915072101.pdf",
+      "retrieved_derivatives": {
+        "page_jp2": {"sha256": "b8ff573ab03cd8e267ecfeb4064c0dc588599818e5ee3aa312c267863a5087a1", "byte_length": 4764175, "pixels": "5402x7069"},
+        "page_ocr_txt": {"sha256": "620af4f2ff0f300d3ab5708344fb45b7b6b14d3c3b2f1bdc9aeb2ed83dc6c68f", "byte_length": 23801},
+        "issue_mets_xml": {"sha256": "c63a8f4ba978c65081b7af815284aedeb04099acbfeabab57f131206ab99f7cb", "byte_length": 22299}
+      },
+      "hash_scope": "UFDC-served access derivatives retrieved 2026-11-03; not custodian archival master bytes and not the issue PDF.",
+      "page_image_visually_checked": true,
+      "visual_check": "Page header reads 'Wednesday July 21 1915' and page number '8'; passage read against the jp2 crop.",
+      "human_review_state": "PENDING",
+      "limits": [
+        "Establishes printed use of the road name by 1915-07-21 only.",
+        "Does not establish first-ever mention.",
+        "Does not establish a municipal naming act, opening, dedication or eponym.",
+        "Does not establish that '2 Mc Leary Avenue' is the same address as the 1915-11-22 'Avenida MacLeary. Parada 44' rental notice."
+      ]
+    }
+  ],
+  "context_findings": [
+    {
+      "id": "ctx_justice_death_1914_01_05",
+      "status": "FACT",
+      "finding": "Justice James Harvey MacLeary of the Supreme Court of Porto Rico died on 5 January 1914; El Tiempo printed the news the same day.",
+      "sources": [
+        "El Tiempo 1914-01-05, UFDC AA00096997/00920, page file 0080.txt",
+        "Boletín Mercantil de Puerto Rico 1914-01-07, p. 6, https://www.loc.gov/resource/sn91099739/1914-01-07/ed-1/?sp=6"
+      ],
+      "relevance": "The death date matches the opening date of the naming-act gate window."
+    },
+    {
+      "id": "ctx_family_residence_condado_taft",
+      "status": "FACT",
+      "finding": "Contemporary social notes place the widow, Mrs. Mary King (M. K.) MacLeary, 'of the Condado' (1914-03-06) and at '13 Taft Ave.' (1915-03-19, 1915-05-30, 1915-07-10). Her house was named 'El Palmarito'. In May and July 1915 she advertised a bungalow/cottage on Taft Ave. for rent.",
+      "sources": [
+        "El Tiempo 1914-03-06, UFDC AA00096997/00972, 0737.txt",
+        "El Tiempo 1915-03-19, UFDC AA00096997/01222, 0763.txt",
+        "El Tiempo 1915-05-05..1915-05-18, UFDC AA00096997/01268..01281 (repeated classified)",
+        "El Tiempo 1915-05-30, UFDC AA00096997/01293, 0581.txt",
+        "El Tiempo 1915-07-10..1915-07-14, UFDC AA00096997/01330..01333 (repeated classified)"
+      ],
+      "relevance": "The family lived and held rental property on Taft Avenue, which the 1916 evidence describes as the street McLeary leaves from."
+    },
+    {
+      "id": "ctx_obituary_parque_residence",
+      "status": "FACT",
+      "finding": "The Boletín Mercantil obituary says one of the justice's daughters was staying 'en su residencia del Parque', and that his son Samuel H. MacLeary was an electrical engineer with the San Juan Light & Transit Co.",
+      "sources": ["Boletín Mercantil de Puerto Rico 1914-01-07, p. 6, https://www.loc.gov/resource/sn91099739/1914-01-07/ed-1/?sp=6"],
+      "relevance": "OCR only and not visually checked. Which 'Parque' is meant is not established."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "hyp_eponym_justice_or_family",
+      "status": "HYPOTHESIS",
+      "statement": "The road may be named for Justice James H. MacLeary (d. 1914-01-05) or for his family, who held property on Taft Avenue, either by a municipal act or by a private subdivision.",
+      "not_established_by": "No naming record found; the name use, residence and death date are circumstantial only."
+    }
+  ],
+  "swept_corpus": [
+    {
+      "source": "UFDC per-page OCR, El Tiempo / The Times (San Juan), bibid AA00096997",
+      "range": "vid 00915 (1913-12-29) through vid 01443 (1915-11-20)",
+      "issues_swept": 529,
+      "page_ocr_files_read": 6033,
+      "missing_ocr_files": 0,
+      "pattern": "case-insensitive '(mac|mc|me|mác)\\s*\\.?\\s*leary|leary'",
+      "result": "Name hits were reviewed by hand. Street-name use first appears 1915-07-21. No council, ordinance, naming, opening or dedication text was found.",
+      "limits": ["OCR misreads can hide occurrences.", "Only one newspaper title has been swept issue by issue."]
+    },
+    {
+      "source": "Library of Congress Chronicling America full-text search, Puerto Rico titles",
+      "range": "1914-01-01 through 1916-12-31",
+      "queries": ["MacLeary", "McLeary", "Mac Leary", "Mc Leary", "Me Leary", "Leary", "Parada 44"],
+      "result": "Four Puerto Rico hits, all Boletín Mercantil, January 1914 (obituary, bar memorial resolution, Arecibo court mourning). None mentions a street.",
+      "limits": ["Relies on LOC search index and its OCR."]
+    },
+    {
+      "source": "Instituto de Cultura Puertorriqueña / AGPR finding aids, Fondo Municipal de San Juan",
+      "documents": [
+        "https://icp.pr.gov/wp-content/uploads/2020/12/MunSJ_ActasAcuerdosAyuntamiento.pdf",
+        "https://icp.pr.gov/wp-content/uploads/2020/10/MunSanJuan_Legajos.pdf"
+      ],
+      "result": "The finding aids identify the series that would hold a naming act; none is digitized."
+    }
+  ],
+  "next_archival_targets": [
+    {"repository": "Archivo General de Puerto Rico", "series": "Certificaciones de acuerdos tomados del Consejo Municipal", "year": "1914", "box": "109"},
+    {"repository": "Archivo General de Puerto Rico", "series": "Certificaciones de acuerdos tomados del Consejo Municipal", "year": "1915", "box": "110"},
+    {"repository": "Archivo General de Puerto Rico", "series": "Calles y Caminos", "legajo": "38-A P.II", "expedientes": "135-184", "years": "1906-1919"},
+    {"repository": "Archivo General de Puerto Rico", "series": "Correspondencia Oficina del Alcalde, Correspondencia y ordenanzas", "years": "1915-16", "box": "98"},
+    {"repository": "Archivo General de Puerto Rico", "series": "Hacienda (Escrituras)", "legajo": "52 P.III / 52 P.IV", "years": "1899-1914 / 1914-1929"}
+  ],
+  "forbidden_promotions": [
+    "print_name_use_to_municipal_act",
+    "document_date_to_street_naming_event",
+    "residence_or_death_date_to_eponym",
+    "derivative_hash_to_archival_capture",
+    "automatic_canonical_write"
+  ]
+}
